@@ -111,7 +111,7 @@ Use all important details from the resume.
 
               "x-api-key":
                 process.env
-                  .CLAUDE_API_KEY,
+                  .ANTHROPIC_API_KEY,
 
               "anthropic-version":
                 "2023-06-01",
