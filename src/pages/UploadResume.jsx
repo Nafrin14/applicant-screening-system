@@ -33,7 +33,7 @@ function UploadResume() {
 
   const navigate = useNavigate();
 
-  const [file, setFile] = useState(null);
+const [files, setFiles] = useState([]);
 
   const [role, setRole] = useState("");
 
@@ -167,12 +167,12 @@ function UploadResume() {
 
   const addCandidate = async () => {
 
-    if (!file) {
+   if (files.length === 0) {
 
-      alert("Please select a resume");
+  alert("Please select resumes");
 
-      return;
-    }
+  return;
+}
 
     if (!role) {
 
@@ -183,75 +183,77 @@ function UploadResume() {
 
     try {
 
-      setLoading(true);
+  setLoading(true);
 
-      let fileText = "";
+  for (const file of files) {
 
-      /* PDF */
+    let fileText = "";
 
-      if (file.type === "application/pdf") {
+    /* PDF */
 
-        fileText = await extractPDFText(file);
+    if (file.type === "application/pdf") {
 
-      } else {
+      fileText =
+        await extractPDFText(file);
 
-        fileText = await file.text();
-      }
+    } else {
 
-     
+      fileText =
+        await file.text();
+    }
 
-      /* AI SCREENING */
+    /* AI SCREENING */
 
-const aiResponse = await screenResume(
-  fileText,
-  role
-);
+    const aiResponse =
+      await screenResume(
+        fileText,
+        role
+      );
 
-setAiResult(
-  aiResponse?.result ||
-  "AI Analysis Completed"
-);
+    setAiResult(
+      aiResponse?.result ||
+      "AI Analysis Completed"
+    );
 
-/* AI SCORE */
+    /* AI SCORE */
 
-const aiScore =
-  aiResponse?.score || 0;
+    const aiScore =
+      aiResponse?.score || 0;
 
-/* SKILLS */
+    /* SKILLS */
 
-const skills =
-  aiResponse?.strengths?.join(", ") || "";
+    const skills =
+      aiResponse?.strengths?.join(", ") || "";
 
-/* STATUS */
+    /* STATUS */
 
-const status =
-  aiScore >= 75
-    ? "Shortlisted"
-    : aiScore >= 60
-    ? "Pending"
-    : "Rejected";
+    const status =
+      aiScore >= 75
+        ? "Shortlisted"
+        : aiScore >= 60
+        ? "Pending"
+        : "Rejected";
 
+    /* EMAIL */
 
+    const email =
+      fileText.match(
+        /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
+      )?.[0] || "Not Found";
 
-      /* EMAIL */
+    /* PHONE */
 
-      const email =
-        fileText.match(
-          /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
-        )?.[0] || "Not Found";
+    const phone =
+      fileText.match(
+        /(\+?\d[\d\s-]{7,}\d)/g
+      )?.[0] || "Not Found";
 
-      /* PHONE */
+    /* FILE NAME */
 
-      const phone =
-        fileText.match(
-          /(\+?\d[\d\s-]{7,}\d)/g
-        )?.[0] || "Not Found";
+    const fileName =
+      `${Date.now()}-${file.name}`;
 
-      /* FILE NAME */
-
-      const fileName =
-        `${Date.now()}-${file?.name || "resume.pdf"}`;
-
+    
       /* STORAGE */
 
       const {
@@ -335,15 +337,15 @@ const status =
       } else {
 
         alert(
-          `Resume Uploaded Successfully!\nAI Match Score: ${aiScore}%`
-        );
+  "All resumes uploaded successfully!"
+);
 
-        setFile(null);
+        setFiles([]);
 
         setRole("");
       }
 
-      setLoading(false);
+      setLoading(false);}
 
     } catch (err) {
 
@@ -511,18 +513,21 @@ const status =
                   e.preventDefault()
                 }
 
-                onDrop={(e) => {
+                
+onDrop={(e) => {
 
-                  e.preventDefault();
+  e.preventDefault();
 
-                  const droppedFile =
-                    e.dataTransfer.files[0];
+  const droppedFiles =
+    Array.from(
+      e.dataTransfer.files
+    );
 
-                  if (droppedFile) {
+  if (droppedFiles.length > 0) {
 
-                    setFile(droppedFile);
-                  }
-                }}
+    setFiles(droppedFiles);
+  }
+}}
 
                 className="border-2 border-dashed border-blue-400 bg-blue-50 rounded-3xl p-10 text-center hover:bg-blue-100 transition"
               >
@@ -538,29 +543,41 @@ const status =
                 </p>
 
                 <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) =>
-                    setFile(e.target.files[0])
-                  }
-                  className="mb-4"
-                />
+  type="file"
+  multiple
+  accept=".pdf,.doc,.docx"
+  onChange={(e) =>
+    setFiles(
+      Array.from(
+        e.target.files
+      )
+    )
+  }
+  className="mb-4"
+/>
 
-                {file && (
+                {files.length > 0 && (
 
-                  <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm">
+  <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm">
 
-                    <p className="text-green-600 font-bold">
-                      Selected File
-                    </p>
+    <p className="text-green-600 font-bold">
+      Selected Files
+    </p>
 
-                    <p className="text-gray-700 mt-1">
-                      {file.name}
-                    </p>
+    {files.map((file, index) => (
 
-                  </div>
+      <p
+        key={index}
+        className="text-gray-700 mt-1"
+      >
+        {file.name}
+      </p>
 
-                )}
+    ))}
+
+  </div>
+
+)}
 
               </div>
 

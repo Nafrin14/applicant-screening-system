@@ -38,24 +38,33 @@ function CandidateList() {
   }, []);
 
   const fetchApplicants =
-    async () => {
+  async () => {
 
-    const { data, error } =
-      await supabase
-        .from("applicants")
-        .select("*")
-        .eq("source", "Manual");
+  const { data, error } =
+    await supabase
+      .from("applicants")
+      .select("*")
+      .eq("source", "Manual")
+      .order(
+        "ai_score",
+        {
+          ascending: false,
+        }
+      );
 
-    if (error) {
+  if (error) {
 
-      console.log(error);
+    console.log(error);
 
-    } else {
+  } else {
 
-      setApplicants(data || []);
+    setApplicants(data || []);
 
-    }
-  };
+  }
+};
+
+    
+  
 
   /* DELETE */
 
@@ -314,7 +323,7 @@ function CandidateList() {
               <tbody>
 
                 {applicants.map(
-                  (applicant) => (
+  (applicant, index) => (
 
                   <tr
                     key={applicant.id}
@@ -356,13 +365,27 @@ function CandidateList() {
 
                     <td>
 
-                      <span className="font-bold text-blue-600">
+                      <div className="flex items-center gap-2">
 
-                        {applicant.ai_score ||
-                          applicant.score ||
-                          0}
+  <span className="font-bold text-blue-600">
 
-                      </span>
+    {applicant.ai_score ||
+      applicant.score ||
+      0}
+
+  </span>
+
+  {index === 0 && (
+
+    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">
+
+      Top Candidate
+
+    </span>
+
+  )}
+
+</div>
 
                     </td>
 
