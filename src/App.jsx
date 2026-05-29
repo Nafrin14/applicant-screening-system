@@ -21,6 +21,8 @@ import CandidateProfile from "./pages/CandidateProfile";
 import InterviewSchedule from "./pages/InterviewSchedule";
 import ScheduledInterviews from "./pages/ScheduledInterviews";
 import CSVUpload from "./pages/CSVUpload";
+import CareersPage from "./pages/CareersPage";
+import ApplyPage from "./pages/ApplyPage";
 
 import ProtectedRoute
 from "./components/ProtectedRoute";
@@ -186,6 +188,20 @@ function App() {
               <JobList />
             </ProtectedRoute>
           }
+        />
+
+        {/* Careers Page */}
+
+        <Route
+          path="/careers"
+          element={<CareersPage />}
+        />
+
+        {/* Apply Page */}
+
+        <Route
+          path="/apply/:id"
+          element={<ApplyPage />}
         />
 
         {/* Settings */}

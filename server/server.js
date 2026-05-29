@@ -5,6 +5,9 @@ require("dotenv").config();
 const aiScreeningRoutes =
   require("./routes/aiScreening");
 
+  const indeedRoutes =
+  require("./routes/indeedRoutes");
+
 const app = express();
 
 app.use(cors());
@@ -22,6 +25,11 @@ app.use(express.urlencoded({
 app.use(
   "/api/ai",
   aiScreeningRoutes
+);
+
+app.use(
+  "/api/indeed",
+  indeedRoutes
 );
 
 const PORT =

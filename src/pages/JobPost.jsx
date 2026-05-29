@@ -54,30 +54,65 @@ function JobPost() {
   const handleSubmit =
     async (e) => {
 
-    e.preventDefault();
+      e.preventDefault();
 
-    const { error } =
-      await supabase
-        .from("job_posts")
-        .insert([job]);
+      const { error } =
+        await supabase
+          .from("job_posts")
+          .insert([job]);
 
-    if (error) {
+      if (error) {
 
-      console.log(error);
+        console.log(error);
 
-      alert(
-        "Error posting job"
-      );
+        alert(
+          "Error posting job"
+        );
 
-    } else {
+      } else {
 
-      alert(
-        "Job Posted Successfully!"
-      );
+        try {
 
-      navigate("/jobs");
-    }
-  };
+          const indeedResponse =
+            await fetch(
+              "http://localhost:5000/api/indeed/post-job",
+              {
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+
+                body:
+                  JSON.stringify(job),
+              }
+            );
+
+          const indeedData =
+            await indeedResponse.json();
+
+          console.log(
+            "Indeed Response:",
+            indeedData
+          );
+
+          alert(
+            "Job Posted Successfully!"
+          );
+
+          navigate("/jobs");
+
+        } catch (err) {
+
+          console.log(err);
+
+          alert(
+            "Indeed connection failed"
+          );
+        }
+      }
+    };
 
   const menuItems = [
 
@@ -241,8 +276,6 @@ function JobPost() {
 
       <div className="flex-1 p-6 overflow-y-auto">
 
-        {/* Header */}
-
         <div className="mb-6">
 
           <h1 className="text-4xl font-black text-slate-900 mb-2">
@@ -255,16 +288,12 @@ function JobPost() {
 
         </div>
 
-        {/* Form Card */}
-
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 max-w-5xl">
 
           <form
             onSubmit={handleSubmit}
             className="space-y-5"
           >
-
-            {/* Job Title */}
 
             <div>
 
@@ -288,8 +317,6 @@ function JobPost() {
 
             </div>
 
-            {/* Skills */}
-
             <div>
 
               <label className="text-sm font-semibold text-slate-700 mb-2 block">
@@ -311,8 +338,6 @@ function JobPost() {
               </div>
 
             </div>
-
-            {/* Experience & Location */}
 
             <div className="grid grid-cols-2 gap-5">
 
@@ -345,7 +370,7 @@ function JobPost() {
                   <input
                     type="text"
                     name="location"
-                    placeholder="Doha, Qatar"
+                    placeholder="Srilanka"
                     onChange={handleChange}
                     className="w-full bg-transparent px-4 py-4 outline-none"
                   />
@@ -355,8 +380,6 @@ function JobPost() {
               </div>
 
             </div>
-
-            {/* Salary */}
 
             <div>
 
@@ -371,7 +394,7 @@ function JobPost() {
                 <input
                   type="text"
                   name="salary"
-                  placeholder="QAR 5000 - 7000"
+                  placeholder="LK 30000 - 50000"
                   onChange={handleChange}
                   className="w-full bg-transparent px-4 py-4 outline-none"
                 />
@@ -379,8 +402,6 @@ function JobPost() {
               </div>
 
             </div>
-
-            {/* Description */}
 
             <div>
 
@@ -397,8 +418,6 @@ function JobPost() {
               ></textarea>
 
             </div>
-
-            {/* Button */}
 
             <button
               type="submit"

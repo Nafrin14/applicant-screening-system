@@ -43,7 +43,8 @@ function CandidateList() {
     const { data, error } =
       await supabase
         .from("applicants")
-        .select("*");
+        .select("*")
+        .eq("source", "Manual");
 
     if (error) {
 
@@ -56,7 +57,7 @@ function CandidateList() {
     }
   };
 
-  /* Delete Function */
+  /* DELETE */
 
   const handleDelete =
     async (id) => {
@@ -65,6 +66,33 @@ function CandidateList() {
       await supabase
         .from("applicants")
         .delete()
+        .eq("id", id);
+
+    if (error) {
+
+      console.log(error);
+
+    } else {
+
+      fetchApplicants();
+
+    }
+  };
+
+  /* STATUS UPDATE */
+
+  const updateStatus =
+    async (
+      id,
+      status
+    ) => {
+
+    const { error } =
+      await supabase
+        .from("applicants")
+        .update({
+          status,
+        })
         .eq("id", id);
 
     if (error) {
@@ -198,7 +226,7 @@ function CandidateList() {
 
       </div>
 
-      {/* Main Content */}
+      {/* Main */}
 
       <div className="flex-1 p-8 overflow-y-auto">
 
@@ -213,33 +241,29 @@ function CandidateList() {
             </h1>
 
             <p className="text-gray-500 mt-1 text-base">
-              Manage all applicants
+              Manage manual uploaded applicants
             </p>
 
           </div>
 
-          <div className="flex gap-3">
+          <button
+            onClick={() =>
+              navigate(
+                "/upload"
+              )
+            }
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl shadow-lg transition"
+          >
 
-            <button
-              onClick={() =>
-                navigate(
-                  "/upload"
-                )
-              }
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl shadow-lg transition"
-            >
-              + Upload Resume
-            </button>
+            + Upload Resume
 
-          </div>
+          </button>
 
         </div>
 
-        {/* Table Card */}
+        {/* Table */}
 
         <div className="bg-white rounded-3xl shadow-md p-6">
-
-          {/* Search */}
 
           <div className="flex justify-between items-center mb-6">
 
@@ -254,8 +278,6 @@ function CandidateList() {
             />
 
           </div>
-
-          {/* Table */}
 
           <div className="overflow-x-auto">
 
@@ -317,7 +339,7 @@ function CandidateList() {
                           </h3>
 
                           <p className="text-sm text-gray-500">
-                            Applicant
+                            Manual Applicant
                           </p>
 
                         </div>
@@ -366,7 +388,7 @@ function CandidateList() {
 
                     <td>
 
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
 
                         {/* View */}
 
@@ -382,24 +404,60 @@ function CandidateList() {
                           }
                           className="bg-blue-100 hover:bg-blue-200 text-blue-600 px-3 py-2 rounded-xl text-sm font-semibold transition"
                         >
+
                           View
+
                         </button>
 
-                        {/* Edit */}
+                        {/* Shortlist */}
+
+                        <button
+                          onClick={() =>
+                            updateStatus(
+                              applicant.id,
+                              "Shortlisted"
+                            )
+                          }
+                          className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded-xl text-sm font-semibold transition"
+                        >
+
+                          Shortlist
+
+                        </button>
+
+                        {/* Reject */}
+
+                        <button
+                          onClick={() =>
+                            updateStatus(
+                              applicant.id,
+                              "Rejected"
+                            )
+                          }
+                          className="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-2 rounded-xl text-sm font-semibold transition"
+                        >
+
+                          Reject
+
+                        </button>
+
+                        {/* Interview */}
 
                         <button
                           onClick={() =>
                             navigate(
-                              "/candidate-details",
+                              "/interview-schedule",
                               {
                                 state:
                                   applicant,
                               }
                             )
                           }
-                          className="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-2 rounded-xl text-sm font-semibold transition"
+                          className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded-xl text-sm font-semibold transition"
                         >
-                          Edit
+
+                          Interview
+
                         </button>
 
                         {/* Delete */}
@@ -410,9 +468,11 @@ function CandidateList() {
                               applicant.id
                             )
                           }
-                          className="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-2 rounded-xl text-sm font-semibold transition"
+                          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-xl text-sm font-semibold transition"
                         >
+
                           Delete
+
                         </button>
 
                       </div>

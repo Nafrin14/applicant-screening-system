@@ -46,182 +46,186 @@ function IndeedApplicants() {
     setApplicants,
   ] = useState([]);
 
-  const [
-    selectedResume,
-    setSelectedResume,
-  ] = useState(null);
-
   useEffect(() => {
 
     fetchApplicants();
 
   }, []);
 
+  /* FETCH APPLICANTS */
+
   const fetchApplicants =
     async () => {
 
-    const {
-      data,
-      error,
-    } =
-      await supabase
-        .from(
-          "indeed_applicants"
-        )
-        .select("*")
-        .order(
-          "id",
-          {
-            ascending: false,
-          }
+      const {
+        data,
+        error,
+      } =
+        await supabase
+          .from("applicants")
+          .select("*")
+          .order(
+            "id",
+            {
+              ascending: false,
+            }
+          );
+
+      if (error) {
+
+        console.log(error);
+
+      } else {
+
+        setApplicants(
+          data || []
         );
+      }
+    };
 
-    if (error) {
+  /* CONNECT INDEED */
 
-      console.log(error);
+  const connectIndeed =
+    async () => {
 
-    } else {
+      try {
 
-      setApplicants(
-        data || []
-      );
-    }
-  };
+        const response =
+          await fetch(
+            "http://localhost:5000/api/indeed/auth-url"
+          );
+
+        const data =
+          await response.json();
+
+        if (
+          data?.authUrl
+        ) {
+
+          window.open(
+            data.authUrl,
+            "_blank"
+          );
+        }
+
+      } catch (error) {
+
+        console.log(error);
+
+        alert(
+          "Failed to connect Indeed"
+        );
+      }
+    };
+
+  /* SEND TO AI */
 
   const sendToAI =
     async (
       applicant
     ) => {
 
-    const { error } =
-      await supabase
-        .from("applicants")
-        .insert([
-          {
+      const { error } =
+        await supabase
+          .from("applicants")
+          .update({
+            ai_status:
+              "Screened",
+          })
+          .eq(
+            "id",
+            applicant.id
+          );
 
-            name:
-              applicant.name,
+      if (error) {
 
-            email:
-              applicant.email,
+        console.log(error);
 
-            phone:
-              applicant.phone,
+        alert(
+          "Failed To Send"
+        );
 
-            skills:
-              applicant.skills,
+      } else {
 
-            ai_score:
-              applicant.score || 0,
+        alert(
+          "Sent To AI Screening"
+        );
 
-            status:
-              applicant.status ||
-              "Pending",
+        fetchApplicants();
+      }
+    };
 
-            experience:
-              applicant.experience,
-
-            role:
-              applicant.job_title,
-
-            location:
-              applicant.location,
-
-            resume_url:
-              applicant.resume_url,
-          },
-        ]);
-
-    if (error) {
-
-      console.log(error);
-
-      alert(
-        "Failed To Send"
-      );
-
-    } else {
-
-      alert(
-        "Sent To AI Screening"
-      );
-    }
-  };
+  /* DOWNLOAD CSV */
 
   const downloadCSV =
     () => {
 
-    const headers = [
-      "Name",
-      "Email",
-      "Phone",
-      "Job",
-      "Location",
-      "Experience",
-      "Skills",
-      "Score",
-      "Status",
-    ];
+      const headers = [
+        "Name",
+        "Email",
+        "Role",
+        "AI Score",
+        "Status",
+      ];
 
-    const rows =
-      applicants.map(
-        (
-          applicant
-        ) => [
-          applicant.name,
-          applicant.email,
-          applicant.phone,
-          applicant.job_title,
-          applicant.location,
-          applicant.experience,
-          applicant.skills,
-          applicant.score,
-          applicant.status,
-        ]
-      );
+      const rows =
+        applicants.map(
+          (
+            applicant
+          ) => [
+            applicant.name,
+            applicant.email,
+            applicant.role,
+            applicant.ai_score,
+            applicant.status,
+          ]
+        );
 
-    let csvContent =
-      "data:text/csv;charset=utf-8,";
-
-    csvContent +=
-      headers.join(",") +
-      "\n";
-
-    rows.forEach(
-      (row) => {
+      let csvContent =
+        "data:text/csv;charset=utf-8,";
 
       csvContent +=
-        row.join(",") +
+        headers.join(",") +
         "\n";
 
-    });
+      rows.forEach(
+        (row) => {
 
-    const encodedUri =
-      encodeURI(
-        csvContent
+          csvContent +=
+            row.join(",") +
+            "\n";
+
+        }
       );
 
-    const link =
-      document.createElement(
-        "a"
+      const encodedUri =
+        encodeURI(
+          csvContent
+        );
+
+      const link =
+        document.createElement(
+          "a"
+        );
+
+      link.setAttribute(
+        "href",
+        encodedUri
       );
 
-    link.setAttribute(
-      "href",
-      encodedUri
-    );
+      link.setAttribute(
+        "download",
+        "indeed_applicants.csv"
+      );
 
-    link.setAttribute(
-      "download",
-      "indeed_applicants.csv"
-    );
+      document.body.appendChild(
+        link
+      );
 
-    document.body.appendChild(
-      link
-    );
+      link.click();
+    };
 
-    link.click();
-  };
+  /* SEARCH */
 
   const filteredApplicants =
     applicants.filter(
@@ -234,6 +238,8 @@ function IndeedApplicants() {
             search.toLowerCase()
           )
     );
+
+  /* SIDEBAR */
 
   const menuItems = [
 
@@ -341,55 +347,57 @@ function IndeedApplicants() {
 
       <div className="w-64 bg-[#020617] text-white p-5">
 
-        <div>
+        <h1 className="text-3xl font-extrabold leading-tight mb-10">
 
-          <h1 className="text-3xl font-extrabold leading-tight mb-10">
-            Applicant
-            <br />
-            Screening System
-          </h1>
+          Applicant
+          <br />
+          Screening System
 
-          <ul className="space-y-3">
+        </h1>
 
-            {menuItems.map(
-              (item) => (
+        <ul className="space-y-3">
 
-              <li
-                key={item.name}
+          {menuItems.map(
+            (item) => (
 
-                onClick={() =>
-                  navigate(
-                    item.path
-                  )
-                }
+            <li
+              key={item.name}
 
-                className={`p-2 rounded-xl cursor-pointer transition-all duration-300 hover:text-blue-400 ${
-                  item.name ===
-                  "Indeed Applicants"
-                    ? "text-blue-400"
-                    : "text-white"
-                }`}
-              >
+              onClick={() =>
+                navigate(
+                  item.path
+                )
+              }
 
-                <div className="flex items-center gap-4">
+              className={`p-2 rounded-xl cursor-pointer transition-all duration-300 hover:text-blue-400 ${
+                item.name ===
+                "Indeed Applicants"
+                  ? "text-blue-400"
+                  : "text-white"
+              }`}
+            >
 
-                  <span className="text-base">
-                    {item.icon}
-                  </span>
+              <div className="flex items-center gap-4">
 
-                  <span className="font-semibold text-[14px]">
-                    {item.name}
-                  </span>
+                <span className="text-base">
 
-                </div>
+                  {item.icon}
 
-              </li>
+                </span>
 
-            ))}
+                <span className="font-semibold text-[14px]">
 
-          </ul>
+                  {item.name}
 
-        </div>
+                </span>
+
+              </div>
+
+            </li>
+
+          ))}
+
+        </ul>
 
       </div>
 
@@ -399,21 +407,36 @@ function IndeedApplicants() {
 
         {/* Header */}
 
-        <div className="flex justify-between items-center mb-5">
+        <div className="flex justify-between items-center mb-5 flex-wrap gap-3">
 
           <div>
 
             <h1 className="text-4xl font-black text-slate-900 mb-1">
+
               Indeed Applicants
+
             </h1>
 
             <p className="text-gray-500 text-sm">
-              Manage imported Indeed applicants
+
+              Manage Indeed applied candidates
+
             </p>
 
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
+
+            <button
+              onClick={
+                connectIndeed
+              }
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl font-semibold shadow-sm transition-all"
+            >
+
+              Connect Indeed
+
+            </button>
 
             <button
               onClick={() =>
@@ -421,7 +444,6 @@ function IndeedApplicants() {
                   "/csv-upload"
                 )
               }
-
               className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-semibold shadow-sm transition-all"
             >
 
@@ -435,7 +457,6 @@ function IndeedApplicants() {
               onClick={
                 downloadCSV
               }
-
               className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl font-semibold shadow-sm transition-all"
             >
 
@@ -451,34 +472,31 @@ function IndeedApplicants() {
 
         {/* Search */}
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 mb-5 shadow-sm">
+        <div className="bg-white rounded-3xl p-5 shadow-sm mb-5">
 
-          <div className="flex items-center bg-slate-50 border border-slate-200 rounded-xl px-4">
+          <div className="flex items-center bg-slate-100 rounded-2xl px-4">
 
             <FaSearch className="text-gray-400" />
 
             <input
               type="text"
               placeholder="Search applicant..."
-
               value={search}
-
               onChange={(e) =>
                 setSearch(
                   e.target.value
                 )
               }
-
-              className="w-full bg-transparent px-4 py-3 outline-none"
+              className="w-full bg-transparent px-4 py-4 outline-none"
             />
 
           </div>
 
         </div>
 
-        {/* Cards */}
+        {/* Applicant Cards */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 gap-5">
 
           {filteredApplicants.map(
             (
@@ -486,157 +504,92 @@ function IndeedApplicants() {
             ) => (
 
             <div
-              key={
-                applicant.id
-              }
-
-              className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all"
+              key={applicant.id}
+              className="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 hover:shadow-md transition-all duration-300"
             >
 
-              {/* Top */}
+              <div className="flex justify-between items-start flex-wrap gap-5">
 
-              <div className="flex justify-between items-start mb-5">
+                {/* Left */}
 
                 <div>
 
-                  <h2 className="text-2xl font-black text-slate-800 mb-1">
+                  <h2 className="text-2xl font-bold text-slate-800 mb-2">
 
-                    {
-                      applicant.name
-                    }
+                    {applicant.name}
 
                   </h2>
 
-                  <p className="text-gray-500 text-sm">
+                  <p className="text-gray-500 mb-3">
 
-                    {
-                      applicant.email
-                    }
+                    {applicant.email}
 
                   </p>
 
-                </div>
+                  {/* Phone & Location */}
 
-                {/* NEW SCORE BADGE */}
+                  <div className="flex gap-5 flex-wrap text-sm text-gray-600">
 
-                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-xl shadow-sm">
+                    {/* Clickable Phone */}
 
-                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-2">
 
-                    <FaStar className="text-xs" />
+                      <FaPhone />
 
-                    <span className="text-lg font-bold">
-                      {applicant.score}%
+                      {applicant.phone ? (
+
+                        <a
+                          href={`tel:${applicant.phone}`}
+                          className="text-blue-600 hover:underline font-medium"
+                        >
+
+                          {applicant.phone}
+
+                        </a>
+
+                      ) : (
+
+                        <span className="text-gray-400">
+
+                          N/A
+
+                        </span>
+
+                      )}
+
+                    </span>
+
+                    {/* Location */}
+
+                    <span className="flex items-center gap-2">
+
+                      <FaMapMarkerAlt />
+
+                      {applicant.location || "N/A"}
+
                     </span>
 
                   </div>
 
                 </div>
 
-              </div>
+                {/* Right */}
 
-              {/* Details */}
+                <div className="text-right">
 
-              <div className="space-y-3 text-sm">
+                  <div className="bg-blue-100 text-blue-700 px-4 py-2 rounded-2xl font-bold flex items-center gap-2">
 
-                <div className="flex items-center gap-2 text-gray-700">
+                    <FaStar />
 
-                  <FaPhone className="text-blue-500" />
+                    {applicant.ai_score || 0}
 
-                  <a
-                    href={`tel:${applicant.phone}`}
+                  </div>
 
-                    className="hover:text-blue-600"
-                  >
+                  <p className="text-sm text-gray-500 mt-2">
 
-                    {
-                      applicant.phone
-                    }
+                    {applicant.status || "Pending"}
 
-                  </a>
-
-                </div>
-
-                <div>
-
-                  <span className="font-bold text-slate-700">
-                    Job:
-                  </span>
-
-                  {" "}
-
-                  {
-                    applicant.job_title
-                  }
-
-                </div>
-
-                <div className="flex items-center gap-2 text-gray-700">
-
-                  <FaMapMarkerAlt className="text-red-500" />
-
-                  {
-                    applicant.location
-                  }
-
-                </div>
-
-                <div>
-
-                  <span className="font-bold text-slate-700">
-                    Experience:
-                  </span>
-
-                  {" "}
-
-                  {
-                    applicant.experience
-                  }
-
-                </div>
-
-                <div>
-
-                  <span className="font-bold text-slate-700">
-                    Skills:
-                  </span>
-
-                  {" "}
-
-                  {
-                    applicant.skills
-                  }
-
-                </div>
-
-                <div className="pt-2">
-
-                  <span className="font-bold text-slate-700 mr-2">
-                    Status:
-                  </span>
-
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      applicant.status ===
-                      "Shortlisted"
-
-                        ? "bg-green-100 text-green-700"
-
-                        : applicant.status ===
-                          "Pending"
-
-                        ? "bg-yellow-100 text-yellow-700"
-
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-
-                    {
-                      applicant.status ||
-                      "Pending"
-                    }
-
-                  </span>
+                  </p>
 
                 </div>
 
@@ -644,7 +597,25 @@ function IndeedApplicants() {
 
               {/* Buttons */}
 
-              <div className="flex gap-3 mt-6">
+              <div className="mt-6 flex gap-3 flex-wrap">
+
+                <button
+                  onClick={() =>
+                    navigate(
+                      "/candidate-details",
+                      {
+                        state: applicant,
+                      }
+                    )
+                  }
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-semibold"
+                >
+
+                  <FaEye />
+
+                  View
+
+                </button>
 
                 <button
                   onClick={() =>
@@ -652,8 +623,7 @@ function IndeedApplicants() {
                       applicant
                     )
                   }
-
-                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl text-sm font-semibold transition-all"
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-5 py-3 rounded-2xl font-semibold"
                 >
 
                   <FaPaperPlane />
@@ -661,26 +631,6 @@ function IndeedApplicants() {
                   Send To AI
 
                 </button>
-
-                {applicant.resume_url && (
-
-                  <button
-                    onClick={() =>
-                      setSelectedResume(
-                        applicant.resume_url
-                      )
-                    }
-
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl text-sm font-semibold transition-all"
-                  >
-
-                    <FaEye />
-
-                    Resume
-
-                  </button>
-
-                )}
 
               </div>
 
@@ -691,47 +641,6 @@ function IndeedApplicants() {
         </div>
 
       </div>
-
-      {/* Resume Modal */}
-
-      {selectedResume && (
-
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-
-          <div className="bg-white w-[90%] h-[90%] rounded-3xl relative overflow-hidden">
-
-            <button
-              onClick={() =>
-                setSelectedResume(
-                  null
-                )
-              }
-
-              className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl z-50"
-            >
-
-              Close
-
-            </button>
-
-            <object
-              data={selectedResume}
-              type="application/pdf"
-              width="100%"
-              height="100%"
-            >
-
-              <p>
-                PDF preview not available.
-              </p>
-
-            </object>
-
-          </div>
-
-        </div>
-
-      )}
 
     </div>
   );

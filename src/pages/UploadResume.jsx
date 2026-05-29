@@ -1,22 +1,12 @@
-import React, {
-  useState,
-} from "react";
+import React, { useState } from "react";
 
-import {
-  useNavigate,
-} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import { supabase }
-from "../supabase";
+import { supabase } from "../supabase";
 
-import { screenResume }
-from "../services/aiService";
+import { screenResume } from "../services/aiService";
 
-import * as pdfjsLib
-from "pdfjs-dist";
-
-import pdfWorker
-from "pdfjs-dist/build/pdf.worker?url";
+import * as pdfjsLib from "pdfjs-dist";
 
 import {
   FaTachometerAlt,
@@ -32,75 +22,50 @@ import {
   FaCloudUploadAlt,
 } from "react-icons/fa";
 
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  pdfWorker;
+/* PDF WORKER FIX */
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 function UploadResume() {
 
-  const navigate =
-    useNavigate();
+  const navigate = useNavigate();
 
-  const [file, setFile] =
-    useState(null);
+  const [file, setFile] = useState(null);
 
-  const [role, setRole] =
-    useState("");
+  const [role, setRole] = useState("");
 
-  const [aiResult,
-    setAiResult] =
-    useState("");
+  const [aiResult, setAiResult] = useState("");
 
-  const [loading,
-    setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
   /* AI SCORE */
 
-  const generateAIScore =
-    (fileName = "") => {
+  const generateAIScore = (fileName = "") => {
 
     let score = 50;
 
-    const lowerCaseFile =
-      fileName.toLowerCase();
+    const lowerCaseFile = fileName.toLowerCase();
 
-    if (
-      lowerCaseFile.includes(
-        "react"
-      )
-    ) {
+    if (lowerCaseFile.includes("react")) {
       score += 15;
     }
 
-    if (
-      lowerCaseFile.includes(
-        "node"
-      )
-    ) {
+    if (lowerCaseFile.includes("node")) {
       score += 15;
     }
 
-    if (
-      lowerCaseFile.includes(
-        "sql"
-      )
-    ) {
+    if (lowerCaseFile.includes("sql")) {
       score += 15;
     }
 
-    if (
-      lowerCaseFile.includes(
-        "python"
-      )
-    ) {
+    if (lowerCaseFile.includes("python")) {
       score += 15;
     }
 
-    if (
-      lowerCaseFile.includes(
-        "java"
-      )
-    ) {
+    if (lowerCaseFile.includes("java")) {
       score += 10;
     }
 
@@ -109,62 +74,34 @@ function UploadResume() {
 
   /* SKILLS */
 
-  const extractSkills =
-    (fileText = "") => {
+  const extractSkills = (fileText = "") => {
 
-    const lowerCaseText =
-      fileText.toLowerCase();
+    const lowerCaseText = fileText.toLowerCase();
 
     let skills = [];
 
-    if (
-      lowerCaseText.includes(
-        "react"
-      )
-    ) {
+    if (lowerCaseText.includes("react")) {
       skills.push("React");
     }
 
-    if (
-      lowerCaseText.includes(
-        "node"
-      )
-    ) {
+    if (lowerCaseText.includes("node")) {
       skills.push("Node.js");
     }
 
-    if (
-      lowerCaseText.includes(
-        "sql"
-      )
-    ) {
+    if (lowerCaseText.includes("sql")) {
       skills.push("SQL");
     }
 
-    if (
-      lowerCaseText.includes(
-        "python"
-      )
-    ) {
+    if (lowerCaseText.includes("python")) {
       skills.push("Python");
     }
 
-    if (
-      lowerCaseText.includes(
-        "java"
-      )
-    ) {
+    if (lowerCaseText.includes("java")) {
       skills.push("Java");
     }
 
-    if (
-      lowerCaseText.includes(
-        "javascript"
-      )
-    ) {
-      skills.push(
-        "JavaScript"
-      );
+    if (lowerCaseText.includes("javascript")) {
+      skills.push("JavaScript");
     }
 
     return skills.join(", ");
@@ -172,33 +109,21 @@ function UploadResume() {
 
   /* STATUS */
 
-  const getStatus =
-    (aiText = "") => {
+  const getStatus = (aiText = "") => {
 
-    const lowerText =
-      aiText.toLowerCase();
+    const lowerText = aiText.toLowerCase();
 
     if (
-      lowerText.includes(
-        "strong match"
-      ) ||
-      lowerText.includes(
-        "highly recommended"
-      ) ||
-      lowerText.includes(
-        "excellent fit"
-      )
+      lowerText.includes("strong match") ||
+      lowerText.includes("highly recommended") ||
+      lowerText.includes("excellent fit")
     ) {
       return "Shortlisted";
     }
 
     if (
-      lowerText.includes(
-        "moderate match"
-      ) ||
-      lowerText.includes(
-        "partial match"
-      )
+      lowerText.includes("moderate match") ||
+      lowerText.includes("partial match")
     ) {
       return "Pending";
     }
@@ -206,18 +131,15 @@ function UploadResume() {
     return "Rejected";
   };
 
-  /* PDF TEXT */
+  /* PDF TEXT EXTRACT */
 
-  const extractPDFText =
-    async (file) => {
+  const extractPDFText = async (file) => {
 
-    const arrayBuffer =
-      await file.arrayBuffer();
+    const arrayBuffer = await file.arrayBuffer();
 
-    const pdf =
-      await pdfjsLib.getDocument({
-        data: arrayBuffer,
-      }).promise;
+    const pdf = await pdfjsLib.getDocument({
+      data: arrayBuffer,
+    }).promise;
 
     let fullText = "";
 
@@ -227,47 +149,34 @@ function UploadResume() {
       pageNum++
     ) {
 
-      const page =
-        await pdf.getPage(
-          pageNum
-        );
+      const page = await pdf.getPage(pageNum);
 
-      const textContent =
-        await page.getTextContent();
+      const textContent = await page.getTextContent();
 
-      const pageText =
-        textContent.items
-          .map(
-            (item) => item.str
-          )
-          .join(" ");
+      const pageText = textContent.items
+        .map((item) => item.str)
+        .join(" ");
 
-      fullText +=
-        pageText + "\n";
+      fullText += pageText + "\n";
     }
 
     return fullText;
   };
 
-  /* UPLOAD */
+  /* UPLOAD FUNCTION */
 
-  const addCandidate =
-    async () => {
+  const addCandidate = async () => {
 
     if (!file) {
 
-      alert(
-        "Please select a resume"
-      );
+      alert("Please select a resume");
 
       return;
     }
 
     if (!role) {
 
-      alert(
-        "Please enter role"
-      );
+      alert("Please enter role");
 
       return;
     }
@@ -278,60 +187,67 @@ function UploadResume() {
 
       let fileText = "";
 
-      if (
-        file.type ===
-        "application/pdf"
-      ) {
+      /* PDF */
 
-        fileText =
-          await extractPDFText(
-            file
-          );
+      if (file.type === "application/pdf") {
+
+        fileText = await extractPDFText(file);
 
       } else {
 
-        fileText =
-          await file.text();
+        fileText = await file.text();
       }
 
-      const aiResponse =
-        await screenResume(
-          fileText,
-          role
-        );
+     
 
-      setAiResult(
-        aiResponse?.result ||
-        "AI Analysis Completed"
-      );
+      /* AI SCREENING */
 
-      const aiScore =
-        generateAIScore(
-          file?.name || ""
-        );
+const aiResponse = await screenResume(
+  fileText,
+  role
+);
 
-      const skills =
-        extractSkills(
-          fileText
-        );
+setAiResult(
+  aiResponse?.result ||
+  "AI Analysis Completed"
+);
 
-      const status =
-        getStatus(
-          aiResponse?.result ||
-          ""
-        );
+/* AI SCORE */
+
+const aiScore =
+  aiResponse?.score || 0;
+
+/* SKILLS */
+
+const skills =
+  aiResponse?.strengths?.join(", ") || "";
+
+/* STATUS */
+
+const status =
+  aiScore >= 75
+    ? "Shortlisted"
+    : aiScore >= 60
+    ? "Pending"
+    : "Rejected";
+
+
+
+      /* EMAIL */
 
       const email =
         fileText.match(
           /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
-        )?.[0] ||
-        "Not Found";
+        )?.[0] || "Not Found";
+
+      /* PHONE */
 
       const phone =
         fileText.match(
           /(\+?\d[\d\s-]{7,}\d)/g
-        )?.[0] ||
-        "Not Found";
+        )?.[0] || "Not Found";
+
+      /* FILE NAME */
 
       const fileName =
         `${Date.now()}-${file?.name || "resume.pdf"}`;
@@ -339,14 +255,10 @@ function UploadResume() {
       /* STORAGE */
 
       const {
-        error: uploadError
-      } =
-        await supabase.storage
-          .from("resumes")
-          .upload(
-            fileName,
-            file
-          );
+        error: uploadError,
+      } = await supabase.storage
+        .from("resumes")
+        .upload(fileName, file);
 
       if (uploadError) {
 
@@ -355,23 +267,20 @@ function UploadResume() {
           uploadError
         );
 
-        alert(
-          uploadError.message
-        );
+        alert(uploadError.message);
 
         setLoading(false);
 
         return;
       }
 
+      /* PUBLIC URL */
+
       const {
         data: { publicUrl },
-      } =
-        supabase.storage
-          .from("resumes")
-          .getPublicUrl(
-            fileName
-          );
+      } = supabase.storage
+        .from("resumes")
+        .getPublicUrl(fileName);
 
       /* DATABASE */
 
@@ -380,7 +289,6 @@ function UploadResume() {
           .from("applicants")
           .insert([
             {
-
               name:
                 file?.name ||
                 "Unknown Candidate",
@@ -391,36 +299,27 @@ function UploadResume() {
 
               role: role,
 
-              experience:
-                "2 Years",
+              experience: "2 Years",
 
-              location:
-                "Sri Lanka",
+              location: "Sri Lanka",
 
-              work_authorization:
-                "Yes",
+              work_authorization: "Yes",
 
-              source:
-                "Manual",
+              source: "Manual",
 
-              ai_score:
-                aiScore,
+              ai_score: aiScore,
 
-              status:
-                status,
+              status: status,
 
-              ai_status:
-                status,
+              ai_status: status,
 
-              skills:
-                skills,
+              skills: skills,
 
               recommendation:
-                aiResponse?.result ||
-                "AI Analysis Completed",
+  aiResponse?.recommendation ||
+  "Pending",
 
-              resume_url:
-                publicUrl,
+              resume_url: publicUrl,
             },
           ]);
 
@@ -431,9 +330,7 @@ function UploadResume() {
           error
         );
 
-        alert(
-          error.message
-        );
+        alert(error.message);
 
       } else {
 
@@ -528,11 +425,9 @@ function UploadResume() {
       path: "/settings",
       icon: <FaCog />,
     },
-
   ];
 
   return (
-
     <div className="min-h-screen bg-slate-100 flex">
 
       <div className="w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shadow-2xl">
@@ -545,19 +440,13 @@ function UploadResume() {
 
           <ul className="space-y-2">
 
-            {menuItems.map(
-              (item) => (
+            {menuItems.map((item) => (
 
               <li
                 key={item.name}
-                onClick={() =>
-                  navigate(
-                    item.path
-                  )
-                }
+                onClick={() => navigate(item.path)}
                 className={`p-3 rounded-2xl cursor-pointer transition-all duration-300 hover:bg-slate-800 hover:translate-x-1 ${
-                  item.name ===
-                  "Resume Upload"
+                  item.name === "Resume Upload"
                     ? "bg-slate-800"
                     : ""
                 }`}
@@ -565,9 +454,7 @@ function UploadResume() {
 
                 <div className="flex items-center gap-3">
 
-                  <span>
-                    {item.icon}
-                  </span>
+                  <span>{item.icon}</span>
 
                   <span className="text-sm font-medium">
                     {item.name}
@@ -614,9 +501,7 @@ function UploadResume() {
                 placeholder="Enter Candidate Role"
                 value={role}
                 onChange={(e) =>
-                  setRole(
-                    e.target.value
-                  )
+                  setRole(e.target.value)
                 }
                 className="w-full bg-slate-100 border border-gray-200 rounded-2xl px-5 py-4 outline-none mb-6"
               />
@@ -631,16 +516,11 @@ function UploadResume() {
                   e.preventDefault();
 
                   const droppedFile =
-                    e.dataTransfer
-                      .files[0];
+                    e.dataTransfer.files[0];
 
-                  if (
-                    droppedFile
-                  ) {
+                  if (droppedFile) {
 
-                    setFile(
-                      droppedFile
-                    );
+                    setFile(droppedFile);
                   }
                 }}
 
@@ -661,9 +541,7 @@ function UploadResume() {
                   type="file"
                   accept=".pdf,.doc,.docx"
                   onChange={(e) =>
-                    setFile(
-                      e.target.files[0]
-                    )
+                    setFile(e.target.files[0])
                   }
                   className="mb-4"
                 />
