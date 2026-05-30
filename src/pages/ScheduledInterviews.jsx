@@ -314,6 +314,13 @@ function ScheduledInterviews() {
                   <th className="text-left px-6 py-4 text-sm font-bold text-slate-700">
                     Candidate
                   </th>
+                  <th className="text-left px-6 py-4 text-sm font-bold text-slate-700">
+  Email
+</th>
+
+<th className="text-left px-6 py-4 text-sm font-bold text-slate-700">
+  Phone
+</th>
 
                   <th className="text-left px-6 py-4 text-sm font-bold text-slate-700">
                     Date
@@ -365,6 +372,23 @@ function ScheduledInterviews() {
                       </div>
 
                     </td>
+
+                    <td className="px-6 py-5 text-sm text-gray-600">
+
+  {interview.email}
+
+</td>
+
+<td className="px-6 py-5 text-sm">
+
+  <a
+    href={`tel:${interview.phone}`}
+    className="text-blue-600 hover:underline"
+  >
+    {interview.phone}
+  </a>
+
+</td>
 
                     <td className="px-6 py-5 text-sm text-gray-600">
 

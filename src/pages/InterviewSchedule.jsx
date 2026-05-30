@@ -4,6 +4,7 @@ import React, {
 
 import {
   useNavigate,
+  useLocation,
 } from "react-router-dom";
 
 import { supabase }
@@ -30,10 +31,37 @@ function InterviewSchedule() {
   const navigate =
     useNavigate();
 
+    const location =
+  useLocation();
+
+const applicant =
+  location.state;
+
+  console.log(
+  "Applicant Data:",
+  applicant
+);
+
   const [
-    candidateName,
-    setCandidateName,
-  ] = useState("");
+  candidateName,
+  setCandidateName,
+] = useState(
+  applicant?.name || ""
+);
+
+const [
+  email,
+  setEmail,
+] = useState(
+  applicant?.email || ""
+);
+
+const [
+  phone,
+  setPhone,
+] = useState(
+  applicant?.phone || ""
+);
 
   const [
     interviewDate,
@@ -73,24 +101,29 @@ function InterviewSchedule() {
       await supabase
         .from("interviews")
         .insert([
-          {
+  {
+    candidate_name:
+      candidateName,
 
-            candidate_name:
-              candidateName,
+    email:
+      email,
 
-            interview_date:
-              interviewDate,
+    phone:
+      phone,
 
-            interview_time:
-              interviewTime,
+    interview_date:
+      interviewDate,
 
-            meeting_type:
-              meetingType,
+    interview_time:
+      interviewTime,
 
-            status:
-              "Scheduled",
-          },
-        ])
+    meeting_type:
+      meetingType,
+
+    status:
+      "Scheduled",
+  },
+])
         .select();
 
     if (error) {
@@ -329,7 +362,34 @@ function InterviewSchedule() {
               </div>
 
             </div>
+            <div>
 
+  <label className="text-sm font-semibold text-slate-700 mb-2 block">
+    Email
+  </label>
+
+  <input
+    type="text"
+    value={email}
+    readOnly
+    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 outline-none"
+  />
+
+</div>
+<div>
+
+  <label className="text-sm font-semibold text-slate-700 mb-2 block">
+    Phone Number
+  </label>
+
+  <input
+    type="text"
+    value={phone}
+    readOnly
+    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 outline-none"
+  />
+
+</div>
             {/* Date */}
 
             <div>

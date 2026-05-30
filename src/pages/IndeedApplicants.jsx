@@ -62,14 +62,18 @@ function IndeedApplicants() {
         error,
       } =
         await supabase
-          .from("applicants")
-          .select("*")
-          .order(
-            "id",
-            {
-              ascending: false,
-            }
-          );
+  .from("applicants")
+  .select("*")
+  .eq(
+    "source",
+    "Indeed"
+  )
+  .order(
+    "id",
+    {
+      ascending: false,
+    }
+  );
 
       if (error) {
 

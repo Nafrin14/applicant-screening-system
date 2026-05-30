@@ -33,6 +33,11 @@ function CandidateList() {
     setApplicants,
   ] = useState([]);
 
+  const [
+  search,
+  setSearch,
+] = useState("");
+
   useEffect(() => {
     fetchApplicants();
   }, []);
@@ -41,16 +46,16 @@ function CandidateList() {
   async () => {
 
   const { data, error } =
-    await supabase
-      .from("applicants")
-      .select("*")
-      .eq("source", "Manual")
-      .order(
-        "ai_score",
-        {
-          ascending: false,
-        }
-      );
+await supabase
+  .from("applicants")
+  .select("*")
+  .eq("source", "Manual")
+  .order(
+    "ai_score",
+    {
+      ascending: false,
+    }
+  );
 
   if (error) {
 
@@ -62,6 +67,15 @@ function CandidateList() {
 
   }
 };
+const filteredApplicants =
+  applicants.filter(
+    (applicant) =>
+      applicant.name
+        ?.toLowerCase()
+        .includes(
+          search.toLowerCase()
+        )
+  );
 
     
   
@@ -281,10 +295,16 @@ function CandidateList() {
             </h2>
 
             <input
-              type="text"
-              placeholder="Search candidate..."
-              className="bg-slate-100 border border-gray-200 px-5 py-3 rounded-2xl outline-none w-72"
-            />
+  type="text"
+  placeholder="Search candidate..."
+  value={search}
+  onChange={(e) =>
+    setSearch(
+      e.target.value
+    )
+  }
+  className="bg-slate-100 border border-gray-200 px-5 py-3 rounded-2xl outline-none w-72"
+/>
 
           </div>
 
@@ -322,9 +342,8 @@ function CandidateList() {
 
               <tbody>
 
-                {applicants.map(
+                {filteredApplicants.map(
   (applicant, index) => (
-
                   <tr
                     key={applicant.id}
                     className="border-b border-gray-100 hover:bg-slate-50 transition"
@@ -342,6 +361,23 @@ function CandidateList() {
                         </div>
 
                         <div>
+{index === 0 && (
+  <p className="text-xs font-bold text-yellow-600">
+    🥇 Rank #1
+  </p>
+)}
+
+{index === 1 && (
+  <p className="text-xs font-bold text-gray-600">
+    🥈 Rank #2
+  </p>
+)}
+
+{index === 2 && (
+  <p className="text-xs font-bold text-orange-600">
+    🥉 Rank #3
+  </p>
+)}
 
                           <h3 className="font-bold text-slate-800">
                             {applicant.name}
@@ -358,10 +394,23 @@ function CandidateList() {
                     </td>
 
                     <td className="text-gray-600">
+  <div>
+    <p>{applicant.email}</p>
 
-                      {applicant.email}
-
-                    </td>
+    <p className="mt-1">
+      📞 {applicant.phone ? (
+        <a
+          href={`tel:${applicant.phone}`}
+          className="text-blue-600 hover:underline"
+        >
+          {applicant.phone}
+        </a>
+      ) : (
+        "N/A"
+      )}
+    </p>
+  </div>
+</td>
 
                     <td>
 

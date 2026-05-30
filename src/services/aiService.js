@@ -20,16 +20,25 @@ export const screenResume = async (
 
     return {
       success: true,
+
       score:
         response?.data?.score || 0,
+
       recommendation:
         response?.data?.recommendation || "",
+
       summary:
         response?.data?.summary || "",
+
       strengths:
         response?.data?.strengths || [],
+
       missingSkills:
         response?.data?.missingSkills || [],
+
+      whySuitable:
+        response?.data?.whySuitable || "",
+
       result:
         response?.data?.result ||
         "AI Analysis Completed",
@@ -46,6 +55,7 @@ export const screenResume = async (
       summary: "",
       strengths: [],
       missingSkills: [],
+      whySuitable: "",
       result:
         "AI Screening Failed",
     };

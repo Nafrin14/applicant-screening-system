@@ -79,8 +79,8 @@ function Results() {
   };
 
   const filteredCandidates =
-    candidates.filter(
-      (candidate) => {
+  candidates.filter(
+    (candidate) => {
 
       const matchesSearch =
         candidate.name
@@ -99,8 +99,22 @@ function Results() {
         matchesSearch &&
         matchesFilter
       );
-    });
+    }
+  );
 
+const rankedCandidates =
+  [...filteredCandidates]
+    .sort(
+      (a, b) =>
+        (b.score || 0) -
+        (a.score || 0)
+    )
+    .map(
+      (candidate, index) => ({
+        ...candidate,
+        rank: index + 1,
+      })
+    );
   const menuItems = [
 
     {
@@ -368,9 +382,8 @@ function Results() {
 
               <tbody>
 
-                {filteredCandidates.map(
-                  (candidate) => (
-
+                {rankedCandidates.map(
+  (candidate) => (
                   <tr
                     key={candidate.id}
                     className="border-b hover:bg-slate-50 transition"
@@ -378,28 +391,27 @@ function Results() {
 
                     <td className="py-5">
 
-                      <div className="flex items-center gap-3">
+  <div className="flex items-center gap-3">
 
-                        <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-                          {candidate.name?.charAt(
-                            0
-                          )}
-                        </div>
+    <div className="w-11 h-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+      {candidate.name?.charAt(0)}
+    </div>
 
-                        <div>
+    <div>
 
-                          <p className="font-semibold text-slate-800">
-                            {
-                              candidate.name
-                            }
-                          </p>
+      <p className="text-xs font-semibold text-purple-600">
+        Rank #{candidate.rank}
+      </p>
 
-                        </div>
+      <p className="font-semibold text-slate-800">
+        {candidate.name}
+      </p>
 
-                      </div>
+    </div>
 
-                    </td>
+  </div>
 
+</td>
                     <td className="text-gray-600">
                       {candidate.role}
                     </td>

@@ -9,11 +9,18 @@ require("dotenv").config();
 const router = express.Router();
 
 async function extractResumeText(filePath) {
-  const fileExtension = filePath.split(".").pop();
+
+  const fileExtension =
+    filePath.split(".").pop();
 
   if (fileExtension === "pdf") {
-    const dataBuffer = fs.readFileSync(filePath);
-    const pdfData = await pdfParse(dataBuffer);
+
+    const dataBuffer =
+      fs.readFileSync(filePath);
+
+    const pdfData =
+      await pdfParse(dataBuffer);
+
     return pdfData.text;
   }
 
@@ -21,6 +28,7 @@ async function extractResumeText(filePath) {
     fileExtension === "docx" ||
     fileExtension === "doc"
   ) {
+
     const result =
       await mammoth.extractRawText({
         path: filePath,
@@ -35,7 +43,9 @@ async function extractResumeText(filePath) {
 router.post(
   "/screen",
   async (req, res) => {
+
     try {
+
       const {
         resumeText,
         jobRole,
@@ -45,7 +55,8 @@ router.post(
         await axios.post(
           "https://api.anthropic.com/v1/messages",
           {
-            model: "claude-opus-4-7",
+            model:
+              "claude-opus-4-7",
 
             max_tokens: 1200,
 
@@ -59,6 +70,19 @@ Analyze this resume for the role: ${jobRole}
 Resume:
 ${resumeText}
 
+You are an expert HR recruiter.
+
+Evaluate the candidate based on:
+
+1. Direct experience related to the role
+2. Similar or transferable experience
+3. Leadership and supervisory experience
+4. Technical and practical skills
+5. Education and certifications
+6. Overall suitability for the position
+
+Even if the candidate does not have direct experience in the role, consider related experience and transferable skills.
+
 Return ONLY valid JSON.
 
 {
@@ -66,21 +90,34 @@ Return ONLY valid JSON.
   "recommendation": "",
   "summary": "",
   "strengths": [],
-  "missingSkills": []
+  "missingSkills": [],
+  "whySuitable": ""
 }
 
 Scoring Rules:
-- 90-100 = Excellent Match
-- 75-89 = Strong Match
-- 60-74 = Moderate Match
-- Below 60 = Weak Match
 
-Evaluate based on:
-1. Skills match
-2. Experience relevance
-3. Education relevance
-4. Projects relevance
-5. Overall suitability
+90-100 = Best Match
+75-89 = Strong Match
+60-74 = Moderate Match
+Below 60 = Weak Match
+
+Recommendation Rules:
+
+- Best Match
+- Strong Match
+- Moderate Match
+- Weak Match
+
+The score should represent how suitable the candidate is for the role overall.
+
+Do not focus only on exact skill matches.
+
+Consider:
+- Similar industries
+- Related experience
+- Leadership ability
+- Supervisory responsibilities
+- Transferable skills
 
 Do not return markdown.
 Do not return explanations outside JSON.
@@ -109,15 +146,20 @@ Do not return explanations outside JSON.
       let parsedResult;
 
       try {
+
         parsedResult =
           JSON.parse(aiText);
+
       } catch {
+
         parsedResult = {
           score: 50,
-          recommendation: "Pending",
+          recommendation:
+            "Moderate Match",
           summary: aiText,
           strengths: [],
           missingSkills: [],
+          whySuitable: "",
         };
       }
 
@@ -138,6 +180,9 @@ Do not return explanations outside JSON.
 
         missingSkills:
           parsedResult.missingSkills,
+
+        whySuitable:
+          parsedResult.whySuitable,
 
         result: aiText,
       });

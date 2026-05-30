@@ -37,7 +37,7 @@ const [files, setFiles] = useState([]);
 
   const [role, setRole] = useState("");
 
-  const [aiResult, setAiResult] = useState("");
+ const [aiResult, setAiResult] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -209,11 +209,12 @@ const [files, setFiles] = useState([]);
         fileText,
         role
       );
+      console.log(
+  "AI RESPONSE:",
+  aiResponse
+);
 
-    setAiResult(
-      aiResponse?.result ||
-      "AI Analysis Completed"
-    );
+    setAiResult(aiResponse);
 
     /* AI SCORE */
 
@@ -317,11 +318,19 @@ const [files, setFiles] = useState([]);
 
               skills: skills,
 
-              recommendation:
-  aiResponse?.recommendation ||
-  "Pending",
+matched_skills:
+  aiResponse?.strengths?.join(", ") || "",
 
-              resume_url: publicUrl,
+missing_skills:
+  aiResponse?.missingSkills?.join(", ") || "",
+
+recommendation:
+  aiResponse?.recommendation || "Pending",
+
+why_suitable:
+  aiResponse?.whySuitable || "",
+
+resume_url: publicUrl,
             },
           ]);
 
@@ -432,8 +441,7 @@ const [files, setFiles] = useState([]);
   return (
     <div className="min-h-screen bg-slate-100 flex">
 
-      <div className="w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shadow-2xl">
-
+      <div className="w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shadow-2xl fixed left-0 top-0 h-screen overflow-y-auto">
         <div>
 
           <h1 className="text-2xl font-extrabold mb-10 leading-snug">
@@ -474,7 +482,7 @@ const [files, setFiles] = useState([]);
 
       </div>
 
-      <div className="flex-1 p-8 overflow-y-auto">
+      <div className="flex-1 ml-64 p-8 h-screen overflow-y-auto">
 
         <div className="mb-8">
 
@@ -490,9 +498,8 @@ const [files, setFiles] = useState([]);
 
         <div className="bg-white rounded-3xl shadow-md p-8 max-w-5xl">
 
-          <div className="grid grid-cols-2 gap-8">
-
-            <div>
+          <div className="grid grid-cols-2 gap-8 items-start">
+            <div className="sticky top-0">
 
               <h2 className="text-2xl font-bold text-slate-800 mb-6">
                 Candidate Information
@@ -598,6 +605,8 @@ onDrop={(e) => {
 
             </div>
 
+            
+
             <div className="bg-slate-50 rounded-3xl p-6">
 
               <h2 className="text-2xl font-bold text-slate-800 mb-6">
@@ -606,14 +615,85 @@ onDrop={(e) => {
 
               {aiResult ? (
 
-                <div className="bg-white rounded-2xl p-6 shadow-sm whitespace-pre-wrap leading-7 text-gray-700">
+  <div className="bg-white rounded-3xl p-6 shadow-lg">
 
-                  {aiResult}
+    <div className="flex justify-between items-center mb-6">
 
-                </div>
+      <h3 className="text-xl font-bold text-slate-800">
+        AI Analysis Result
+      </h3>
 
-              ) : (
+      <div className="bg-blue-600 text-white px-4 py-2 rounded-full font-bold">
+        {aiResult?.score || 0}%
+      </div>
 
+    </div>
+
+    <div className="mb-4">
+      <p className="font-semibold text-slate-700">
+        Recommendation
+      </p>
+
+      <p
+        className={`mt-1 font-bold ${
+          aiResult?.score >= 75
+            ? "text-green-600"
+            : aiResult?.score >= 60
+            ? "text-yellow-600"
+            : "text-red-600"
+        }`}
+      >
+        {aiResult?.recommendation}
+      </p>
+    </div>
+
+    <div className="mb-4">
+      <p className="font-semibold text-slate-700">
+        Summary
+      </p>
+
+      <p className="text-gray-600 mt-1">
+        {aiResult?.summary}
+      </p>
+    </div>
+
+    <div className="mb-4">
+      <p className="font-semibold text-slate-700 mb-2">
+        Strengths
+      </p>
+
+      <ul className="list-disc pl-5 text-green-700">
+        {aiResult?.strengths?.map((item, index) => (
+          <li key={index}>{item}</li>
+        ))}
+      </ul>
+    </div>
+
+    <div className="mb-4">
+      <p className="font-semibold text-slate-700 mb-2">
+        Missing Skills
+      </p>
+
+      <ul className="list-disc pl-5 text-red-600">
+        {aiResult?.missingSkills?.map((item, index) => (
+          <li key={index}>{item}</li>
+        ))}
+      </ul>
+    </div>
+
+    <div>
+      <p className="font-semibold text-slate-700 mb-2">
+        Why Suitable
+      </p>
+
+      <p className="text-gray-600">
+        {aiResult?.whySuitable}
+      </p>
+    </div>
+
+  </div>
+
+) : (
                 <div className="h-full flex items-center justify-center text-center text-gray-400">
 
                   AI analysis results will appear here after resume upload.

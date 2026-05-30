@@ -225,20 +225,9 @@ function CandidateDetails() {
 
             </div>
 
-            <div className="bg-slate-50 p-5 rounded-2xl col-span-2">
+            
 
-              <p className="text-gray-500 mb-2">
-                Skills
-              </p>
-
-              <h2 className="text-xl font-bold text-slate-800">
-                {applicant?.skills ||
-                  "React, Node.js, SQL"}
-              </h2>
-
-            </div>
-
-            <div className="bg-slate-50 p-5 rounded-2xl col-span-2">
+          <div className="bg-slate-50 p-5 rounded-2xl">
 
               <p className="text-gray-500 mb-2">
                 Status
@@ -261,6 +250,19 @@ function CandidateDetails() {
               </span>
 
             </div>
+
+            <div className="bg-slate-50 p-5 rounded-2xl">
+
+  <p className="text-gray-500 mb-2">
+    Recommendation
+  </p>
+
+  <h2 className="text-xl font-bold text-purple-600">
+    {applicant?.recommendation || "Pending"}
+  </h2>
+
+</div>
+
 
           </div>
 

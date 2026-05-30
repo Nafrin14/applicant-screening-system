@@ -47,15 +47,17 @@ function AIResults() {
       data,
       error,
     } =
-      await supabase
-        .from("applicants")
-        .select("*")
-        .order(
-          "id",
-          {
-            ascending: false,
-          }
-        );
+     await supabase
+  .from("applicants")
+  .select("*")
+  .eq("source", "Manual")
+  .order(
+    "ai_score",
+    {
+      ascending: false,
+    }
+  );
+        
 
     if (error) {
 
@@ -170,11 +172,9 @@ function AIResults() {
   return (
 
     <div className="min-h-screen bg-slate-100 flex">
-
       {/* Sidebar */}
 
-      <div className="w-64 bg-[#020617] text-white p-5">
-
+      <div className="w-64 bg-[#020617] text-white p-5 fixed left-0 top-0 h-screen overflow-y-auto">
         <div>
 
           <h1 className="text-3xl font-extrabold leading-tight mb-10">
@@ -229,8 +229,7 @@ function AIResults() {
 
       {/* Main */}
 
-      <div className="flex-1 p-5 overflow-y-auto">
-
+      <div className="flex-1 ml-64 p-5 h-screen overflow-y-auto">
         {/* Header */}
 
         <div className="mb-5">
@@ -250,7 +249,10 @@ function AIResults() {
         <div className="grid grid-cols-3 gap-3">
 
           {candidates.map(
-            (candidate) => (
+  (
+    candidate,
+    index
+  ) => (
 
             <div
               key={candidate.id}
@@ -263,7 +265,23 @@ function AIResults() {
               <div className="flex justify-between items-start mb-3">
 
                 <div>
+{index === 0 && (
+  <div className="text-xs font-bold text-yellow-600 mb-1">
+    🥇 Rank #1
+  </div>
+)}
 
+{index === 1 && (
+  <div className="text-xs font-bold text-gray-600 mb-1">
+    🥈 Rank #2
+  </div>
+)}
+
+{index === 2 && (
+  <div className="text-xs font-bold text-orange-600 mb-1">
+    🥉 Rank #3
+  </div>
+)}
                   <h2 className="text-lg font-black text-slate-900 mb-1">
 
                     {candidate.name}
@@ -326,7 +344,7 @@ function AIResults() {
 
               {/* AI Result */}
 
-              <div className="bg-slate-50 rounded-2xl p-3 h-40 overflow-y-auto border border-slate-100">
+              <div className="bg-slate-50 rounded-2xl p-3  border border-slate-100">
 
                 <h3 className="text-xs font-bold text-slate-800 mb-2">
                   AI Recommendation
@@ -340,6 +358,35 @@ function AIResults() {
                   }
 
                 </p>
+                <div className="mt-3 bg-green-50 p-2 rounded-lg">
+  <h3 className="text-xs font-bold text-green-600 mb-1">
+    Matched Skills
+  </h3>
+
+  <p className="text-[11px] text-gray-700">
+    {candidate.matched_skills || "N/A"}
+  </p>
+</div>
+
+<div className="mt-3 bg-red-50 p-2 rounded-lg">
+  <h3 className="text-xs font-bold text-red-600 mb-1">
+    Missing Skills
+  </h3>
+
+  <p className="text-[11px] text-gray-700">
+    {candidate.missing_skills || "N/A"}
+  </p>
+</div>
+
+<div className="mt-3 bg-blue-50 p-2 rounded-lg">
+  <h3 className="text-xs font-bold text-blue-600 mb-1">
+    Why Suitable
+  </h3>
+
+  <p className="text-[11px] text-gray-700">
+    {candidate.why_suitable || "N/A"}
+  </p>
+</div>
 
               </div>
 
