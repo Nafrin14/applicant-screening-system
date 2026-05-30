@@ -7,7 +7,8 @@ import { supabase } from "../supabase";
 import { screenResume } from "../services/aiService";
 
 import * as pdfjsLib from "pdfjs-dist";
-
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 import {
   FaTachometerAlt,
   FaUsers,

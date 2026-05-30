@@ -10,14 +10,7 @@ import {
 import { supabase }
 from "../supabase";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+
 
 import {
   FaTachometerAlt,
@@ -121,24 +114,7 @@ function Dashboard() {
     navigate("/login");
   };
 
-  const chartData = [
-
-    {
-      name: "Shortlisted",
-      count: shortlisted,
-    },
-
-    {
-      name: "Rejected",
-      count: rejected,
-    },
-
-    {
-      name: "Pending",
-      count: pending,
-    },
-
-  ];
+  
 
   const menuItems = [
 
@@ -390,57 +366,10 @@ function Dashboard() {
 
         {/* Analytics + Recent Applicants */}
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
+         
 
-          {/* Analytics */}
-
-          <div className="bg-white rounded-3xl p-6 shadow-md">
-
-            <div className="flex justify-between items-center mb-6">
-
-              <h2 className="text-2xl font-bold text-slate-800">
-                Applicant Analytics
-              </h2>
-
-              <div className="bg-blue-100 text-blue-600 px-3 py-1 rounded-xl font-semibold text-sm">
-                Live
-              </div>
-
-            </div>
-
-            <ResponsiveContainer
-              width="100%"
-              height={280}
-            >
-
-              <BarChart
-                data={chartData}
-              >
-
-                <XAxis
-                  dataKey="name"
-                />
-
-                <YAxis />
-
-                <Tooltip />
-
-                <Bar
-                  dataKey="count"
-                  fill="#2563EB"
-                  radius={[
-                    10,
-                    10,
-                    0,
-                    0,
-                  ]}
-                />
-
-              </BarChart>
-
-            </ResponsiveContainer>
-
-          </div>
+         
 
           {/* Recent Applicants */}
 
