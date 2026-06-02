@@ -38,6 +38,8 @@ const [files, setFiles] = useState([]);
 
   const [role, setRole] = useState("");
 
+  const [jobDescription, setJobDescription] = useState("");
+
  const [aiResult, setAiResult] = useState(null);
 
   const [loading, setLoading] = useState(false);
@@ -175,12 +177,14 @@ const [files, setFiles] = useState([]);
   return;
 }
 
-    if (!role) {
+if (!jobDescription) {
 
-      alert("Please enter role");
+  alert("Please enter Job Description");
 
-      return;
-    }
+  return;
+}
+
+    
 
     try {
 
@@ -206,10 +210,11 @@ const [files, setFiles] = useState([]);
     /* AI SCREENING */
 
     const aiResponse =
-      await screenResume(
-        fileText,
-        role
-      );
+  await screenResume(
+    fileText,
+    jobDescription
+  );
+
       console.log(
   "AI RESPONSE:",
   aiResponse
@@ -243,12 +248,46 @@ const [files, setFiles] = useState([]);
         /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
       )?.[0] || "Not Found";
 
-    /* PHONE */
+   /* PHONE */
 
-    const phone =
-      fileText.match(
-        /(\+?\d[\d\s-]{7,}\d)/g
-      )?.[0] || "Not Found";
+const phoneMatches =
+  fileText.match(
+    /(\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}|\+\d{10,15})/g
+  ) || [];
+
+const validPhones =
+  phoneMatches.filter(
+    (item) =>
+      !item.match(
+        /^\d{4}\s*-\s*\d{4}$/
+      )
+  );
+
+const phone =
+  validPhones.length > 0
+    ? validPhones[0]
+    : "--";
+
+
+      const experienceMatch =
+  fileText.match(
+    /(\d+(\.\d+)?\+?\s*(years?|yrs?|months?))/i
+  );
+
+const experience =
+  experienceMatch
+    ? experienceMatch[0]
+    : "--";
+
+const locationMatch =
+  fileText.match(
+    /(Colombo|Kalmunai|Kandy|Galle|Jaffna|Batticaloa|Trincomalee|Doha|Qatar|Dubai|UAE|Chennai|Bangalore|India|Sri Lanka)/i
+  );
+
+const location =
+  locationMatch
+    ? locationMatch[0]
+    : "Not Found";
 
     /* FILE NAME */
 
@@ -294,8 +333,9 @@ const [files, setFiles] = useState([]);
           .insert([
             {
               name:
-                file?.name ||
-                "Unknown Candidate",
+  aiResponse?.name ||
+  file?.name ||
+  "Unknown Candidate",
 
               email: email,
 
@@ -303,10 +343,14 @@ const [files, setFiles] = useState([]);
 
               role: role,
 
-              experience: "2 Years",
+              experience:
+  experience !== "Not Found"
+    ? experience
+    : "--",
 
-              location: "Sri Lanka",
-
+location:
+  aiResponse?.location ||
+  location,
               work_authorization: "Yes",
 
               source: "Manual",
@@ -330,6 +374,11 @@ recommendation:
 
 why_suitable:
   aiResponse?.whySuitable || "",
+
+recommended_role:
+  aiResponse?.recommendedRole || "",
+
+
 
 resume_url: publicUrl,
             },
@@ -506,15 +555,15 @@ resume_url: publicUrl,
                 Candidate Information
               </h2>
 
-              <input
-                type="text"
-                placeholder="Enter Candidate Role"
-                value={role}
-                onChange={(e) =>
-                  setRole(e.target.value)
-                }
-                className="w-full bg-slate-100 border border-gray-200 rounded-2xl px-5 py-4 outline-none mb-6"
-              />
+              <textarea
+  placeholder="Paste Job Description Here"
+  value={jobDescription}
+  onChange={(e) =>
+    setJobDescription(e.target.value)
+  }
+  rows={8}
+  className="w-full bg-slate-100 border border-gray-200 rounded-2xl px-5 py-4 outline-none mb-6"
+/>
 
               <div
                 onDragOver={(e) =>

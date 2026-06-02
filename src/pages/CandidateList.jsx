@@ -3,6 +3,9 @@ import React, {
   useState,
 } from "react";
 
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 import {
   useNavigate,
 } from "react-router-dom";
@@ -129,6 +132,72 @@ const filteredApplicants =
     }
   };
 
+  const downloadExcel = () => {
+
+  const excelData =
+    applicants.map((applicant) => ({
+      Name: applicant.name,
+      Email: applicant.email,
+      Phone: applicant.phone,
+      Location: applicant.location,
+      Experience: applicant.experience,
+      RecommendedRole:
+        applicant.recommended_role,
+      AI_Score:
+        applicant.ai_score,
+      Status:
+        applicant.status,
+    }));
+
+  const worksheet =
+    XLSX.utils.json_to_sheet(
+      excelData
+    );
+
+    worksheet["!cols"] = [
+  { wch: 25 }, // Name
+  { wch: 35 }, // Email
+  { wch: 18 }, // Phone
+  { wch: 20 }, // Location
+  { wch: 15 }, // Experience
+  { wch: 30 }, // Recommended Role
+  { wch: 10 }, // AI Score
+  { wch: 15 }, // Status
+];
+
+  const workbook =
+    XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(
+    workbook,
+    worksheet,
+    "Candidates"
+  );
+
+  const excelBuffer =
+    XLSX.write(
+      workbook,
+      {
+        bookType: "xlsx",
+        type: "array",
+      }
+    );
+
+  const fileData =
+    new Blob(
+      [excelBuffer],
+      {
+        type:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }
+    );
+
+  saveAs(
+    fileData,
+    "Candidates.xlsx"
+  );
+};
+
   const menuItems = [
 
     {
@@ -199,8 +268,7 @@ const filteredApplicants =
 
       {/* Sidebar */}
 
-      <div className="w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shadow-2xl">
-
+     <div className="w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shadow-2xl fixed left-0 top-0 h-screen overflow-y-auto">
         <div>
 
           <h1 className="text-2xl font-extrabold mb-10 leading-snug">
@@ -251,8 +319,7 @@ const filteredApplicants =
 
       {/* Main */}
 
-      <div className="flex-1 p-8 overflow-y-auto">
-
+<div className="flex-1 ml-64 p-8 overflow-y-auto">
         {/* Header */}
 
         <div className="flex justify-between items-center mb-8">
@@ -269,18 +336,27 @@ const filteredApplicants =
 
           </div>
 
-          <button
-            onClick={() =>
-              navigate(
-                "/upload"
-              )
-            }
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl shadow-lg transition"
-          >
+          <div className="flex gap-3">
 
-            + Upload Resume
+  <button
+    onClick={downloadExcel}
+    className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl shadow-lg transition"
+  >
+    Download Excel
+  </button>
 
-          </button>
+  <button
+    onClick={() =>
+      navigate(
+        "/upload"
+      )
+    }
+    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl shadow-lg transition"
+  >
+    + Upload Resume
+  </button>
+
+</div>
 
         </div>
 
@@ -310,8 +386,7 @@ const filteredApplicants =
 
           <div className="overflow-x-auto">
 
-            <table className="w-full">
-
+          <table className="w-full">
               <thead>
 
                 <tr className="border-b border-gray-200 text-left">
@@ -325,13 +400,17 @@ const filteredApplicants =
                   </th>
 
                   <th className="text-gray-500 font-semibold">
+  Suitable Jobs
+</th>
+
+                  <th className="text-gray-500 font-semibold">
                     AI Score
                   </th>
 
-                  <th className="text-gray-500 font-semibold">
-                    Status
-                  </th>
-
+                 
+<th className="text-gray-500 font-semibold">
+  Status
+</th>
                   <th className="text-gray-500 font-semibold">
                     Actions
                   </th>
@@ -360,32 +439,32 @@ const filteredApplicants =
 
                         </div>
 
-                        <div>
-{index === 0 && (
-  <p className="text-xs font-bold text-yellow-600">
-    🥇 Rank #1
-  </p>
-)}
-
-{index === 1 && (
-  <p className="text-xs font-bold text-gray-600">
-    🥈 Rank #2
-  </p>
-)}
-
-{index === 2 && (
-  <p className="text-xs font-bold text-orange-600">
-    🥉 Rank #3
-  </p>
-)}
-
+                       <div>
+                        <p
+  className={`text-xs font-bold ${
+    index === 0
+      ? "text-yellow-600"
+      : index === 1
+      ? "text-gray-600"
+      : index === 2
+      ? "text-orange-600"
+      : "text-blue-600"
+  }`}
+>
+  {index === 0
+    ? "🥇"
+    : index === 1
+    ? "🥈"
+    : index === 2
+    ? "🥉"
+    : "🏅"}{" "}
+  Rank #{index + 1}
+</p>
                           <h3 className="font-bold text-slate-800">
                             {applicant.name}
                           </h3>
 
-                          <p className="text-sm text-gray-500">
-                            Manual Applicant
-                          </p>
+                          
 
                         </div>
 
@@ -411,7 +490,15 @@ const filteredApplicants =
     </p>
   </div>
 </td>
+<td className="text-gray-600">
+  <div className="max-w-xs">
 
+    <p className="text-sm text-blue-600 font-medium">
+     {applicant.recommended_role || "Not Available"}
+    </p>
+
+  </div>
+</td>
                     <td>
 
                       <div className="flex items-center gap-2">
@@ -438,119 +525,108 @@ const filteredApplicants =
 
                     </td>
 
-                    <td>
+                    
 
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          applicant.status ===
-                          "Shortlisted"
-                            ? "bg-green-100 text-green-600"
-                            : applicant.status ===
-                              "Rejected"
-                            ? "bg-red-100 text-red-600"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
+                  <td>
 
-                        {applicant.status}
+  <span
+    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+      applicant.status === "Shortlisted"
+        ? "bg-green-100 text-green-600"
+        : applicant.status === "Rejected"
+        ? "bg-red-100 text-red-600"
+        : applicant.status === "Interview Scheduled"
+        ? "bg-purple-100 text-purple-700"
+        : applicant.status === "Selected"
+        ? "bg-blue-100 text-blue-700"
+        : "bg-yellow-100 text-yellow-700"
+    }`}
+  >
+    {applicant.status}
+  </span>
 
-                      </span>
+</td>  
 
-                    </td>
+<td className="w-[300px]">
 
-                    <td>
+ <div className="flex items-center gap-2 whitespace-nowrap">
 
-                      <div className="flex gap-2 flex-wrap">
+    <button
+      onClick={() =>
+        navigate("/candidate-details", {
+          state: applicant,
+        })
+      }
+      className="bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1 rounded-lg text-xs font-semibold transition"
+    >
+      View
+    </button>
 
-                        {/* View */}
+    {applicant.status !== "Shortlisted" && (
+      <button
+        onClick={() =>
+          updateStatus(
+            applicant.id,
+            "Shortlisted"
+          )
+        }
+        className="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-lg text-xs font-semibold transition"
+      >
+        Shortlist
+      </button>
+    )}
 
-                        <button
-                          onClick={() =>
-                            navigate(
-                              "/candidate-details",
-                              {
-                                state:
-                                  applicant,
-                              }
-                            )
-                          }
-                          className="bg-blue-100 hover:bg-blue-200 text-blue-600 px-3 py-2 rounded-xl text-sm font-semibold transition"
-                        >
+    {applicant.status !== "Rejected" && (
+      <button
+        onClick={() =>
+          updateStatus(
+            applicant.id,
+            "Rejected"
+          )
+        }
+        className="bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded-lg text-xs font-semibold transition"
+      >
+        Reject
+      </button>
+    )}
 
-                          View
+    {applicant.status !== "Rejected" && (
+      <button
+        onClick={async () => {
 
-                        </button>
+  await updateStatus(
+    applicant.id,
+    "Interview Scheduled"
+  );
 
-                        {/* Shortlist */}
+  navigate(
+    "/interview-schedule",
+    {
+      state: applicant,
+    }
+  );
 
-                        <button
-                          onClick={() =>
-                            updateStatus(
-                              applicant.id,
-                              "Shortlisted"
-                            )
-                          }
-                          className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2 rounded-xl text-sm font-semibold transition"
-                        >
+}}
+        className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-lg text-xs font-semibold transition"
+      >
+        Interview
+      </button>
+    )}
 
-                          Shortlist
+    <button
+      onClick={() =>
+        handleDelete(
+          applicant.id
+        )
+      }
+      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-lg text-xs font-semibold transition"
+    >
+      Delete
+    </button>
 
-                        </button>
+  </div>
 
-                        {/* Reject */}
-
-                        <button
-                          onClick={() =>
-                            updateStatus(
-                              applicant.id,
-                              "Rejected"
-                            )
-                          }
-                          className="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-2 rounded-xl text-sm font-semibold transition"
-                        >
-
-                          Reject
-
-                        </button>
-
-                        {/* Interview */}
-
-                        <button
-                          onClick={() =>
-                            navigate(
-                              "/interview-schedule",
-                              {
-                                state:
-                                  applicant,
-                              }
-                            )
-                          }
-                          className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded-xl text-sm font-semibold transition"
-                        >
-
-                          Interview
-
-                        </button>
-
-                        {/* Delete */}
-
-                        <button
-                          onClick={() =>
-                            handleDelete(
-                              applicant.id
-                            )
-                          }
-                          className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-xl text-sm font-semibold transition"
-                        >
-
-                          Delete
-
-                        </button>
-
-                      </div>
-
-                    </td>
-
+</td>
                   </tr>
 
                 ))}

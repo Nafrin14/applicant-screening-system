@@ -71,6 +71,28 @@ Resume:
 ${resumeText}
 
 You are an expert HR recruiter.
+Also extract:
+
+1. Candidate Full Name
+2. Total Years of Experience
+3. Current Location
+4. Best Recommended Job Role
+5. Top 3 Suitable Job Roles
+
+Return them in the JSON fields:
+
+"name"
+"experience"
+"location"
+"recommendedRole"
+"suitableJobs"
+
+
+Only recommend roles that are explicitly mentioned in the provided Job Description.
+
+Do NOT create new job titles.
+
+Choose the best matching role only from the positions listed in the Job Description.
 
 Evaluate the candidate based on:
 
@@ -86,6 +108,10 @@ Even if the candidate does not have direct experience in the role, consider rela
 Return ONLY valid JSON.
 
 {
+  "name": "",
+  "experience": "",
+  "location": "",
+  "recommendedRole": "",
   "score": 0,
   "recommendation": "",
   "summary": "",
@@ -93,7 +119,6 @@ Return ONLY valid JSON.
   "missingSkills": [],
   "whySuitable": ""
 }
-
 Scoring Rules:
 
 90-100 = Best Match
@@ -153,18 +178,28 @@ Do not return explanations outside JSON.
       } catch {
 
         parsedResult = {
-          score: 50,
-          recommendation:
-            "Moderate Match",
-          summary: aiText,
-          strengths: [],
-          missingSkills: [],
-          whySuitable: "",
-        };
+  name: "",
+  experience: "",
+  location: "",
+  recommendedRole: "",
+  score: 50,
+  recommendation: "Moderate Match",
+  summary: aiText,
+  strengths: [],
+  missingSkills: [],
+  whySuitable: "",
+};
       }
 
       res.json({
         success: true,
+
+          name: parsedResult.name,
+  experience: parsedResult.experience,
+  location: parsedResult.location,
+  recommendedRole:
+  parsedResult.recommendedRole,
+
 
         score:
           parsedResult.score,
