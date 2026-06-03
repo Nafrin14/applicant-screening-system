@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API =
-  "http://localhost:5000/api/ai/screen";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API = `${API_BASE}/api/ai/screen`;
 
 export const screenResume = async (
   resumeText,

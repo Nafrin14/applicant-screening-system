@@ -13,18 +13,9 @@ import {
 import { supabase }
 from "../supabase";
 
-import {
-  FaTachometerAlt,
-  FaUsers,
-  FaFileUpload,
-  FaRobot,
-  FaCalendarAlt,
-  FaClipboardList,
-  FaBriefcase,
-  FaSuitcase,
-  FaUserFriends,
-  FaCog,
-} from "react-icons/fa";
+import Sidebar from "../components/Sidebar";
+
+
 
 function CandidateList() {
 
@@ -198,69 +189,7 @@ const filteredApplicants =
   );
 };
 
-  const menuItems = [
-
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: <FaTachometerAlt />,
-    },
-
-    {
-      name: "Candidates",
-      path: "/results",
-      icon: <FaUsers />,
-    },
-
-    {
-      name: "Resume Upload",
-      path: "/upload",
-      icon: <FaFileUpload />,
-    },
-
-    {
-      name: "AI Results",
-      path: "/ai-results",
-      icon: <FaRobot />,
-    },
-
-    {
-      name: "Interview Schedule",
-      path: "/interview-schedule",
-      icon: <FaCalendarAlt />,
-    },
-
-    {
-      name: "Scheduled Interviews",
-      path: "/scheduled-interviews",
-      icon: <FaClipboardList />,
-    },
-
-    {
-      name: "Job Post",
-      path: "/job-post",
-      icon: <FaBriefcase />,
-    },
-
-    {
-      name: "Posted Jobs",
-      path: "/jobs",
-      icon: <FaSuitcase />,
-    },
-
-    {
-      name: "Indeed Applicants",
-      path: "/indeed-applicants",
-      icon: <FaUserFriends />,
-    },
-
-    {
-      name: "Settings",
-      path: "/settings",
-      icon: <FaCog />,
-    },
-
-  ];
+  
 
   return (
 
@@ -268,61 +197,14 @@ const filteredApplicants =
 
       {/* Sidebar */}
 
-     <div className="w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shadow-2xl fixed left-0 top-0 h-screen overflow-y-auto">
-        <div>
-
-          <h1 className="text-2xl font-extrabold mb-10 leading-snug">
-            Applicant Screening System
-          </h1>
-
-          <ul className="space-y-2">
-
-            {menuItems.map(
-              (item) => (
-
-              <li
-                key={item.name}
-                onClick={() =>
-                  navigate(
-                    item.path
-                  )
-                }
-                className={`p-3 rounded-2xl cursor-pointer transition-all duration-300 hover:bg-slate-800 hover:translate-x-1 ${
-                  item.name ===
-                  "Candidates"
-                    ? "bg-slate-800"
-                    : ""
-                }`}
-              >
-
-                <div className="flex items-center gap-3">
-
-                  <span className="text-base">
-                    {item.icon}
-                  </span>
-
-                  <span className="font-medium text-sm">
-                    {item.name}
-                  </span>
-
-                </div>
-
-              </li>
-
-            ))}
-
-          </ul>
-
-        </div>
-
-      </div>
-
+     {/* Sidebar */}
+<Sidebar />
       {/* Main */}
 
-<div className="flex-1 ml-64 p-8 overflow-y-auto">
+<div className="flex-1 md:ml-64 pt-20 md:pt-8 p-4 md:p-8 overflow-y-auto">
         {/* Header */}
 
-        <div className="flex justify-between items-center mb-8">
+       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
 
           <div>
 
@@ -336,7 +218,7 @@ const filteredApplicants =
 
           </div>
 
-          <div className="flex gap-3">
+         <div className="flex flex-col md:flex-row gap-3">
 
   <button
     onClick={downloadExcel}
@@ -364,11 +246,11 @@ const filteredApplicants =
 
         <div className="bg-white rounded-3xl shadow-md p-6">
 
-          <div className="flex justify-between items-center mb-6">
+         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
 
-            <h2 className="text-2xl font-bold text-slate-800">
-              Applicant List
-            </h2>
+           <h2 className="text-xl md:text-2xl font-bold text-slate-800">
+  Applicant List
+</h2>
 
             <input
   type="text"
@@ -379,14 +261,14 @@ const filteredApplicants =
       e.target.value
     )
   }
-  className="bg-slate-100 border border-gray-200 px-5 py-3 rounded-2xl outline-none w-72"
+ className="bg-slate-100 border border-gray-200 px-5 py-3 rounded-2xl outline-none w-full md:w-72"
 />
 
           </div>
 
-          <div className="overflow-x-auto">
+         <div className="overflow-x-auto w-full">
 
-          <table className="w-full">
+          <table className="min-w-[1200px] w-full">
               <thead>
 
                 <tr className="border-b border-gray-200 text-left">

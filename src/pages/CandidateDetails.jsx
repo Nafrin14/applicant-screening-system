@@ -5,18 +5,7 @@ import {
   useLocation,
 } from "react-router-dom";
 
-import {
-  FaTachometerAlt,
-  FaUsers,
-  FaFileUpload,
-  FaRobot,
-  FaCalendarAlt,
-  FaClipboardList,
-  FaBriefcase,
-  FaSuitcase,
-  FaUserFriends,
-  FaCog,
-} from "react-icons/fa";
+import Sidebar from "../components/Sidebar";
 
 function CandidateDetails() {
 
@@ -28,131 +17,24 @@ function CandidateDetails() {
 
   const applicant =
     location.state;
-
-  const menuItems = [
-
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: <FaTachometerAlt />,
-    },
-
-    {
-      name: "Candidates",
-      path: "/results",
-      icon: <FaUsers />,
-    },
-
-    {
-      name: "Resume Upload",
-      path: "/upload",
-      icon: <FaFileUpload />,
-    },
-
-    {
-      name: "AI Results",
-      path: "/ai-results",
-      icon: <FaRobot />,
-    },
-
-    {
-      name: "Interview Schedule",
-      path: "/interview-schedule",
-      icon: <FaCalendarAlt />,
-    },
-
-    {
-      name: "Scheduled Interviews",
-      path: "/scheduled-interviews",
-      icon: <FaClipboardList />,
-    },
-
-    {
-      name: "Job Post",
-      path: "/job-post",
-      icon: <FaBriefcase />,
-    },
-
-    {
-      name: "Posted Jobs",
-      path: "/jobs",
-      icon: <FaSuitcase />,
-    },
-
-    {
-      name: "Indeed Applicants",
-      path: "/indeed-applicants",
-      icon: <FaUserFriends />,
-    },
-
-    {
-      name: "Settings",
-      path: "/settings",
-      icon: <FaCog />,
-    },
-
-  ];
-
   return (
 
     <div className="min-h-screen bg-slate-100 flex">
 
       {/* Sidebar */}
-
-      <div className="w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shadow-2xl">
-
-        <div>
-
-          <h1 className="text-2xl font-extrabold mb-10 leading-snug">
-            Applicant Screening System
-          </h1>
-
-          <ul className="space-y-2">
-
-            {menuItems.map(
-              (item) => (
-
-              <li
-                key={item.name}
-                onClick={() =>
-                  navigate(
-                    item.path
-                  )
-                }
-                className="p-3 rounded-2xl cursor-pointer transition-all duration-300 hover:bg-slate-800"
-              >
-
-                <div className="flex items-center gap-3">
-
-                  {item.icon}
-
-                  <span className="text-sm font-medium">
-                    {item.name}
-                  </span>
-
-                </div>
-
-              </li>
-
-            ))}
-
-          </ul>
-
-        </div>
-
-      </div>
+      <Sidebar />
 
       {/* Main Content */}
 
-      <div className="flex-1 p-8">
+      <div className="flex-1 md:ml-64 p-4 md:p-8 overflow-y-auto">
 
-        <div className="bg-white rounded-3xl shadow-md p-8 max-w-5xl">
+        <div className="bg-white rounded-3xl shadow-md p-6 md:p-8 max-w-5xl">
 
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
 
             <div>
 
-              <h1 className="text-4xl font-extrabold text-slate-800">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800">
                 Candidate Details
               </h1>
 
@@ -173,7 +55,7 @@ function CandidateDetails() {
 
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             <div className="bg-slate-50 p-5 rounded-2xl">
 

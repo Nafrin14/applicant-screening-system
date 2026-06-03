@@ -6,20 +6,12 @@ import { supabase } from "../supabase";
 
 import { screenResume } from "../services/aiService";
 
+import Sidebar from "../components/Sidebar";
+
 import * as pdfjsLib from "pdfjs-dist";
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 import {
-  FaTachometerAlt,
-  FaUsers,
-  FaFileUpload,
-  FaRobot,
-  FaCalendarAlt,
-  FaClipboardList,
-  FaBriefcase,
-  FaSuitcase,
-  FaUserFriends,
-  FaCog,
   FaCloudUploadAlt,
 } from "react-icons/fa";
 
@@ -422,135 +414,24 @@ resume_url: publicUrl,
       setLoading(false);
     }
   };
-
-  /* SIDEBAR */
-
-  const menuItems = [
-
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon: <FaTachometerAlt />,
-    },
-
-    {
-      name: "Candidates",
-      path: "/results",
-      icon: <FaUsers />,
-    },
-
-    {
-      name: "Resume Upload",
-      path: "/upload",
-      icon: <FaFileUpload />,
-    },
-
-    {
-      name: "AI Results",
-      path: "/ai-results",
-      icon: <FaRobot />,
-    },
-
-    {
-      name: "Interview Schedule",
-      path: "/interview-schedule",
-      icon: <FaCalendarAlt />,
-    },
-
-    {
-      name: "Scheduled Interviews",
-      path: "/scheduled-interviews",
-      icon: <FaClipboardList />,
-    },
-
-    {
-      name: "Job Post",
-      path: "/job-post",
-      icon: <FaBriefcase />,
-    },
-
-    {
-      name: "Posted Jobs",
-      path: "/jobs",
-      icon: <FaSuitcase />,
-    },
-
-    {
-      name: "Indeed Applicants",
-      path: "/indeed-applicants",
-      icon: <FaUserFriends />,
-    },
-
-    {
-      name: "Settings",
-      path: "/settings",
-      icon: <FaCog />,
-    },
-  ];
-
   return (
     <div className="min-h-screen bg-slate-100 flex">
+      {/* Sidebar */}
+      <Sidebar />
 
-      <div className="w-64 bg-slate-900 text-white p-5 flex flex-col justify-between shadow-2xl fixed left-0 top-0 h-screen overflow-y-auto">
-        <div>
-
-          <h1 className="text-2xl font-extrabold mb-10 leading-snug">
-            Applicant Screening System
-          </h1>
-
-          <ul className="space-y-2">
-
-            {menuItems.map((item) => (
-
-              <li
-                key={item.name}
-                onClick={() => navigate(item.path)}
-                className={`p-3 rounded-2xl cursor-pointer transition-all duration-300 hover:bg-slate-800 hover:translate-x-1 ${
-                  item.name === "Resume Upload"
-                    ? "bg-slate-800"
-                    : ""
-                }`}
-              >
-
-                <div className="flex items-center gap-3">
-
-                  <span>{item.icon}</span>
-
-                  <span className="text-sm font-medium">
-                    {item.name}
-                  </span>
-
-                </div>
-
-              </li>
-
-            ))}
-
-          </ul>
-
-        </div>
-
-      </div>
-
-      <div className="flex-1 ml-64 p-8 h-screen overflow-y-auto">
-
+      <div className="flex-1 md:ml-64 p-8 h-screen overflow-y-auto">
         <div className="mb-8">
-
           <h1 className="text-4xl font-extrabold text-slate-800">
             Resume Upload
           </h1>
-
           <p className="text-gray-500 mt-2">
             Upload and analyze candidate resumes
           </p>
-
         </div>
 
         <div className="bg-white rounded-3xl shadow-md p-8 max-w-5xl">
-
-          <div className="grid grid-cols-2 gap-8 items-start">
-            <div className="sticky top-0">
-
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            <div className="lg:sticky lg:top-0">
               <h2 className="text-2xl font-bold text-slate-800 mb-6">
                 Candidate Information
               </h2>

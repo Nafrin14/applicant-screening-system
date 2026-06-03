@@ -1,163 +1,187 @@
 import React from "react";
-
-import {
-  useLocation,
-  useNavigate,
-} from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 function CandidateProfile() {
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const location =
-    useLocation();
-
-  const navigate =
-    useNavigate();
-
-  const applicant =
-    location.state;
+  const applicant = location.state;
 
   if (!applicant) {
-
     return (
-
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
         <h1 className="text-3xl font-bold text-red-500">
           No Applicant Data
         </h1>
-
       </div>
     );
   }
 
   return (
-
-    <div className="min-h-screen bg-gray-100 p-10">
+    <div className="min-h-screen bg-slate-100 p-4">
 
       {/* Back Button */}
-
       <button
-        onClick={() =>
-          navigate(-1)
-        }
-        className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl mb-8"
+        onClick={() => navigate(-1)}
+        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl mb-5"
       >
-        Back
+        ← Back
       </button>
 
-      {/* Profile Card */}
+      <div className="max-w-5xl mx-auto">
 
-      <div className="bg-white rounded-3xl shadow-lg p-10 max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-6 text-white shadow-xl mb-5">
 
-        <div className="flex justify-between items-center mb-10">
+          <div className="flex justify-between items-center">
 
-          <div>
+            <div>
 
-            <h1 className="text-5xl font-bold text-gray-800">
-              {applicant.name}
-            </h1>
+              <h1 className="text-3xl font-bold">
+                {applicant.name}
+              </h1>
 
-            <p className="text-gray-500 mt-2 text-lg">
-              {applicant.email}
-            </p>
-
-          </div>
-
-          <div className="text-right">
-
-            <p className="text-4xl font-bold text-blue-600">
-              {applicant.ai_score ||
-                applicant.score ||
-                0}%
-            </p>
-
-            <p className="text-gray-500">
-              AI Match Score
-            </p>
-
-          </div>
-
-        </div>
-
-        {/* Details */}
-
-        <div className="grid grid-cols-2 gap-8">
-
-          <div className="bg-gray-100 rounded-2xl p-8">
-
-            <h2 className="text-2xl font-bold mb-6">
-              Candidate Details
-            </h2>
-
-            <div className="space-y-4 text-lg">
-
-              <p>
-                <strong>Email:</strong>
-                {" "}
+              <p className="text-blue-100 mt-2">
                 {applicant.email}
               </p>
 
-              <p>
-                <strong>Phone:</strong>
-                {" "}
-                {applicant.phone ||
-                  "Not Available"}
-              </p>
+              <span
+                className={`inline-block mt-4 px-4 py-2 rounded-full text-sm font-semibold ${
+                  applicant.status === "Shortlisted"
+                    ? "bg-green-500"
+                    : applicant.status === "Pending"
+                    ? "bg-yellow-500 text-black"
+                    : "bg-red-500"
+                }`}
+              >
+                {applicant.status}
+              </span>
 
-              <p>
-                <strong>Role:</strong>
-                {" "}
-                {applicant.role ||
-                  "Not Available"}
-              </p>
+            </div>
 
-              <p>
-                <strong>Experience:</strong>
-                {" "}
-                {applicant.experience ||
-                  "Not Available"}
-              </p>
+            <div className="text-center">
 
-              <p>
-                <strong>Location:</strong>
-                {" "}
-                {applicant.location ||
-                  "Not Available"}
+              <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center text-blue-700 text-2xl font-bold shadow-lg">
+                {applicant.ai_score || applicant.score || 0}%
+              </div>
+
+              <p className="mt-2 text-blue-100 text-sm">
+                AI Match Score
               </p>
 
             </div>
 
           </div>
 
-          {/* Skills + Status */}
+        </div>
 
-          <div className="bg-gray-100 rounded-2xl p-8">
+        {/* AI Recommended Role */}
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
 
-            <h2 className="text-2xl font-bold mb-6">
-              Skills & Status
+          <p className="text-xs text-gray-500">
+            AI Recommended Role
+          </p>
+
+          <h3 className="text-lg font-bold text-blue-700 mt-1">
+            {applicant.recommended_role || "Not Available"}
+          </h3>
+
+        </div>
+
+        {/* Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Candidate Details */}
+          <div className="bg-white rounded-3xl p-5 shadow-md border border-slate-200">
+
+            <h2 className="text-xl font-bold text-slate-800 mb-5">
+              Candidate Details
             </h2>
 
-            <div className="space-y-4 text-lg">
+            <div className="space-y-4">
 
-              <p>
-                <strong>Skills:</strong>
-                {" "}
-                {applicant.skills}
+              <div>
+                <p className="text-xs text-gray-500">
+                  Email
+                </p>
+                <p className="font-semibold text-sm">
+                  {applicant.email}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">
+                  Phone
+                </p>
+                <p className="font-semibold text-sm">
+                  {applicant.phone || "Not Available"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">
+                  Role
+                </p>
+                <p className="font-semibold text-sm">
+                  {applicant.role || "Not Available"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">
+                  Experience
+                </p>
+                <p className="font-semibold text-sm">
+                  {applicant.experience || "Not Available"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">
+                  Location
+                </p>
+                <p className="font-semibold text-sm">
+                  {applicant.location || "Not Available"}
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
+          {/* Skills & Resume */}
+          <div className="bg-white rounded-3xl p-5 shadow-md border border-slate-200">
+
+            <h2 className="text-xl font-bold text-slate-800 mb-5">
+              Skills & Resume
+            </h2>
+
+            <p className="font-semibold text-sm mb-3">
+              Skills
+            </p>
+
+            <div className="flex flex-wrap gap-2 mb-5">
+
+              {(applicant.skills || "")
+                .split(",")
+                .map((skill, index) => (
+                  <span
+                    key={index}
+                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs"
+                  >
+                    {skill.trim()}
+                  </span>
+                ))}
+
+            </div>
+
+            <div className="mb-5">
+
+              <p className="text-xs text-gray-500">
+                Recommendation
               </p>
 
-              <p>
-
-                <strong>Status:</strong>
-
-                <span className="ml-3 bg-blue-600 text-white px-4 py-1 rounded-full text-sm">
-                  {applicant.status}
-                </span>
-
-              </p>
-
-              <p>
-                <strong>Recommendation:</strong>
-                {" "}
+              <p className="font-semibold text-green-600 text-sm">
                 {applicant.recommendation ||
                   "No recommendation available"}
               </p>
@@ -165,18 +189,14 @@ function CandidateProfile() {
             </div>
 
             {applicant.resume_url && (
-
               <a
-                href={
-                  applicant.resume_url
-                }
+                href={applicant.resume_url}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-block mt-8 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl"
+                className="inline-block bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-xl font-semibold text-sm"
               >
                 View Resume
               </a>
-
             )}
 
           </div>

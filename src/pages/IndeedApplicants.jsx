@@ -10,17 +10,9 @@ import {
 import { supabase }
 from "../supabase";
 
+import Sidebar from "../components/Sidebar";
+
 import {
-  FaTachometerAlt,
-  FaUsers,
-  FaFileUpload,
-  FaRobot,
-  FaCalendarAlt,
-  FaClipboardList,
-  FaBriefcase,
-  FaSuitcase,
-  FaUserFriends,
-  FaCog,
   FaSearch,
   FaDownload,
   FaUpload,
@@ -94,9 +86,10 @@ function IndeedApplicants() {
 
       try {
 
+        const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
         const response =
           await fetch(
-            "http://localhost:5000/api/indeed/auth-url"
+            `${API_BASE}/api/indeed/auth-url`
           );
 
         const data =
@@ -243,171 +236,16 @@ function IndeedApplicants() {
           )
     );
 
-  /* SIDEBAR */
-
-  const menuItems = [
-
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon:
-        <FaTachometerAlt />,
-    },
-
-    {
-      name: "Candidates",
-      path: "/results",
-      icon:
-        <FaUsers />,
-    },
-
-    {
-      name: "Resume Upload",
-      path: "/upload",
-      icon:
-        <FaFileUpload />,
-    },
-
-    {
-      name: "AI Results",
-      path: "/ai-results",
-      icon:
-        <FaRobot />,
-    },
-
-    {
-      name:
-        "Interview Schedule",
-
-      path:
-        "/interview-schedule",
-
-      icon:
-        <FaCalendarAlt />,
-    },
-
-    {
-      name:
-        "Scheduled Interviews",
-
-      path:
-        "/scheduled-interviews",
-
-      icon:
-        <FaClipboardList />,
-    },
-
-    {
-      name:
-        "Job Post",
-
-      path:
-        "/job-post",
-
-      icon:
-        <FaBriefcase />,
-    },
-
-    {
-      name:
-        "Posted Jobs",
-
-      path:
-        "/jobs",
-
-      icon:
-        <FaSuitcase />,
-    },
-
-    {
-      name:
-        "Indeed Applicants",
-
-      path:
-        "/indeed-applicants",
-
-      icon:
-        <FaUserFriends />,
-    },
-
-    {
-      name:
-        "Settings",
-
-      path:
-        "/settings",
-
-      icon:
-        <FaCog />,
-    },
-
-  ];
-
   return (
 
     <div className="min-h-screen bg-slate-100 flex">
 
       {/* Sidebar */}
-
-      <div className="w-64 bg-[#020617] text-white p-5">
-
-        <h1 className="text-3xl font-extrabold leading-tight mb-10">
-
-          Applicant
-          <br />
-          Screening System
-
-        </h1>
-
-        <ul className="space-y-3">
-
-          {menuItems.map(
-            (item) => (
-
-            <li
-              key={item.name}
-
-              onClick={() =>
-                navigate(
-                  item.path
-                )
-              }
-
-              className={`p-2 rounded-xl cursor-pointer transition-all duration-300 hover:text-blue-400 ${
-                item.name ===
-                "Indeed Applicants"
-                  ? "text-blue-400"
-                  : "text-white"
-              }`}
-            >
-
-              <div className="flex items-center gap-4">
-
-                <span className="text-base">
-
-                  {item.icon}
-
-                </span>
-
-                <span className="font-semibold text-[14px]">
-
-                  {item.name}
-
-                </span>
-
-              </div>
-
-            </li>
-
-          ))}
-
-        </ul>
-
-      </div>
+      <Sidebar />
 
       {/* Main */}
 
-      <div className="flex-1 p-5 overflow-y-auto">
+      <div className="flex-1 md:ml-64 p-5 overflow-y-auto">
 
         {/* Header */}
 
