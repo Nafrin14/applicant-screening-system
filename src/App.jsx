@@ -1,4 +1,6 @@
 import React from "react";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import {
   BrowserRouter,
@@ -14,42 +16,39 @@ import AIResults from "./pages/AIResults";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import IndeedApplicants from "./pages/IndeedApplicants";
-import JobPost from "./pages/JobPost";
-import JobList from "./pages/JobList";
 import CandidateProfile from "./pages/CandidateProfile";
 import InterviewSchedule from "./pages/InterviewSchedule";
 import ScheduledInterviews from "./pages/ScheduledInterviews";
 import CSVUpload from "./pages/CSVUpload";
 import CareersPage from "./pages/CareersPage";
 import ApplyPage from "./pages/ApplyPage";
+import ResumeViewer from "./pages/ResumeViewer";
 
-import ProtectedRoute
-from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
-
   return (
-
     <BrowserRouter>
-
       <Routes>
-
-        {/* Login */}
 
         <Route
           path="/login"
           element={<Login />}
         />
 
-        {/* Signup */}
+        <Route
+  path="/forgot-password"
+  element={<ForgotPassword />}
+/>
 
+<Route
+  path="/reset-password"
+  element={<ResetPassword />}
+/>
         <Route
           path="/signup"
           element={<Signup />}
         />
-
-        {/* Dashboard */}
 
         <Route
           path="/"
@@ -69,8 +68,6 @@ function App() {
           }
         />
 
-        {/* Candidate List */}
-
         <Route
           path="/results"
           element={
@@ -79,8 +76,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Candidate Details */}
 
         <Route
           path="/candidate-details"
@@ -91,8 +86,6 @@ function App() {
           }
         />
 
-        {/* Candidate Profile */}
-
         <Route
           path="/candidate-profile"
           element={
@@ -101,8 +94,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* Interview Schedule */}
 
         <Route
           path="/interview-schedule"
@@ -113,8 +104,6 @@ function App() {
           }
         />
 
-        {/* Scheduled Interviews */}
-
         <Route
           path="/scheduled-interviews"
           element={
@@ -123,8 +112,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* CSV Upload */}
 
         <Route
           path="/csv-upload"
@@ -135,18 +122,7 @@ function App() {
           }
         />
 
-        {/* Indeed Applicants */}
-
-        <Route
-          path="/indeed-applicants"
-          element={
-            <ProtectedRoute>
-              <IndeedApplicants />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Upload Resume */}
+       
 
         <Route
           path="/upload"
@@ -157,8 +133,6 @@ function App() {
           }
         />
 
-        {/* AI Results */}
-
         <Route
           path="/ai-results"
           element={
@@ -168,43 +142,30 @@ function App() {
           }
         />
 
-        {/* Job Post */}
+        
 
-        <Route
-          path="/job-post"
-          element={
-            <ProtectedRoute>
-              <JobPost />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Posted Jobs */}
-
-        <Route
-          path="/jobs"
-          element={
-            <ProtectedRoute>
-              <JobList />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Careers Page */}
+       
 
         <Route
           path="/careers"
           element={<CareersPage />}
         />
 
-        {/* Apply Page */}
-
         <Route
           path="/apply/:id"
           element={<ApplyPage />}
         />
 
-        {/* Settings */}
+        {/* NEW ROUTE */}
+
+        <Route
+          path="/resume-viewer"
+          element={
+            <ProtectedRoute>
+              <ResumeViewer />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/settings"
@@ -216,7 +177,6 @@ function App() {
         />
 
       </Routes>
-
     </BrowserRouter>
   );
 }

@@ -10,6 +10,9 @@ import {
 import { supabase }
 from "../supabase";
 
+import Sidebar from "../components/Sidebar";
+
+
 import {
   FaTachometerAlt,
   FaUsers,
@@ -24,6 +27,7 @@ import {
   FaCheck,
   FaTimes,
   FaTrash,
+
 } from "react-icons/fa";
 
 function ScheduledInterviews() {
@@ -35,6 +39,8 @@ function ScheduledInterviews() {
     interviews,
     setInterviews,
   ] = useState([]);
+
+  
 
   useEffect(() => {
 
@@ -123,189 +129,57 @@ function ScheduledInterviews() {
     }
   };
 
-  const menuItems = [
+ const totalInterviews = interviews.length;
 
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon:
-        <FaTachometerAlt />,
-    },
+const scheduledCount = interviews.filter(
+  (item) => item.status === "Scheduled"
+).length;
 
-    {
-      name: "Candidates",
-      path: "/results",
-      icon:
-        <FaUsers />,
-    },
+const completedCount = interviews.filter(
+  (item) => item.status === "Completed"
+).length;
 
-    {
-      name: "Resume Upload",
-      path: "/upload",
-      icon:
-        <FaFileUpload />,
-    },
+const cancelledCount = interviews.filter(
+  (item) => item.status === "Cancelled"
+).length;
 
-    {
-      name: "AI Results",
-      path: "/ai-results",
-      icon:
-        <FaRobot />,
-    },
 
-    {
-      name:
-        "Interview Schedule",
+return (
 
-      path:
-        "/interview-schedule",
-
-      icon:
-        <FaCalendarAlt />,
-    },
-
-    {
-      name:
-        "Scheduled Interviews",
-
-      path:
-        "/scheduled-interviews",
-
-      icon:
-        <FaClipboardList />,
-    },
-
-    {
-      name:
-        "Job Post",
-
-      path:
-        "/job-post",
-
-      icon:
-        <FaBriefcase />,
-    },
-
-    {
-      name:
-        "Posted Jobs",
-
-      path:
-        "/jobs",
-
-      icon:
-        <FaSuitcase />,
-    },
-
-    {
-      name:
-        "Indeed Applicants",
-
-      path:
-        "/indeed-applicants",
-
-      icon:
-        <FaUserFriends />,
-    },
-
-    {
-      name:
-        "Settings",
-
-      path:
-        "/settings",
-
-      icon:
-        <FaCog />,
-    },
-
-  ];
-
-  return (
-
-    <div className="min-h-screen bg-slate-100 flex">
-
-      {/* Sidebar */}
-
-      <div className="w-64 bg-[#020617] text-white p-5">
-
-        <div>
-
-          <h1 className="text-3xl font-extrabold leading-tight mb-10">
-            Applicant
-            <br />
-            Screening System
-          </h1>
-
-          <ul className="space-y-3">
-
-            {menuItems.map(
-              (item) => (
-
-              <li
-                key={item.name}
-
-                onClick={() =>
-                  navigate(
-                    item.path
-                  )
-                }
-
-                className={`p-2 rounded-xl cursor-pointer transition-all duration-300 hover:text-blue-400 ${
-                  item.name ===
-                  "Scheduled Interviews"
-                    ? "text-blue-400"
-                    : "text-white"
-                }`}
-              >
-
-                <div className="flex items-center gap-4">
-
-                  <span className="text-base">
-                    {item.icon}
-                  </span>
-
-                  <span className="font-semibold text-[14px]">
-                    {item.name}
-                  </span>
-
-                </div>
-
-              </li>
-
-            ))}
-
-          </ul>
-
-        </div>
-
-      </div>
+<div className="min-h-screen bg-slate-100">
+ 
+  <Sidebar />
+  
+     
 
       {/* Main */}
 
-      <div className="flex-1 p-5 overflow-y-auto">
+    <div className="md:ml-56 mt-16 p-4 md:p-6">
 
         {/* Header */}
 
-        <div className="mb-5">
+        
+  
 
-          <h1 className="text-3xl font-black text-slate-900 mb-1">
-            Scheduled Interviews
-          </h1>
+        <div className="mb-8">
 
-          <p className="text-gray-500 text-sm">
-            Manage candidate interview schedules
-          </p>
+         <h1 className="text-4xl font-extrabold text-slate-800">
+  Scheduled Interviews
+</h1>
+
+<p className="text-slate-500 mt-2 text-base">
+  Manage candidate interview schedules
+</p>
+
 
         </div>
-
+     
         {/* Table Card */}
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-
+       <div className="w-full bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
 
-            <table className="w-full">
+           <table className="min-w-[900px] w-full">
 
               <thead className="bg-slate-50 border-b border-slate-200">
 
@@ -513,6 +387,8 @@ function ScheduledInterviews() {
           </div>
 
         </div>
+
+
 
       </div>
 

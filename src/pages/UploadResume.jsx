@@ -415,108 +415,158 @@ resume_url: publicUrl,
     }
   };
   return (
-    <div className="min-h-screen bg-slate-100 flex">
+   <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex">
       {/* Sidebar */}
       <Sidebar />
 
-      <div className="flex-1 md:ml-64 p-8 h-screen overflow-y-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-extrabold text-slate-800">
+    <div className="flex-1 md:ml-60 pt-20 md:pt-8 px-4 md:px-4 py-4 md:py-8 min-h-screen overflow-y-auto">
+        <div className="mb-6 md:mb-8">
+<h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Resume Upload
           </h1>
-          <p className="text-gray-500 mt-2">
+          <p className="text-gray-500 mt-1 md:mt-2 text-sm md:text-base">
             Upload and analyze candidate resumes
           </p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-md p-8 max-w-5xl">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+       <div className="
+bg-white
+rounded-3xl
+shadow-xl
+border
+border-slate-200
+p-6 md:p-8
+w-full mx-auto
+">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start">
             <div className="lg:sticky lg:top-0">
-              <h2 className="text-2xl font-bold text-slate-800 mb-6">
+             <h2 className="text-2xl font-bold text-slate-800 mb-6">
                 Candidate Information
               </h2>
 
               <textarea
-  placeholder="Paste Job Description Here"
-  value={jobDescription}
-  onChange={(e) =>
-    setJobDescription(e.target.value)
-  }
-  rows={8}
-  className="w-full bg-slate-100 border border-gray-200 rounded-2xl px-5 py-4 outline-none mb-6"
-/>
+                placeholder="Paste Job Description Here"
+                value={jobDescription}
+                onChange={(e) =>
+                  setJobDescription(e.target.value)
+                }
+                rows={6}
+               className="
+w-full
+bg-slate-50
+border
+border-slate-200
+rounded-3xl
+px-5
+py-4
+outline-none
+text-sm
+md:text-base
+mb-6
+focus:ring-2
+focus:ring-blue-500
+focus:border-blue-500
+transition-all
+"
+              />
 
               <div
                 onDragOver={(e) =>
                   e.preventDefault()
                 }
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const droppedFiles = Array.from(e.dataTransfer.files);
+                  if (droppedFiles.length > 0) {
+                    setFiles(droppedFiles);
+                  }
+                }}
+               
 
-                
-onDrop={(e) => {
-
-  e.preventDefault();
-
-  const droppedFiles =
-    Array.from(
-      e.dataTransfer.files
-    );
-
-  if (droppedFiles.length > 0) {
-
-    setFiles(droppedFiles);
-  }
-}}
-
-                className="border-2 border-dashed border-blue-400 bg-blue-50 rounded-3xl p-10 text-center hover:bg-blue-100 transition"
+className="
+border-2
+border-dashed
+border-blue-400
+bg-gradient-to-br
+from-blue-50
+to-indigo-50
+rounded-3xl
+min-h-[500px]
+flex
+flex-col
+justify-center
+items-center
+p-10
+md:p-14
+text-center
+hover:scale-[1.02]
+hover:shadow-xl
+transition-all
+duration-300
+cursor-pointer
+"
               >
-
-                <FaCloudUploadAlt className="text-6xl text-blue-600 mx-auto mb-4" />
-
-                <p className="text-xl font-bold text-blue-700 mb-2">
+               <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg">
+  <FaCloudUploadAlt className="text-white text-4xl" />
+</div>
+                <p className="text-lg md:text-xl font-bold text-blue-700 mb-1 md:mb-2">
                   Drag & Drop Resume
                 </p>
 
-                <p className="text-gray-500 mb-6">
+                <p className="text-xs md:text-sm text-gray-500 mb-4 md:mb-6">
                   Upload PDF, DOC, DOCX
                 </p>
 
                 <input
+  id="resumeUpload"
   type="file"
   multiple
   accept=".pdf,.doc,.docx"
   onChange={(e) =>
-    setFiles(
-      Array.from(
-        e.target.files
-      )
-    )
+    setFiles(Array.from(e.target.files))
   }
-  className="mb-4"
+  className="hidden"
 />
 
+<label
+  htmlFor="resumeUpload"
+  className="
+  inline-flex
+  items-center
+  gap-2
+  bg-gradient-to-r
+  from-blue-600
+  to-indigo-600
+  text-white
+  
+  px-8 py-4 text-lg font-semibold
+  rounded-2xl
+  cursor-pointer
+  shadow-lg
+  hover:shadow-xl
+  transition-all
+  duration-300
+  hover:-translate-y-1
+  "
+>
+  📄 Choose Resume Files
+</label>
+
                 {files.length > 0 && (
-
-  <div className="mt-4 bg-white rounded-2xl p-4 shadow-sm">
-
-    <p className="text-green-600 font-bold">
-      Selected Files
-    </p>
-
-    {files.map((file, index) => (
-
-      <p
-        key={index}
-        className="text-gray-700 mt-1"
-      >
-        {file.name}
-      </p>
-
-    ))}
-
-  </div>
-
-)}
-
+                  <div className="mt-4 bg-white rounded-xl p-3 md:p-4 shadow-sm text-left">
+                    <p className="text-green-600 font-bold text-sm">
+                      Selected Files
+                    </p>
+                    {files.map((file, index) => (
+                      <p
+                        key={index}
+                        className="text-gray-700 text-xs md:text-sm mt-1 truncate"
+                      >
+                        {file.name}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button
@@ -525,122 +575,151 @@ onDrop={(e) => {
                   await addCandidate();
                 }}
                 disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-2xl mt-6 text-lg font-semibold shadow-lg transition"
+               className="
+w-full
+bg-gradient-to-r
+from-blue-600
+to-indigo-600
+hover:from-blue-700
+hover:to-indigo-700
+text-white
+py-4
+rounded-2xl
+mt-6
+text-lg
+font-semibold
+shadow-lg
+hover:shadow-xl
+transition-all
+duration-300
+hover:-translate-y-1
+"
               >
-
-                {loading
-                  ? "Uploading..."
-                  : "Upload Resume"}
-
+                {loading ? "Uploading..." : "Upload Resume"}
               </button>
-
             </div>
 
-            
+          <div className="
+bg-gradient-to-br
+from-slate-50
+to-blue-50
+rounded-3xl
+border
+border-slate-200
+p-6
+min-h-[500px]
+mt-4
+lg:mt-0
 
-            <div className="bg-slate-50 rounded-3xl p-6">
-
-              <h2 className="text-2xl font-bold text-slate-800 mb-6">
+">
+              <h2 className="text-3xl font-bold text-slate-800 mb-6">
                 AI Screening Result
               </h2>
 
               {aiResult ? (
+                <div className="
+bg-white
+rounded-3xl
+p-6
+shadow-lg
+border
+border-slate-100
+">
+                  <div className="flex justify-between items-center mb-4 md:mb-6">
+                    <h3 className="text-lg md:text-xl font-bold text-slate-800">
+                      AI Analysis Result
+                    </h3>
+               <div className="
+bg-gradient-to-r
+from-blue-600
+to-indigo-600
+text-white
+px-5
+py-2
+rounded-full
+font-bold
+shadow-md
+text-sm
+md:text-base
+">
+                      {aiResult?.score || 0}%
+                    </div>
+                  </div>
 
-  <div className="bg-white rounded-3xl p-6 shadow-lg">
+                  <div className="mb-4">
+                    <p className="font-semibold text-slate-700 text-sm md:text-base">
+                      Recommendation
+                    </p>
+                    <p
+                      className={`mt-1 font-bold text-sm md:text-base ${
+                        aiResult?.score >= 75
+                          ? "text-green-600"
+                          : aiResult?.score >= 60
+                          ? "text-yellow-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {aiResult?.recommendation}
+                    </p>
+                  </div>
 
-    <div className="flex justify-between items-center mb-6">
+                  <div className="mb-4">
+                    <p className="font-semibold text-slate-700 text-sm md:text-base">
+                      Summary
+                    </p>
+                    <p className="text-gray-600 text-xs md:text-sm mt-1 leading-relaxed">
+                      {aiResult?.summary}
+                    </p>
+                  </div>
 
-      <h3 className="text-xl font-bold text-slate-800">
-        AI Analysis Result
-      </h3>
+                  <div className="mb-4">
+                    <p className="font-semibold text-slate-700 text-sm md:text-base mb-2">
+                      Strengths
+                    </p>
+                    <ul className="list-disc pl-5 text-green-700 text-xs md:text-sm space-y-1">
+                      {aiResult?.strengths?.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
 
-      <div className="bg-blue-600 text-white px-4 py-2 rounded-full font-bold">
-        {aiResult?.score || 0}%
-      </div>
+                  <div className="mb-4">
+                    <p className="font-semibold text-slate-700 text-sm md:text-base mb-2">
+                      Missing Skills
+                    </p>
+                    <ul className="list-disc pl-5 text-red-600 text-xs md:text-sm space-y-1">
+                      {aiResult?.missingSkills?.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
 
-    </div>
-
-    <div className="mb-4">
-      <p className="font-semibold text-slate-700">
-        Recommendation
-      </p>
-
-      <p
-        className={`mt-1 font-bold ${
-          aiResult?.score >= 75
-            ? "text-green-600"
-            : aiResult?.score >= 60
-            ? "text-yellow-600"
-            : "text-red-600"
-        }`}
-      >
-        {aiResult?.recommendation}
-      </p>
-    </div>
-
-    <div className="mb-4">
-      <p className="font-semibold text-slate-700">
-        Summary
-      </p>
-
-      <p className="text-gray-600 mt-1">
-        {aiResult?.summary}
-      </p>
-    </div>
-
-    <div className="mb-4">
-      <p className="font-semibold text-slate-700 mb-2">
-        Strengths
-      </p>
-
-      <ul className="list-disc pl-5 text-green-700">
-        {aiResult?.strengths?.map((item, index) => (
-          <li key={index}>{item}</li>
-        ))}
-      </ul>
-    </div>
-
-    <div className="mb-4">
-      <p className="font-semibold text-slate-700 mb-2">
-        Missing Skills
-      </p>
-
-      <ul className="list-disc pl-5 text-red-600">
-        {aiResult?.missingSkills?.map((item, index) => (
-          <li key={index}>{item}</li>
-        ))}
-      </ul>
-    </div>
-
-    <div>
-      <p className="font-semibold text-slate-700 mb-2">
-        Why Suitable
-      </p>
-
-      <p className="text-gray-600">
-        {aiResult?.whySuitable}
-      </p>
-    </div>
-
-  </div>
-
-) : (
-                <div className="h-full flex items-center justify-center text-center text-gray-400">
-
-                  AI analysis results will appear here after resume upload.
-
+                  <div>
+                    <p className="font-semibold text-slate-700 text-sm md:text-base mb-2">
+                      Why Suitable
+                    </p>
+                    <p className="text-gray-600 text-xs md:text-sm leading-relaxed">
+                      {aiResult?.whySuitable}
+                    </p>
+                  </div>
                 </div>
+              ) : (
+              <div className="h-[350px] flex flex-col items-center justify-center text-center">
+  <div className="text-6xl mb-4">🤖</div>
 
+  <h3 className="text-lg font-semibold text-slate-700">
+    AI Screening Ready
+  </h3>
+
+  <p className="text-slate-500 mt-2">
+    Upload a resume to generate AI analysis
+  </p>
+</div>
               )}
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

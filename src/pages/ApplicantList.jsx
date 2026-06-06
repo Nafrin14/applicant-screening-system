@@ -5,90 +5,78 @@ import Papa from "papaparse";
 
 function ApplicantList() {
 
-  const navigate = useNavigate();
+const navigate = useNavigate();
 
-  const [applicants, setApplicants] =
-    useState([]);
+const [applicants, setApplicants] = useState([]);
 
-  const [search, setSearch] =
-    useState("");
+const [search, setSearch] =useState("");
 
-  const [filterStatus, setFilterStatus] =
-    useState("All");
+const [filterStatus, setFilterStatus] =useState("All");
+useEffect(() => {
+fetchApplicants();
+  },
+   []);
 
-  useEffect(() => {
-    fetchApplicants();
-  }, []);
 
-  const fetchApplicants = async () => {
+const fetchApplicants = async () => {
 
-    const { data, error } =
+const { data, error } =
       await supabase
-        .from("applicants")
-        .select("*");
+      .from("applicants")
+      .select("*");
 
-    if (error) {
-
+  if (error) {
       console.log(error);
-
-    } else {
-
+    } else
+       {
       setApplicants(data || []);
     }
   };
 
-  const handleCSVUpload = (event) => {
 
-    const file = event.target.files[0];
+const handleCSVUpload = (event) => {
+
+const file = event.target.files[0];
 
     if (!file) return;
-
-    Papa.parse(file, {
-
+    Papa.parse(file,
+       {
       header: true,
+      complete: async (results) => 
+        {
 
-      complete: async (results) => {
-
-        const formattedData =
-          results.data
-            .filter(
-              (row) =>
-                row.name &&
-                row.email
+const formattedData =
+   results.data
+    .filter(
+     (row) =>
+    row.name &&
+    row.email
             )
-            .map((row) => ({
 
-              name:
-                row.name || "",
+     .map((row) => ({
+      name:row.name || "",
 
-              email:
-                row.email || "",
+      email:row.email || "",
 
-              phone:
-                row.phone || "",
+      phone:row.phone || "",
 
-              skills:
-                row.skills || "",
+      skills:row.skills || "",
 
-              score:
-                row.score || 0,
+      score:row.score || 0,
 
-              status:
-                row.status || "Pending",
+      status:row.status || "Pending",
 
-              resume_url:
-                row.resume_url || ""
+      resume_url:row.resume_url || ""
+
             }));
 
-        if (
-          formattedData.length > 0
-        ) {
-
-          await supabase
+      if   ( formattedData.length > 0) 
+        {
+             await supabase
             .from("applicants")
             .insert(formattedData);
 
-          fetchApplicants();
+            fetchApplicants();
         }
       }
     });
@@ -97,51 +85,51 @@ function ApplicantList() {
   const updateStatus = async (
     id,
     newStatus
-  ) => {
+  ) =>
+     {
 
     await supabase
-      .from("applicants")
-      .update({
-        status: newStatus
+    .from("applicants")
+    .update({
+     status: newStatus
       })
       .eq("id", id);
-
-    fetchApplicants();
-  };
+     fetchApplicants();
+     };
 
   const deleteApplicant = async (id) => {
 
-    await supabase
-      .from("applicants")
-      .delete()
-      .eq("id", id);
+  await supabase
+  .from("applicants")
+  .delete()
+  .eq("id", id);
 
-    fetchApplicants();
+  fetchApplicants();
   };
 
   const filteredApplicants =
-    applicants.filter((applicant) => {
+  applicants.filter((applicant) => {
 
-      const matchesSearch =
-        (applicant.name || "")
-          .toLowerCase()
-          .includes(search.toLowerCase());
+  const matchesSearch =
+  (applicant.name || "")
+  .toLowerCase()
+  .includes(search.toLowerCase());
 
-      const matchesStatus =
-        filterStatus === "All"
-          ? true
-          : applicant.status === filterStatus;
+  const matchesStatus =
+   filterStatus === "All"
+   ? true
+   : applicant.status === filterStatus;
 
-      return (
+   return (
         matchesSearch &&
         matchesStatus
       );
-    });
+      });
 
   return (
 
-    <div
-      style={{
+   <div
+        style={{
         padding: "30px",
         backgroundColor: "#f4f6f9",
         minHeight: "100vh"
@@ -157,8 +145,8 @@ function ApplicantList() {
         Candidates
       </h1>
 
-      <div
-        style={{
+    <div
+          style={{
           display: "flex",
           gap: "15px",
           marginBottom: "30px",
@@ -166,14 +154,15 @@ function ApplicantList() {
         }}
       >
 
-        <input
+    <input
           type="text"
           placeholder="Search candidate..."
           value={search}
           onChange={(e) =>
-            setSearch(e.target.value)
+          setSearch(e.target.value)
           }
-          style={{
+
+            style={{
             padding: "12px",
             width: "300px",
             borderRadius: "8px",
@@ -181,14 +170,16 @@ function ApplicantList() {
           }}
         />
 
-        <select
-          value={filterStatus}
-          onChange={(e) =>
-            setFilterStatus(
-              e.target.value
+    <select
+           value={filterStatus}
+           onChange={(e) =>
+           setFilterStatus(
+           e.target.value
             )
           }
-          style={{
+
+
+            style={{
             padding: "12px",
             borderRadius: "8px",
             border: "1px solid #ccc"
@@ -200,26 +191,26 @@ function ApplicantList() {
           <option>Shortlisted</option>
           <option>Rejected</option>
 
-        </select>
+     </select>
 
-        <input
-          type="file"
-          accept=".csv"
-          onChange={handleCSVUpload}
-        />
+          <input
+                type="file"
+                accept=".csv"
+                onChange={handleCSVUpload}
+         />
 
-      </div>
+       </div>
 
-      {filteredApplicants
+       {filteredApplicants
         .filter(
-          (applicant) =>
-            applicant.name
+       (applicant) =>
+       applicant.name
         )
         .map((applicant) => (
 
-        <div
-          key={applicant.id}
-          style={{
+     <div
+            key={applicant.id}
+            style={{
             background: "#fff",
             padding: "20px",
             marginBottom: "20px",
@@ -229,46 +220,46 @@ function ApplicantList() {
           }}
         >
 
-          <h2
-            style={{
-              color: "#2563eb"
+              <h2
+                   style={{
+                   color: "#2563eb"
             }}
           >
-            {applicant.name}
-          </h2>
+                   {applicant.name}
+              </h2>
 
-          <p>
-            <strong>Email:</strong>
-            {" "}
-            {applicant.email}
-          </p>
+       <p>
+       <strong>Email:</strong>
+       {" "}
+       {applicant.email}
+       </p>
 
-          <p>
+      <p>
             <strong>Phone:</strong>
 
-            <a
-              href={`tel:${applicant.phone}`}
-              style={{
-                color: "#2563eb",
-                marginLeft: "5px",
-                textDecoration: "none",
-                fontWeight: "bold"
+                <a
+                     href={`tel:${applicant.phone}`}
+                     style={{
+                            color: "#2563eb",
+                            marginLeft: "5px",
+                            textDecoration: "none",
+                            fontWeight: "bold"
               }}
             >
-              {applicant.phone}
-            </a>
-          </p>
+         {applicant.phone}
+         </a>
+         </p>
 
-          <p>
-            <strong>Skills:</strong>
-            {" "}
-            {applicant.skills}
-          </p>
+      <p>
+               <strong>Skills:</strong>
+                   {" "}
+               {applicant.skills}
+      </p>
 
-          <p>
-            <strong>AI Score:</strong>
+      <p>
+                <strong>AI Score:</strong>
 
-            <span
+         <span
               style={{
                 color:
                   parseInt(applicant.ai_score || 0) >= 80

@@ -7,8 +7,8 @@ import {
   useNavigate,
 } from "react-router-dom";
 
-import { supabase }
-from "../supabase";
+import { supabase } from "../supabase";
+import Sidebar from "../components/Sidebar";
 
 import {
   FaTachometerAlt,
@@ -29,10 +29,16 @@ function AIResults() {
   const navigate =
     useNavigate();
 
+
   const [
     candidates,
     setCandidates,
   ] = useState([]);
+
+
+  const [selectedResume, setSelectedResume] = useState(null);
+
+
 
   useEffect(() => {
 
@@ -40,14 +46,17 @@ function AIResults() {
 
   }, []);
 
+
   const fetchCandidates =
     async () => {
 
     const {
       data,
       error,
-    } =
-     await supabase
+    } 
+
+     
+    =await supabase
   .from("applicants")
   .select("*")
   .eq("source", "Manual")
@@ -173,120 +182,88 @@ function AIResults() {
 
     <div className="min-h-screen bg-slate-100 flex">
       {/* Sidebar */}
-
-      <div className="w-64 bg-[#020617] text-white p-5 fixed left-0 top-0 h-screen overflow-y-auto">
-        <div>
-
-          <h1 className="text-3xl font-extrabold leading-tight mb-10">
-            Applicant
-            <br />
-            Screening System
-          </h1>
-
-          <ul className="space-y-3">
-
-            {menuItems.map(
-              (item) => (
-
-              <li
-                key={item.name}
-
-                onClick={() =>
-                  navigate(
-                    item.path
-                  )
-                }
-
-                className={`p-2 rounded-xl cursor-pointer transition-all duration-300 hover:text-blue-400 ${
-                  item.name ===
-                  "AI Results"
-                    ? "text-blue-400"
-                    : "text-white"
-                }`}
-              >
-
-                <div className="flex items-center gap-4">
-
-                  <span className="text-base">
-                    {item.icon}
-                  </span>
-
-                  <span className="font-semibold text-[14px]">
-                    {item.name}
-                  </span>
-
-                </div>
-
-              </li>
-
-            ))}
-
-          </ul>
-
-        </div>
-
-      </div>
+       <Sidebar />
 
       {/* Main */}
+      <div className="flex-1 md:ml-60 pt-20 md:pt-8 p-4 md:p-6 min-h-screen overflow-y-auto">
 
-      <div className="flex-1 ml-64 p-5 h-screen overflow-y-auto">
-        {/* Header */}
+      {/* Header */}
+      <div className="mb-5">
 
-        <div className="mb-5">
+     <h1 className="
+text-3xl
+md:text-4xl
+font-extrabold
+bg-gradient-to-r
+from-blue-600
+via-indigo-600
+to-purple-600
+bg-clip-text
+text-transparent
+mb-1
+">AI Screening</h1>
 
-          <h1 className="text-3xl font-black text-slate-900 mb-1">
-            AI Screening Results
-          </h1>
-
-          <p className="text-gray-500 text-sm">
+        <p className="text-gray-500 text-sm">
             Smart AI candidate analysis dashboard
-          </p>
+        </p>
 
-        </div>
+          </div>
+
 
         {/* Cards */}
-
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
 
           {candidates.map(
-  (
-    candidate,
-    index
-  ) => (
+             (
+               candidate,
+               index
+             ) => (
 
             <div
-              key={candidate.id}
+            key={candidate.id}
 
-              className="bg-white rounded-3xl p-4 shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300"
-            >
+              className="
+bg-white
+rounded-3xl
+p-5
+shadow-lg
+border
+border-slate-100
+hover:shadow-2xl
+hover:-translate-y-1
+transition-all
+duration-300
+">
+            
 
-              {/* Top */}
+           {/* Top */}
+           <div className="flex justify-between items-start mb-3">
 
-              <div className="flex justify-between items-start mb-3">
+           <div>
+              {index === 0 && (
+              <div className="text-xs font-bold text-yellow-600 mb-1">
+              🥇 Rank #1
+           </div>
+            )}
 
-                <div>
-{index === 0 && (
-  <div className="text-xs font-bold text-yellow-600 mb-1">
-    🥇 Rank #1
-  </div>
-)}
+             {index === 1 && (
+             <div className="text-xs font-bold text-gray-600 mb-1">
+             🥈 Rank #2
+             </div>
+           )}
 
-{index === 1 && (
-  <div className="text-xs font-bold text-gray-600 mb-1">
-    🥈 Rank #2
-  </div>
-)}
+              {index === 2 && (
+              <div className="text-xs font-bold text-orange-600 mb-1">
+                🥉 Rank #3
+              </div>
+             )}
 
-{index === 2 && (
-  <div className="text-xs font-bold text-orange-600 mb-1">
-    🥉 Rank #3
-  </div>
-)}
                   <h2 className="text-lg font-black text-slate-900 mb-1">
 
                     {candidate.name}
 
                   </h2>
+
 
                   <p className="text-gray-500 text-[11px]">
                     {candidate.role}
@@ -296,10 +273,22 @@ function AIResults() {
 
                 {/* Score */}
 
-                <div className="flex flex-col items-center justify-center bg-slate-100 border border-slate-200 w-12 h-12 rounded-xl">
+               <div className="
+flex
+flex-col
+items-center
+justify-center
+bg-gradient-to-r
+from-blue-600
+to-indigo-600
+text-white
+w-14
+h-14
+rounded-2xl
+shadow-md
+">
 
-                  <span className="text-xs font-black text-blue-600 leading-none">
-
+                 <span className="text-sm font-black leading-none">
                     {
                       candidate.ai_score ||
                       candidate.score ||
@@ -308,7 +297,7 @@ function AIResults() {
 
                   </span>
 
-                  <span className="text-[8px] text-gray-500 mt-1 font-medium">
+                 <span className="text-[9px] text-blue-100 mt-1 font-medium">
                     Score
                   </span>
 
@@ -359,58 +348,55 @@ function AIResults() {
 
                 </p>
                 <div className="mt-3 bg-green-50 p-2 rounded-lg">
-  <h3 className="text-xs font-bold text-green-600 mb-1">
-    Matched Skills
-  </h3>
+                <h3 className="text-xs font-bold text-green-600 mb-1">
+                 Matched Skills
+                </h3>
 
-  <p className="text-[11px] text-gray-700">
-    {candidate.matched_skills || "N/A"}
-  </p>
-</div>
 
-<div className="mt-3 bg-red-50 p-2 rounded-lg">
-  <h3 className="text-xs font-bold text-red-600 mb-1">
-    Missing Skills
-  </h3>
+                <p className="text-[11px] text-gray-700">
+                {candidate.matched_skills || "N/A"}
+                </p>
+                </div>
 
-  <p className="text-[11px] text-gray-700">
-    {candidate.missing_skills || "N/A"}
-  </p>
-</div>
 
-<div className="mt-3 bg-blue-50 p-2 rounded-lg">
-  <h3 className="text-xs font-bold text-blue-600 mb-1">
-    Why Suitable
-  </h3>
+                <div className="mt-3 bg-red-50 p-2 rounded-lg">
+                <h3 className="text-xs font-bold text-red-600 mb-1">
+                 Missing Skills
+                </h3>
 
-  <p className="text-[11px] text-gray-700">
-    {candidate.why_suitable || "N/A"}
-  </p>
-</div>
 
-              </div>
+                <p className="text-[11px] text-gray-700">
+                {candidate.missing_skills || "N/A"}
+                </p>
+               </div>
+
+               <div className="mt-3 bg-blue-50 p-2 rounded-lg">
+               <h3 className="text-xs font-bold text-blue-600 mb-1">
+                Why Suitable
+               </h3>
+
+
+               <p className="text-[11px] text-gray-700">
+                {candidate.why_suitable || "N/A"}
+                </p>
+                </div>
+
+               </div>
+
 
               {/* Buttons */}
 
               <div className="flex gap-2 mt-3">
 
-                <a
-                  href={
-                    candidate.resume_url
-                  }
+                <button
+  onClick={() => setSelectedResume(candidate.resume_url)}
+  className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 
+  rounded-lg text-[11px] font-semibold transition-all">
 
-                  target="_blank"
+          <FaEye />
+            Resume
+            </button>
 
-                  rel="noreferrer"
-
-                  className="flex items-center gap-1 bg-slate-900 hover:bg-slate-800 text-white px-3 py-2 rounded-lg text-[11px] font-semibold transition-all"
-                >
-
-                  <FaEye />
-
-                  Resume
-
-                </a>
 
                 <button
                   onClick={() =>
@@ -423,9 +409,9 @@ function AIResults() {
                     )
                   }
 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-[11px] font-semibold shadow-sm transition-all"
-                >
-
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg 
+                  text-[11px] font-semibold shadow-sm transition-all">
+          
                   Details
 
                 </button>
@@ -439,6 +425,28 @@ function AIResults() {
         </div>
 
       </div>
+{selectedResume && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+
+    <div className="bg-white rounded-2xl w-full max-w-6xl h-[90vh] relative">
+
+      <button
+        onClick={() => setSelectedResume(null)}
+        className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-lg z-10"
+      >
+        X
+      </button>
+
+      <iframe
+        src={selectedResume}
+        title="Resume Viewer"
+        className="w-full h-full rounded-2xl"
+      />
+
+    </div>
+
+  </div>
+)}
 
     </div>
   );

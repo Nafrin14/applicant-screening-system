@@ -1,195 +1,163 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Sidebar from "../components/Sidebar";
+import { supabase } from "../supabaseClient";
 
 import {
-  useNavigate,
-} from "react-router-dom";
-
-import {
-  FaTachometerAlt,
-  FaUsers,
-  FaFileUpload,
-  FaRobot,
-  FaCalendarAlt,
-  FaClipboardList,
-  FaBriefcase,
-  FaSuitcase,
-  FaUserFriends,
-  FaCog,
-  FaBell,
   FaShieldAlt,
-  FaDatabase,
   FaUserCircle,
   FaSave,
-  FaSignOutAlt,
-  FaCheckCircle,
 } from "react-icons/fa";
 
 function Settings() {
+  const [companyName, setCompanyName] = useState("SmartHire");
+  const [hrRole, setHrRole] = useState("HR Manager");
+const [email, setEmail] = useState("");
+const [newEmail, setNewEmail] = useState("");
+const [newPassword, setNewPassword] = useState("");
+const [confirmPassword, setConfirmPassword] = useState("");
+const [profileImage, setProfileImage] = useState("");
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
-  const navigate =
-    useNavigate();
+  const fetchSettings = async () => {
+    const { data, error } = await supabase
+      .from("settings")
+      .select("*")
+      .eq("id", 1)
+      .single();
 
-  const menuItems = [
+   if (data) {
+  setCompanyName(data.company_name);
+  setHrRole(data.hr_name);
+  setEmail(data.email);
+  setProfileImage(data.profile_image || "");
+}
 
-    {
-      name: "Dashboard",
-      path: "/dashboard",
-      icon:
-        <FaTachometerAlt />,
-    },
+    console.log("FETCH DATA:", data);
+    console.log("FETCH ERROR:", error);
+  };
 
-    {
-      name: "Candidates",
-      path: "/results",
-      icon:
-        <FaUsers />,
-    },
+  const handleSave = async () => {
+    alert("Button Clicked");
 
-    {
-      name: "Resume Upload",
-      path: "/upload",
-      icon:
-        <FaFileUpload />,
-    },
+    console.log("Saving...", companyName, hrRole);
 
-    {
-      name: "AI Results",
-      path: "/ai-results",
-      icon:
-        <FaRobot />,
-    },
+    const { data, error } = await supabase
+      .from("settings")
+     .update({
+  company_name: companyName,
+  hr_name: hrRole,
+  profile_image: profileImage,
+})
+      .eq("id", 1)
+      .select();
 
-    {
-      name:
-        "Interview Schedule",
+    console.log("DATA:", data);
+    console.log("ERROR:", error);
 
-      path:
-        "/interview-schedule",
+    if (error) {
+      alert("Update Failed");
+      console.log(error);
+    } else {
+      alert("Settings Updated Successfully");
+      fetchSettings();
+    }
+  };
+  const handlePasswordUpdate = async () => {
+  if (newPassword !== confirmPassword) {
+    alert("Passwords do not match");
+    return;
+  }
 
-      icon:
-        <FaCalendarAlt />,
-    },
+  if (newPassword.length < 8) {
+    alert("Password must be at least 8 characters");
+    return;
+  }
 
-    {
-      name:
-        "Scheduled Interviews",
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
 
-      path:
-        "/scheduled-interviews",
+  if (error) {
+    alert(error.message);
+  } else {
+    alert("Password Updated Successfully");
+    setNewPassword("");
+    setConfirmPassword("");
+  }
+};
 
-      icon:
-        <FaClipboardList />,
-    },
+const handleEmailUpdate = async () => {
+  if (!newEmail) {
+    alert("Please enter a new email");
+    return;
+  }
 
-    {
-      name:
-        "Job Post",
+  const { error } = await supabase.auth.updateUser({
+    email: newEmail,
+  });
 
-      path:
-        "/job-post",
+  if (error) {
+    alert(error.message);
+  } else {
+    alert(
+      "Verification email sent. Please check your new email inbox."
+    );
+    setNewEmail("");
+  }
+};
 
-      icon:
-        <FaBriefcase />,
-    },
 
-    {
-      name:
-        "Posted Jobs",
+const handleImageUpload = async (e) => {
+  const file = e.target.files[0];
 
-      path:
-        "/jobs",
+  if (!file) return;
 
-      icon:
-        <FaSuitcase />,
-    },
+  const fileName = `${Date.now()}-${file.name}`;
 
-    {
-      name:
-        "Indeed Applicants",
+  const { error: uploadError } = await supabase.storage
+    .from("profile-images")
+    .upload(fileName, file);
 
-      path:
-        "/indeed-applicants",
+  if (uploadError) {
+    alert(uploadError.message);
+    return;
+  }
 
-      icon:
-        <FaUserFriends />,
-    },
+  const {
+    data: { publicUrl },
+  } = supabase.storage
+    .from("profile-images")
+    .getPublicUrl(fileName);
 
-    {
-      name:
-        "Settings",
+  setProfileImage(publicUrl);
 
-      path:
-        "/settings",
+  const { error: updateError } = await supabase
+    .from("settings")
+    .update({
+      profile_image: publicUrl,
+    })
+    .eq("id", 1);
 
-      icon:
-        <FaCog />,
-    },
-
-  ];
-
+  if (updateError) {
+    console.log(updateError);
+    alert(updateError.message);
+  } else {
+    alert("Profile image updated successfully");
+  }
+};
   return (
 
     <div className="min-h-screen bg-slate-100 flex">
 
       {/* Sidebar */}
 
-      <div className="w-64 bg-[#020617] text-white p-5">
-
-        <div>
-
-          <h1 className="text-3xl font-extrabold leading-tight mb-10">
-            Applicant
-            <br />
-            Screening System
-          </h1>
-
-          <ul className="space-y-3">
-
-            {menuItems.map(
-              (item) => (
-
-              <li
-                key={item.name}
-
-                onClick={() =>
-                  navigate(
-                    item.path
-                  )
-                }
-
-                className={`p-2 rounded-xl cursor-pointer transition-all duration-300 hover:text-blue-400 ${
-                  item.name ===
-                  "Settings"
-                    ? "text-blue-400"
-                    : "text-white"
-                }`}
-              >
-
-                <div className="flex items-center gap-4">
-
-                  <span className="text-base">
-                    {item.icon}
-                  </span>
-
-                  <span className="font-semibold text-[14px]">
-                    {item.name}
-                  </span>
-
-                </div>
-
-              </li>
-
-            ))}
-
-          </ul>
-
-        </div>
-
-      </div>
+   <Sidebar />
 
       {/* Main */}
 
-      <div className="flex-1 p-5 overflow-y-auto">
+    <div className="flex-1 md:ml-56  p-5 md:p-6 overflow-y-auto">
 
         {/* Header */}
 
@@ -207,20 +175,29 @@ function Settings() {
 
         {/* Top Grid */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
-
+     <div className="grid grid-cols-1 lg:grid-cols-[3fr_1.2fr] gap-5 mb-5">
           {/* Profile */}
 
-          <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
 
             <div className="flex items-center gap-4 mb-6">
-
-              <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-
-                <FaUserCircle className="text-4xl text-blue-600" />
-
-              </div>
-
+<div className="w-20 h-20 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center">
+  {profileImage ? (
+    <img
+      src={profileImage}
+      alt="Profile"
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <FaUserCircle className="text-5xl text-blue-600" />
+  )}
+</div>
+<input
+  type="file"
+  accept="image/*"
+  onChange={handleImageUpload}
+  className="mt-3 text-sm"
+/>
               <div>
 
                 <h2 className="text-2xl font-black text-slate-800">
@@ -237,23 +214,42 @@ function Settings() {
 
             <div className="space-y-4">
 
-              <input
-                type="text"
-                placeholder="Company Name"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
-              />
+             <input
+  type="text"
+  value={companyName}
+  onChange={(e) => setCompanyName(e.target.value)}
+  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
+/>
 
-              <input
-                type="email"
-                placeholder="Email Address"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
-              />
 
-              <input
-                type="text"
-                placeholder="HR Role"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
-              />
+<input
+  type="email"
+  value={email}
+  readOnly
+  className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-5 py-4 outline-none cursor-not-allowed"
+/>
+
+<input
+  type="email"
+  placeholder="Enter New Email"
+  value={newEmail}
+  onChange={(e) => setNewEmail(e.target.value)}
+  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
+/>
+
+<button
+  onClick={handleEmailUpdate}
+  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-2xl font-semibold transition-all"
+>
+  Update Email
+</button>
+
+             <input
+  type="text"
+  value={hrRole}
+  onChange={(e) => setHrRole(e.target.value)}
+  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
+/>
 
             </div>
 
@@ -261,8 +257,7 @@ function Settings() {
 
           {/* Security */}
 
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-
+       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm h-fit">
             <div className="flex items-center gap-3 mb-5">
 
               <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center">
@@ -288,229 +283,52 @@ function Settings() {
             <div className="space-y-4">
 
               <input
-                type="password"
-                placeholder="New Password"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
-              />
+  type="password"
+  placeholder="New Password"
+  value={newPassword}
+  onChange={(e) => setNewPassword(e.target.value)}
+  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
+/>
 
               <input
-                type="password"
-                placeholder="Confirm Password"
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
-              />
+  type="password"
+  placeholder="Confirm Password"
+  value={confirmPassword}
+  onChange={(e) => setConfirmPassword(e.target.value)}
+  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
+/>
+
+
+              <p className="text-xs text-slate-500">
+  Password must contain at least 8 characters.
+</p>
+
+              <button
+  onClick={handlePasswordUpdate}
+  className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-2xl font-semibold transition-all"
+>
+  Update Password
+</button>
 
             </div>
 
           </div>
 
         </div>
-
-        {/* Bottom Grid */}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-
-          {/* Notifications */}
-
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-
-            <div className="flex items-center gap-3 mb-5">
-
-              <div className="w-12 h-12 rounded-2xl bg-yellow-100 flex items-center justify-center">
-
-                <FaBell className="text-yellow-500 text-xl" />
-
-              </div>
-
-              <div>
-
-                <h2 className="text-xl font-black text-slate-800">
-                  Notifications
-                </h2>
-
-                <p className="text-gray-500 text-sm">
-                  Manage alerts
-                </p>
-
-              </div>
-
-            </div>
-
-            <div className="space-y-5 text-sm">
-
-              <label className="flex items-center justify-between">
-
-                <span className="font-medium text-slate-700">
-                  Email Notifications
-                </span>
-
-                <input type="checkbox" />
-
-              </label>
-
-              <label className="flex items-center justify-between">
-
-                <span className="font-medium text-slate-700">
-                  Candidate Alerts
-                </span>
-
-                <input type="checkbox" />
-
-              </label>
-
-              <label className="flex items-center justify-between">
-
-                <span className="font-medium text-slate-700">
-                  Resume Upload Alerts
-                </span>
-
-                <input type="checkbox" />
-
-              </label>
-
-            </div>
-
-          </div>
-
-          {/* System Info */}
-
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-
-            <div className="flex items-center gap-3 mb-5">
-
-              <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center">
-
-                <FaDatabase className="text-green-600 text-xl" />
-
-              </div>
-
-              <div>
-
-                <h2 className="text-xl font-black text-slate-800">
-                  System Info
-                </h2>
-
-                <p className="text-gray-500 text-sm">
-                  Current system status
-                </p>
-
-              </div>
-
-            </div>
-
-            <div className="space-y-4 text-sm">
-
-              <div className="flex justify-between">
-
-                <span className="text-gray-500">
-                  App Version
-                </span>
-
-                <span className="font-semibold">
-                  1.0.0
-                </span>
-
-              </div>
-
-              <div className="flex justify-between">
-
-                <span className="text-gray-500">
-                  System Status
-                </span>
-
-                <span className="text-green-600 font-semibold">
-                  Active
-                </span>
-
-              </div>
-
-              <div className="flex justify-between">
-
-                <span className="text-gray-500">
-                  Database
-                </span>
-
-                <span className="text-blue-600 font-semibold">
-                  Connected
-                </span>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* Backend */}
-
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-
-            <div className="flex items-center gap-3 mb-5">
-
-              <div className="w-12 h-12 rounded-2xl bg-blue-100 flex items-center justify-center">
-
-                <FaCheckCircle className="text-blue-600 text-xl" />
-
-              </div>
-
-              <div>
-
-                <h2 className="text-xl font-black text-slate-800">
-                  Backend Status
-                </h2>
-
-                <p className="text-gray-500 text-sm">
-                  Services running
-                </p>
-
-              </div>
-
-            </div>
-
-            <div className="space-y-4 text-sm">
-
-              <div className="bg-green-50 text-green-700 px-4 py-3 rounded-2xl font-semibold">
-                ✅ Supabase Connected
-              </div>
-
-              <div className="bg-blue-50 text-blue-700 px-4 py-3 rounded-2xl font-semibold">
-                ✅ AI Screening Active
-              </div>
-
-              <div className="bg-yellow-50 text-yellow-700 px-4 py-3 rounded-2xl font-semibold">
-                ✅ Resume Upload Working
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
+           
         {/* Bottom Buttons */}
 
-        <div className="flex gap-4 mt-8">
+   <div className="flex justify-end mt-2">
 
-          <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-7 py-4 rounded-2xl font-semibold shadow-sm transition-all">
-
-            <FaSave />
-
-            Save Changes
-
-          </button>
-
-          <button
-            onClick={() =>
-              navigate("/")
-            }
-
-            className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-7 py-4 rounded-2xl font-semibold shadow-sm transition-all"
-          >
-
-            <FaSignOutAlt />
-
-            Logout
-
-          </button>
-
+         <button
+  onClick={handleSave}
+  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+  px-6 py-3 rounded-2xl font-semibold shadow-lg hover:scale-105 transition-all"
+>
+  <FaSave />
+  Save Changes
+</button>
+            
         </div>
 
       </div>

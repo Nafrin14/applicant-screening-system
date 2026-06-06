@@ -1,51 +1,34 @@
-import React, {
-  useState,
-} from "react";
-
-import {
-  useNavigate,
-} from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../supabase";
 
 const Login = () => {
+  const navigate = useNavigate();
 
-  const navigate =
-    useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const [email, setEmail] =
-    useState("");
+  const handleLogin = async () => {
+    if (!email || !password) {
+      alert("Enter email & password");
+      return;
+    }
 
-  const [password,
-    setPassword] =
-    useState("");
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-  const handleLogin = () => {
-
-    if (
-      email &&
-      password
-    ) {
-
-      localStorage.setItem(
-        "isLoggedIn",
-        true
-      );
-
-      navigate("/dashboard");
-
+    if (error) {
+      alert(error.message);
     } else {
-
-      alert(
-        "Enter email & password"
-      );
+      navigate("/dashboard");
     }
   };
 
   return (
-
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
-
       <div className="bg-white p-10 rounded-2xl shadow-md w-[400px]">
-
         <h1 className="text-4xl font-bold mb-8 text-center text-blue-600">
           Login
         </h1>
@@ -54,11 +37,7 @@ const Login = () => {
           type="email"
           placeholder="Email"
           value={email}
-          onChange={(e) =>
-            setEmail(
-              e.target.value
-            )
-          }
+          onChange={(e) => setEmail(e.target.value)}
           className="w-full border border-gray-300 p-3 rounded-xl mb-5 outline-none focus:border-blue-500"
         />
 
@@ -66,11 +45,7 @@ const Login = () => {
           type="password"
           placeholder="Password"
           value={password}
-          onChange={(e) =>
-            setPassword(
-              e.target.value
-            )
-          }
+          onChange={(e) => setPassword(e.target.value)}
           className="w-full border border-gray-300 p-3 rounded-xl mb-5 outline-none focus:border-blue-500"
         />
 
@@ -80,9 +55,13 @@ const Login = () => {
         >
           Login
         </button>
-
+        <p
+  onClick={() => navigate("/forgot-password")}
+  className="text-center text-blue-600 mt-4 cursor-pointer hover:underline"
+>
+  Forgot Password?
+</p>
       </div>
-
     </div>
   );
 };

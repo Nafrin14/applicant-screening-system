@@ -7,8 +7,8 @@ import {
   useLocation,
 } from "react-router-dom";
 
-import { supabase }
-from "../supabase";
+import { supabase } from "../supabase";
+import Sidebar from "../components/Sidebar";
 
 import {
   FaTachometerAlt,
@@ -138,18 +138,30 @@ const [
 
     } else {
 
-      console.log(data);
+ await supabase
+  .from("notifications")
+  .insert([
+    {
+      title: "Interview Scheduled",
+      candidate_name: candidateName,
+      message: `${candidateName} interview scheduled on ${interviewDate} at ${interviewTime}`,
+      interview_date: interviewDate,
+      interview_time: interviewTime,
+      is_read: false,
+    },
+  ]);
 
-      alert(
-        "Interview Scheduled Successfully"
-      );
+  console.log(data);
 
-      setCandidateName("");
-      setInterviewDate("");
-      setInterviewTime("");
-      setMeetingType(
-        "Online"
-      );
+  alert(
+    "Interview Scheduled Successfully"
+  );
+
+  setCandidateName("");
+  setInterviewDate("");
+  setInterviewTime("");
+  setMeetingType("Online");
+
     }
   };
 
@@ -254,72 +266,27 @@ const [
   return (
 
     <div className="min-h-screen bg-slate-100 flex">
-
       {/* Sidebar */}
-
-      <div className="w-64 bg-[#020617] text-white p-5">
-
-        <div>
-
-          <h1 className="text-3xl font-extrabold leading-tight mb-10">
-            Applicant
-            <br />
-            Screening System
-          </h1>
-
-          <ul className="space-y-3">
-
-            {menuItems.map(
-              (item) => (
-
-              <li
-                key={item.name}
-
-                onClick={() =>
-                  navigate(
-                    item.path
-                  )
-                }
-
-                className={`p-2 rounded-xl cursor-pointer transition-all duration-300 hover:text-blue-400 ${
-                  item.name ===
-                  "Interview Schedule"
-                    ? "text-blue-400"
-                    : "text-white"
-                }`}
-              >
-
-                <div className="flex items-center gap-4">
-
-                  <span className="text-base">
-                    {item.icon}
-                  </span>
-
-                  <span className="font-semibold text-[14px]">
-                    {item.name}
-                  </span>
-
-                </div>
-
-              </li>
-
-            ))}
-
-          </ul>
-
-        </div>
-
-      </div>
+      <Sidebar />
 
       {/* Main */}
 
-      <div className="flex-1 p-6 overflow-y-auto">
-
+     <div className="flex-1 md:ml-60 pt-20 md:pt-8 px-6 md:px-8 py-6 min-h-screen overflow-y-auto">
         {/* Header */}
 
-        <div className="mb-6">
-
-          <h1 className="text-4xl font-black text-slate-900 mb-2">
+        <div className="mb-4">
+<h1 className="
+text-3xl
+md:text-4xl
+font-extrabold
+bg-gradient-to-r
+from-blue-600
+to-indigo-600
+bg-clip-text
+text-transparent
+mb-2
+">
+         
             Schedule Interview
           </h1>
 
@@ -331,13 +298,13 @@ const [
 
         {/* Form Card */}
 
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-8 max-w-4xl">
+     <div className="bg-white rounded-3xl shadow-lg border border-slate-200 p-5 md:p-6 w-full">
 
-          <div className="grid grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
 
             {/* Candidate */}
 
-            <div className="col-span-2">
+            <div className="md:col-span-2">
 
               <label className="text-sm font-semibold text-slate-700 mb-2 block">
                 Candidate Name
@@ -372,7 +339,20 @@ const [
     type="text"
     value={email}
     readOnly
-    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 outline-none"
+    className="
+w-full
+bg-slate-50
+border
+border-slate-200
+rounded-2xl
+px-4
+py-4
+outline-none
+focus:ring-2
+focus:ring-blue-500
+focus:border-blue-500
+transition-all
+"
   />
 
 </div>
@@ -411,6 +391,8 @@ const [
 
             </div>
 
+
+
             {/* Time */}
 
             <div>
@@ -440,7 +422,7 @@ const [
 
             {/* Meeting Type */}
 
-            <div className="col-span-2">
+            <div className="md:col-span-2">
 
               <label className="text-sm font-semibold text-slate-700 mb-2 block">
                 Meeting Type
@@ -478,16 +460,31 @@ const [
 
           {/* Button */}
 
-          <button
-            onClick={
-              scheduleInterview
-            }
-            className="mt-8 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-md transition-all duration-300"
-          >
-
-            Schedule Interview
-
-          </button>
+        <div className="flex justify-center mt-8">
+  <button
+    onClick={scheduleInterview}
+    className="
+    bg-gradient-to-r
+    from-blue-600
+    to-indigo-600
+    hover:from-blue-700
+    hover:to-indigo-700
+    text-white
+    px-10
+    py-4
+    rounded-2xl
+    font-semibold
+    shadow-lg
+    hover:shadow-xl
+    transition-all
+    duration-300
+    hover:-translate-y-1
+    "
+  >
+    Schedule Interview
+  </button>
+</div>
+           
 
         </div>
 

@@ -1,25 +1,30 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
+import { supabase } from "../supabase";
 
-import {
-  Navigate,
-} from "react-router-dom";
+function ProtectedRoute({ children }) {
+  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState(null);
 
-function ProtectedRoute({
-  children,
-}) {
+  useEffect(() => {
+    checkSession();
+  }, []);
 
-  const isLoggedIn =
-    localStorage.getItem(
-      "isLoggedIn"
-    );
+  const checkSession = async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-  if (!isLoggedIn) {
+    setSession(session);
+    setLoading(false);
+  };
 
-    return (
-      <Navigate
-        to="/login"
-      />
-    );
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!session) {
+    return <Navigate to="/login" replace />;
   }
 
   return children;

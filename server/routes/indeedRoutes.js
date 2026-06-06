@@ -8,13 +8,16 @@ router.get(
   "/test",
   async (req, res) => {
 
+
     res.json({
       success: true,
       message:
         "Indeed route working",
+
     });
   }
 );
+
 
 router.get(
   "/auth-url",
@@ -30,7 +33,8 @@ router.get(
         "http://localhost:5000/api/indeed/callback";
 
       const authUrl =
-        `https://secure.indeed.com/oauth/v2/authorize?client_id=${clientId}&response_type=code&redirect_uri=${redirectUri}&scope=employer_access`;
+        `https://secure.indeed.com/oauth/v2/authorize?client_id=${clientId}
+        &response_type=code&redirect_uri=${redirectUri}&scope=employer_access`;
 
       res.json({
         success: true,

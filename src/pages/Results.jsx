@@ -14,6 +14,9 @@ import Sidebar from "../components/Sidebar";
 
 import {
   FaSearch,
+  FaEdit,
+  FaTrash,
+  FaFileAlt,
 } from "react-icons/fa";
 
 function Results() {
@@ -322,10 +325,13 @@ const rankedCandidates =
 
                     <td>
 
-                      <div className="flex gap-2 flex-wrap">
+                      <div className="flex gap-2 whitespace-nowrap">
 
-                        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm transition">
-                          Edit
+                        <button 
+                          className="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-lg transition"
+                          title="Edit Candidate"
+                        >
+                          <FaEdit size={14} />
                         </button>
 
                         <button
@@ -334,9 +340,10 @@ const rankedCandidates =
                               candidate.id
                             )
                           }
-                          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-sm transition"
+                          className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition"
+                          title="Delete Profile"
                         >
-                          Delete
+                          <FaTrash size={14} />
                         </button>
 
                         <a
@@ -345,9 +352,11 @@ const rankedCandidates =
                           }
                           target="_blank"
                           rel="noreferrer"
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm transition"
+                          className="bg-green-100 hover:bg-green-200 text-green-700
+                           p-2 rounded-lg inline-flex items-center justify-center transition"
+                          title="View Resume"
                         >
-                          Resume
+                          <FaFileAlt size={14} />
                         </a>
 
                       </div>

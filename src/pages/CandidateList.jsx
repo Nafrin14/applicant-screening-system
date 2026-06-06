@@ -14,6 +14,8 @@ import { supabase }
 from "../supabase";
 
 import Sidebar from "../components/Sidebar";
+import { FaEye, FaUserCheck, FaUserTimes, FaCalendarAlt, FaTrashAlt,FaClock }
+ from "react-icons/fa";
 
 
 
@@ -31,6 +33,9 @@ function CandidateList() {
   search,
   setSearch,
 ] = useState("");
+
+const [selectedApplicants, setSelectedApplicants] = useState([]);
+const [statusFilter, setStatusFilter] = useState("All");
 
   useEffect(() => {
     fetchApplicants();
@@ -61,15 +66,21 @@ await supabase
 
   }
 };
-const filteredApplicants =
-  applicants.filter(
-    (applicant) =>
-      applicant.name
-        ?.toLowerCase()
-        .includes(
-          search.toLowerCase()
-        )
-  );
+const filteredApplicants = applicants.filter((applicant) => {
+
+  const matchesSearch =
+    applicant.name
+      ?.toLowerCase()
+      .includes(search.toLowerCase());
+
+  const matchesStatus =
+    statusFilter === "All"
+      ? true
+      : applicant.status === statusFilter;
+
+  return matchesSearch && matchesStatus;
+
+});
 
     
   
@@ -78,6 +89,11 @@ const filteredApplicants =
 
   const handleDelete =
     async (id) => {
+      const confirmDelete = window.confirm(
+  "Are you sure you want to delete this candidate?"
+);
+
+if (!confirmDelete) return;
 
     const { error } =
       await supabase
@@ -90,11 +106,35 @@ const filteredApplicants =
       console.log(error);
 
     } else {
+      alert("Candidate deleted successfully");
 
       fetchApplicants();
 
     }
   };
+const bulkDelete = async () => {const confirmDelete = window.confirm(
+  `Delete ${selectedApplicants.length} selected candidates?`
+);
+
+if (!confirmDelete) return;
+
+  const { error } = await supabase
+    .from("applicants")
+    .delete()
+    .in("id", selectedApplicants);
+
+  if (error) {
+
+    console.log(error);
+
+  } else {
+
+    setSelectedApplicants([]);
+    fetchApplicants();
+
+  }
+};
+
 
   /* STATUS UPDATE */
 
@@ -122,7 +162,26 @@ const filteredApplicants =
 
     }
   };
+const bulkUpdateStatus = async (status) => {
 
+  const { error } = await supabase
+    .from("applicants")
+    .update({ status })
+    .in("id", selectedApplicants);
+
+  if (error) {
+
+    console.log(error);
+
+  } else { alert(
+  `${selectedApplicants.length} candidates ${status.toLowerCase()} successfully`
+);
+
+    setSelectedApplicants([]);
+    fetchApplicants();
+
+  }
+};
   const downloadExcel = () => {
 
   const excelData =
@@ -195,13 +254,19 @@ const filteredApplicants =
 
     <div className="min-h-screen bg-slate-100 flex">
 
-      {/* Sidebar */}
+      
 
      {/* Sidebar */}
 <Sidebar />
+
+
+
       {/* Main */}
 
-<div className="flex-1 md:ml-64 pt-20 md:pt-8 p-4 md:p-8 overflow-y-auto">
+<div className="flex-1 md:ml-56 pt-20 md:pt-8 p-4 md:p-8 overflow-y-auto">
+
+
+
         {/* Header */}
 
        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
@@ -216,53 +281,135 @@ const filteredApplicants =
               Manage manual uploaded applicants
             </p>
 
+            
+
           </div>
 
          <div className="flex flex-col md:flex-row gap-3">
 
   <button
-    onClick={downloadExcel}
-    className="bg-green-600 hover:bg-green-700 text-white px-5 py-3 rounded-2xl shadow-lg transition"
-  >
-    Download Excel
-  </button>
+  onClick={downloadExcel}
+  className="
+    bg-gradient-to-r from-emerald-600 to-green-500
+    hover:from-emerald-700 hover:to-green-600
+    text-white px-6 py-3 rounded-2xl
+    shadow-lg hover:shadow-xl
+    transition-all duration-300
+    hover:-translate-y-1
+    font-medium
+  "
+>
+  Download Excel
+</button>
 
-  <button
-    onClick={() =>
-      navigate(
-        "/upload"
-      )
-    }
-    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl shadow-lg transition"
-  >
-    + Upload Resume
-  </button>
+<button
+  onClick={() => navigate("/upload")}
+  className="
+    bg-gradient-to-r from-blue-600 to-indigo-600
+    hover:from-blue-700 hover:to-indigo-700
+    text-white px-6 py-3 rounded-2xl
+    shadow-lg hover:shadow-xl
+    transition-all duration-300
+    hover:-translate-y-1
+    font-medium
+  "
+>
+  + Upload Resume
+</button>
 
 </div>
 
         </div>
 
+
+
         {/* Table */}
 
         <div className="bg-white rounded-3xl shadow-md p-6">
 
-         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-3">
 
-           <h2 className="text-xl md:text-2xl font-bold text-slate-800">
-  Applicant List
-</h2>
+           <p className="text-sm text-slate-500 font-medium">
+  Showing {filteredApplicants.length} Candidates
+</p>
 
-            <input
-  type="text"
-  placeholder="Search candidate..."
-  value={search}
-  onChange={(e) =>
-    setSearch(
-      e.target.value
+{selectedApplicants.length > 0 && (
+  <div className="flex items-center gap-2 mt-3">
+
+    <span className="text-sm font-semibold text-gray-600">
+      {selectedApplicants.length} Selected
+    </span>
+
+    <button
+  onClick={() =>
+    bulkUpdateStatus(
+      "Shortlisted"
     )
   }
- className="bg-slate-100 border border-gray-200 px-5 py-3 rounded-2xl outline-none w-full md:w-72"
-/>
+  className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg"
+  title="Bulk Shortlist"
+>
+  <FaUserCheck size={14} />
+</button>
+
+    <button
+  onClick={() =>
+    bulkUpdateStatus("Rejected")
+  }
+  className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg"
+  title="Bulk Reject"
+>
+  <FaUserTimes size={14} />
+</button>
+
+    <button
+  onClick={() =>
+    bulkUpdateStatus("Pending")
+  }
+  className="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 p-2 rounded-lg"
+  title="Bulk Pending"
+>
+  <FaClock size={14} />
+</button>
+
+    <button
+  onClick={bulkDelete}
+  className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg"
+  title="Bulk Delete"
+>
+  <FaTrashAlt size={14} />
+</button>
+
+  </div>
+)}
+
+
+<div className="flex flex-col md:flex-row gap-3 items-center">
+
+  <select
+    value={statusFilter}
+    onChange={(e) => setStatusFilter(e.target.value)}
+    className="bg-slate-100 border border-gray-200 px-4 py-3 rounded-2xl outline-none w-full md:w-auto"
+  >
+    <option value="All">All Status</option>
+    <option value="Shortlisted">Shortlisted</option>
+    <option value="Pending">Pending</option>
+    <option value="Rejected">Rejected</option>
+    <option value="Interview Scheduled">
+      Interview Scheduled
+    </option>
+  </select>
+
+  <input
+    type="text"
+    placeholder="Search candidate..."
+    value={search}
+    onChange={(e) => setSearch(e.target.value)}
+    className="bg-slate-100 border border-gray-200 px-5 py-3 rounded-2xl outline-none w-full md:w-72"
+  />
+
+</div>
+ 
 
           </div>
 
@@ -272,6 +419,20 @@ const filteredApplicants =
               <thead>
 
                 <tr className="border-b border-gray-200 text-left">
+                  <th className="py-4">
+  <input
+    type="checkbox"
+    onChange={(e) =>
+      setSelectedApplicants(
+        e.target.checked
+          ? filteredApplicants.map(
+              (a) => a.id
+            )
+          : []
+      )
+    }
+  />
+</th>
 
                   <th className="py-4 text-gray-500 font-semibold">
                     Candidate
@@ -306,15 +467,40 @@ const filteredApplicants =
                 {filteredApplicants.map(
   (applicant, index) => (
                   <tr
-                    key={applicant.id}
-                    className="border-b border-gray-100 hover:bg-slate-50 transition"
-                  >
+  key={applicant.id}
+  className={`border-b border-gray-100 transition ${
+    selectedApplicants.includes(applicant.id)
+      ? "bg-blue-50"
+      : "hover:bg-slate-50"
+  }`}
+>
+                    <td>
+  <input
+    type="checkbox"
+    checked={selectedApplicants.includes(applicant.id)}
+    onChange={(e) => {
+      if (e.target.checked) {
+        setSelectedApplicants([
+          ...selectedApplicants,
+          applicant.id,
+        ]);
+      } else {
+        setSelectedApplicants(
+          selectedApplicants.filter(
+            (id) => id !== applicant.id
+          )
+        );
+      }
+    }}
+  />
+</td>
 
                     <td className="py-5">
 
                       <div className="flex items-center gap-4">
 
-                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
+                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center
+                         text-blue-600 font-bold text-lg">
 
                           {applicant.name
                             ?.charAt(0)}
@@ -429,7 +615,7 @@ const filteredApplicants =
 
 </td>  
 
-<td className="w-[300px]">
+<td className="w-[180px]">
 
  <div className="flex items-center gap-2 whitespace-nowrap">
 
@@ -439,9 +625,10 @@ const filteredApplicants =
           state: applicant,
         })
       }
-      className="bg-blue-100 hover:bg-blue-200 text-blue-600 px-2 py-1 rounded-lg text-xs font-semibold transition"
+      className="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-lg transition"
+      title="View Details"
     >
-      View
+      <FaEye size={14} />
     </button>
 
     {applicant.status !== "Shortlisted" && (
@@ -452,9 +639,10 @@ const filteredApplicants =
             "Shortlisted"
           )
         }
-        className="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-lg text-xs font-semibold transition"
+        className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg transition"
+        title="Shortlist Candidate"
       >
-        Shortlist
+        <FaUserCheck size={14} />
       </button>
     )}
 
@@ -466,9 +654,10 @@ const filteredApplicants =
             "Rejected"
           )
         }
-        className="bg-red-100 hover:bg-red-200 text-red-600 px-2 py-1 rounded-lg text-xs font-semibold transition"
+        className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition"
+        title="Reject Candidate"
       >
-        Reject
+        <FaUserTimes size={14} />
       </button>
     )}
 
@@ -489,9 +678,10 @@ const filteredApplicants =
   );
 
 }}
-        className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-lg text-xs font-semibold transition"
+        className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition"
+        title="Schedule Interview"
       >
-        Interview
+        <FaCalendarAlt size={14} />
       </button>
     )}
 
@@ -501,9 +691,10 @@ const filteredApplicants =
           applicant.id
         )
       }
-      className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded-lg text-xs font-semibold transition"
+      className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg transition"
+      title="Delete Profile"
     >
-      Delete
+      <FaTrashAlt size={14} />
     </button>
 
   </div>

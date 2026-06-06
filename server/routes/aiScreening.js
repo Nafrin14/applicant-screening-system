@@ -54,38 +54,38 @@ router.post(
       const response =
         await axios.post(
           "https://api.anthropic.com/v1/messages",
+          
           {
             model:
-              "claude-opus-4-7",
+            "claude-opus-4-7",
 
-            max_tokens: 1200,
+             max_tokens: 1200,
 
-            messages: [
-              {
-                role: "user",
+             messages: [
+            {
+                 role: "user",
 
-                content: `
-Analyze this resume for the role: ${jobRole}
+                 content: `
+                      Analyze this resume for the role: ${jobRole}
 
-Resume:
-${resumeText}
+                      Resume: ${resumeText}
 
-You are an expert HR recruiter.
-Also extract:
+                      You are an expert HR recruiter.
+                      Also extract:
 
-1. Candidate Full Name
-2. Total Years of Experience
-3. Current Location
-4. Best Recommended Job Role
-5. Top 3 Suitable Job Roles
+                      1. Candidate Full Name
+                      2. Total Years of Experience
+                      3. Current Location
+                      4. Best Recommended Job Role
+                      5. Top 3 Suitable Job Roles
 
-Return them in the JSON fields:
+                      Return them in the JSON fields:
 
-"name"
-"experience"
-"location"
-"recommendedRole"
-"suitableJobs"
+                       "name"
+                      "experience"
+                      "location"
+                      "recommendedRole"
+                      "suitableJobs"
 
 
 Only recommend roles that are explicitly mentioned in the provided Job Description.
@@ -165,19 +165,17 @@ Do not return explanations outside JSON.
           }
         );
 
-      const aiText =
-        response.data.content[0].text;
+      const aiText = response.data.content[0].text;
 
       let parsedResult;
 
       try {
 
-        parsedResult =
-          JSON.parse(aiText);
+        parsedResult = JSON.parse(aiText);
 
       } catch {
 
-        parsedResult = {
+  parsedResult = {
   name: "",
   experience: "",
   location: "",
@@ -194,11 +192,10 @@ Do not return explanations outside JSON.
       res.json({
         success: true,
 
-          name: parsedResult.name,
+   name: parsedResult.name,
   experience: parsedResult.experience,
   location: parsedResult.location,
-  recommendedRole:
-  parsedResult.recommendedRole,
+  recommendedRole: parsedResult.recommendedRole,
 
 
         score:
