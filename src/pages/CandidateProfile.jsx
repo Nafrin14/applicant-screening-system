@@ -123,12 +123,6 @@ function CandidateProfile() {
   </p>
 </div>
 
-          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-  <p className="text-xs text-gray-500">Role</p>
-  <p className="font-semibold text-sm">
-    {applicant.role || "Not Available"}
-  </p>
-</div>
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
   <p className="text-xs text-gray-500">Experience</p>
   <p className="font-semibold text-sm">

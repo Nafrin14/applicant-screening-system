@@ -1,6 +1,7 @@
 import React from "react";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import CandidateChat from "./pages/CandidateChat";
 
 import {
   BrowserRouter,
@@ -20,11 +21,11 @@ import CandidateProfile from "./pages/CandidateProfile";
 import InterviewSchedule from "./pages/InterviewSchedule";
 import ScheduledInterviews from "./pages/ScheduledInterviews";
 import CSVUpload from "./pages/CSVUpload";
-import CareersPage from "./pages/CareersPage";
+
 import ApplyPage from "./pages/ApplyPage";
 import ResumeViewer from "./pages/ResumeViewer";
-
 import ProtectedRoute from "./components/ProtectedRoute";
+import Conversations from "./pages/Conversations";
 
 function App() {
   return (
@@ -142,14 +143,6 @@ function App() {
           }
         />
 
-        
-
-       
-
-        <Route
-          path="/careers"
-          element={<CareersPage />}
-        />
 
         <Route
           path="/apply/:id"
@@ -166,6 +159,27 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+  path="/candidate-chat"
+  element={
+    <ProtectedRoute>
+      <CandidateChat />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/test"
+  element={<h1>Test Page Working</h1>}
+/>
+<Route
+  path="/conversations"
+  element={
+    <ProtectedRoute>
+      <Conversations />
+    </ProtectedRoute>
+  }
+/>
 
         <Route
           path="/settings"

@@ -10,6 +10,7 @@ import {
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
 
+
 import {
   FaTachometerAlt,
   FaUsers,
@@ -28,10 +29,13 @@ import {
 
 function InterviewSchedule() {
 
-  const navigate =
-    useNavigate();
+  const GHL_TOKEN = "pit-82420460-73f4-4d6f-a5bc-3e497505ff75";
+const LOCATION_ID = "t5PXdZcOHlQwyi2gtJkM";
 
-    const location =
+const navigate =
+  useNavigate();
+
+const location =
   useLocation();
 
 const applicant =
@@ -42,7 +46,7 @@ const applicant =
   applicant
 );
 
-  const [
+const [
   candidateName,
   setCandidateName,
 ] = useState(
@@ -63,22 +67,102 @@ const [
   applicant?.phone || ""
 );
 
-  const [
+const [
     interviewDate,
     setInterviewDate,
   ] = useState("");
 
-  const [
+const [
     interviewTime,
     setInterviewTime,
   ] = useState("");
 
-  const [
+const [
     meetingType,
     setMeetingType,
   ] = useState("Online");
 
-  const scheduleInterview =
+  const [showPreview, setShowPreview] = useState(false);
+
+  const createGHLContact = async () => {
+   
+  try {
+
+    console.log("GHL Test Data:", {
+  firstName: candidateName,
+  email: email,
+  phone: phone,
+  locationId: LOCATION_ID,
+});
+    const response = await fetch(
+      "https://services.leadconnectorhq.com/contacts/",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${GHL_TOKEN}`,
+          Version: "2021-07-28",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstName: candidateName,
+          email: email,
+          phone: phone,
+          locationId: LOCATION_ID,
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    console.log("GHL Response:", result);
+
+    return result?.contact?.id;
+  } catch (error) {
+    console.error("GHL Error:", error);
+    return null;
+  }
+};
+
+const sendSMS = async (contactId) => {
+  try {
+    const response = await fetch(
+  "https://services.leadconnectorhq.com/conversations/messages",
+  {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${GHL_TOKEN}`,
+      Version: "2021-07-28",
+      "Content-Type": "application/json",
+    },
+body: JSON.stringify({
+  type: "SMS",
+  contactId: contactId,
+ message: `Hello ${candidateName},
+
+I'm Sean from KD Landscaping.
+
+Recently you applied for the Landscaping Foreman position through Indeed.
+
+Do you have a driving license?
+
+Can you come to 9950 County Rd, Clarence Center, NY 14032, USA on ${interviewDate} at ${interviewTime}?`
+
+    }),
+  }
+);
+
+console.log("Sending SMS to Contact:", contactId);
+    const result = await response.json();
+
+    console.log("SMS Response:", result);
+
+    return result;
+  } catch (error) {
+    console.error("SMS Error:", error);
+  }
+};
+
+const scheduleInterview =
     async () => {
 
     if (
@@ -94,14 +178,15 @@ const [
       return;
     }
 
-    const {
-      data,
-      error,
+const {
+  data,
+  error,
     } =
-      await supabase
-        .from("interviews")
-        .insert([
+  await supabase
+  .from("interviews")
+  .insert([
   {
+
     candidate_name:
       candidateName,
 
@@ -151,6 +236,20 @@ const [
     },
   ]);
 
+
+  // TODO: GHL API Integration
+  /*const contactId = await createGHLContact();
+  console.log("Contact ID:", contactId);
+  if (!contactId) {
+  alert("GHL Contact Creation Failed");
+  return;
+}
+await sendSMS(contactId);*/
+const contactId = "gHNySydEIaXvZBYPy1mq";
+
+console.log("Using Existing Contact ID:", contactId);
+
+await sendSMS(contactId);
   console.log(data);
 
   alert(
@@ -267,14 +366,13 @@ const [
 
     <div className="min-h-screen bg-slate-100 flex">
       {/* Sidebar */}
-      <Sidebar />
+       <Sidebar />
 
       {/* Main */}
-
-     <div className="flex-1 md:ml-60 pt-20 md:pt-8 px-6 md:px-8 py-6 min-h-screen overflow-y-auto">
+    <div className="flex-1 md:ml-56 pt-20 md:pt-8 px-6 md:px-8 py-6 min-h-screen overflow-y-auto">
         {/* Header */}
 
-        <div className="mb-4">
+<div className="mb-4">
 <h1 className="
 text-3xl
 md:text-4xl
@@ -461,35 +559,95 @@ transition-all
           {/* Button */}
 
         <div className="flex justify-center mt-8">
-  <button
-    onClick={scheduleInterview}
-    className="
-    bg-gradient-to-r
-    from-blue-600
-    to-indigo-600
-    hover:from-blue-700
-    hover:to-indigo-700
-    text-white
-    px-10
-    py-4
-    rounded-2xl
-    font-semibold
-    shadow-lg
-    hover:shadow-xl
-    transition-all
-    duration-300
-    hover:-translate-y-1
-    "
-  >
-    Schedule Interview
-  </button>
+ <button
+  onClick={() =>
+    navigate("/candidate-chat", {
+      state: {
+        candidateName,
+        phone,
+      },
+    })
+  }
+  className="
+  bg-gradient-to-r
+  from-blue-600
+  to-indigo-600
+  hover:from-blue-700
+  hover:to-indigo-700
+  text-white
+  px-10
+  py-4
+  rounded-2xl
+  font-semibold
+  shadow-lg
+  hover:shadow-xl
+  transition-all
+  duration-300
+  hover:-translate-y-1
+  "
+>
+  Schedule Interview
+</button>
 </div>
            
 
         </div>
 
       </div>
+{showPreview && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
 
+    <div className="bg-white w-[700px] rounded-3xl p-6 shadow-2xl">
+
+      <h2 className="text-2xl font-bold mb-5">
+        SMS Preview
+      </h2>
+
+      <div className="space-y-4">
+
+        <div className="bg-slate-100 p-4 rounded-2xl">
+          Hello {candidateName},
+          <br />
+          I'm Sean from KD Landscaping.
+        </div>
+
+        <div className="bg-slate-100 p-4 rounded-2xl">
+          Recently you applied for the Landscaping Foreman position through Indeed.
+        </div>
+
+        <div className="bg-slate-100 p-4 rounded-2xl">
+          Do you have a driving license?
+          <br /><br />
+          Can you come to 9950 County Rd, Clarence Center, NY 14032, USA on {interviewDate} at {interviewTime}?
+        </div>
+
+      </div>
+
+      <div className="flex justify-end gap-3 mt-6">
+
+        <button
+          onClick={() => setShowPreview(false)}
+          className="px-5 py-2 border rounded-xl"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={async () => {
+            setShowPreview(false);
+            await scheduleInterview();
+          }}
+          className="bg-blue-600 text-white px-5 py-2 rounded-xl"
+        >
+          Send SMS
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
     </div>
   );
 }

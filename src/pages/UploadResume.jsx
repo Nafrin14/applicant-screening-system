@@ -10,17 +10,13 @@ import Sidebar from "../components/Sidebar";
 
 import * as pdfjsLib from "pdfjs-dist";
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  
 import {
   FaCloudUploadAlt,
 } from "react-icons/fa";
 
-/* PDF WORKER FIX */
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString();
 
 function UploadResume() {
 
@@ -242,23 +238,13 @@ if (!jobDescription) {
 
    /* PHONE */
 
-const phoneMatches =
-  fileText.match(
-    /(\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}|\+\d{10,15})/g
-  ) || [];
+const phoneMatch = fileText.match(
+  /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/
+);
 
-const validPhones =
-  phoneMatches.filter(
-    (item) =>
-      !item.match(
-        /^\d{4}\s*-\s*\d{4}$/
-      )
-  );
-
-const phone =
-  validPhones.length > 0
-    ? validPhones[0]
-    : "--";
+const phone = phoneMatch
+  ? phoneMatch[0]
+  : "--";
 
 
       const experienceMatch =
@@ -419,7 +405,7 @@ resume_url: publicUrl,
       {/* Sidebar */}
       <Sidebar />
 
-    <div className="flex-1 md:ml-60 pt-20 md:pt-8 px-4 md:px-4 py-4 md:py-8 min-h-screen overflow-y-auto">
+    <div className="flex-1 md:ml-60 pt-20 md:pt-8 px-4 md:px-4 py-4 md:py-8 min-h-screen">
         <div className="mb-6 md:mb-8">
 <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Resume Upload
@@ -439,7 +425,7 @@ p-6 md:p-8
 w-full mx-auto
 ">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start">
-            <div className="lg:sticky lg:top-0">
+           <div className="lg:sticky lg:top-8 self-start">
              <h2 className="text-2xl font-bold text-slate-800 mb-6">
                 Candidate Information
               </h2>
@@ -599,7 +585,7 @@ hover:-translate-y-1
               </button>
             </div>
 
-          <div className="
+        <div className="
 bg-gradient-to-br
 from-slate-50
 to-blue-50
@@ -607,10 +593,10 @@ rounded-3xl
 border
 border-slate-200
 p-6
-min-h-[500px]
+h-[800px]
+overflow-y-auto
 mt-4
 lg:mt-0
-
 ">
               <h2 className="text-3xl font-bold text-slate-800 mb-6">
                 AI Screening Result

@@ -12,6 +12,7 @@ import {
   FaBriefcase,
   FaCog,
   FaSignOutAlt,
+  FaComments,
 } from "react-icons/fa";
 
 function Sidebar() {
@@ -24,6 +25,7 @@ function Sidebar() {
     { name: "Candidates", path: "/results", icon: <FaUsers /> },
     { name: "Resume Upload", path: "/upload", icon: <FaFileUpload /> },
     { name: "AI Results", path: "/ai-results", icon: <FaRobot /> },
+    { name: "Conversations", path: "/conversations", icon: <FaComments /> },
     {
       name: "Interview Schedule",
       path: "/interview-schedule",
