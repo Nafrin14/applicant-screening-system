@@ -5,6 +5,7 @@ const pdfParse = require("pdf-parse");
 const mammoth = require("mammoth");
 
 require("dotenv").config();
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 const router = express.Router();
 
@@ -51,61 +52,23 @@ router.post(
         jobRole,
       } = req.body;
 
-      const response =
-        await axios.post(
-          "https://api.anthropic.com/v1/messages",
-          
-          {
-            model:
-            "claude-opus-4-7",
+     const response = await axios.post(
+  "https://api.groq.com/openai/v1/chat/completions",
+  {
+    model: "llama-3.3-70b-versatile",
 
-             max_tokens: 1200,
+    messages: [
+      {
+        role: "user",
+        content: `
+Analyze this resume for the role: ${jobRole}
 
-             messages: [
-            {
-                 role: "user",
+Resume:
+${resumeText}
 
-                 content: `
-                      Analyze this resume for the role: ${jobRole}
+You are an expert HR recruiter.
 
-                      Resume: ${resumeText}
-
-                      You are an expert HR recruiter.
-                      Also extract:
-
-                      1. Candidate Full Name
-                      2. Total Years of Experience
-                      3. Current Location
-                      4. Best Recommended Job Role
-                      5. Top 3 Suitable Job Roles
-
-                      Return them in the JSON fields:
-
-                       "name"
-                      "experience"
-                      "location"
-                      "recommendedRole"
-                      "suitableJobs"
-
-
-Only recommend roles that are explicitly mentioned in the provided Job Description.
-
-Do NOT create new job titles.
-
-Choose the best matching role only from the positions listed in the Job Description.
-
-Evaluate the candidate based on:
-
-1. Direct experience related to the role
-2. Similar or transferable experience
-3. Leadership and supervisory experience
-4. Technical and practical skills
-5. Education and certifications
-6. Overall suitability for the position
-
-Even if the candidate does not have direct experience in the role, consider related experience and transferable skills.
-
-Return ONLY valid JSON.
+Return ONLY valid JSON:
 
 {
   "name": "",
@@ -119,53 +82,22 @@ Return ONLY valid JSON.
   "missingSkills": [],
   "whySuitable": ""
 }
-Scoring Rules:
+`
+      }
+    ],
 
-90-100 = Best Match
-75-89 = Strong Match
-60-74 = Moderate Match
-Below 60 = Weak Match
+    temperature: 0.3
+  },
+  {
+    headers: {
+      Authorization: `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    }
+  }
+);
 
-Recommendation Rules:
-
-- Best Match
-- Strong Match
-- Moderate Match
-- Weak Match
-
-The score should represent how suitable the candidate is for the role overall.
-
-Do not focus only on exact skill matches.
-
-Consider:
-- Similar industries
-- Related experience
-- Leadership ability
-- Supervisory responsibilities
-- Transferable skills
-
-Do not return markdown.
-Do not return explanations outside JSON.
-`,
-              },
-            ],
-          },
-          {
-            headers: {
-              "x-api-key":
-                process.env
-                  .ANTHROPIC_API_KEY,
-
-              "anthropic-version":
-                "2023-06-01",
-
-              "content-type":
-                "application/json",
-            },
-          }
-        );
-
-      const aiText = response.data.content[0].text;
+const aiText =
+  response.data.choices[0].message.content;
 
       let parsedResult;
 
@@ -228,8 +160,8 @@ Do not return explanations outside JSON.
 
       res.status(500).json({
         success: false,
-        message:
-          "Claude AI Screening Failed",
+       message:
+  "Groq AI Screening Failed",
       });
     }
   }
