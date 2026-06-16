@@ -3,6 +3,7 @@ import {
   FaBell,
   FaSearch,
   FaUserCircle,
+   FaTrash,
 } from "react-icons/fa";
 
 import { supabase } from "../supabaseClient";
@@ -95,6 +96,23 @@ const markAsRead = async (id) => {
   }
 };
 
+const handleDelete = async (id) => {
+  const confirmDelete = window.confirm(
+    "Delete this notification?"
+  );
+
+  if (!confirmDelete) return;
+
+  const { error } = await supabase
+    .from("notifications")
+    .delete()
+    .eq("id", id);
+
+  if (!error) {
+    fetchNotifications();
+  }
+};
+
   return (
     <div className="fixed top-0 left-[224px] right-0 h-16 bg-white border-b border-slate-200 shadow-sm z-40">
       <div className="h-full flex items-center justify-between px-8">
@@ -165,32 +183,40 @@ const markAsRead = async (id) => {
           No notifications found
         </p>
       ) : (
-        notifications.map((item) => (
-         <div
-  key={item.id}
-  onClick={() =>
-    markAsRead(item.id)
-  }
-  className={`p-4 border-b border-slate-100 hover:bg-slate-50 cursor-pointer ${
-              !item.is_read
-                ? "bg-blue-50"
-                : ""
-            }`}
-          >
-            <p className="font-semibold text-sm text-slate-800">
-              {item.title}
-            </p>
+       
+ notifications.map((item) => (
+  <div
+    key={item.id}
+    className={`flex justify-between items-start p-4 border-b border-slate-100 ${
+      !item.is_read ? "bg-blue-50" : ""
+    }`}
+  >
+    <div
+      onClick={() => markAsRead(item.id)}
+      className="flex-1 cursor-pointer"
+    >
+      <p className="font-semibold text-sm text-slate-800">
+        {item.title}
+      </p>
 
-            <p className="text-xs text-slate-500 mt-1">
-              {item.message}
-            </p>
-          </div>
-        ))
-      )}
+      <p className="text-xs text-slate-500 mt-1">
+        {item.message}
+      </p>
+    </div>
 
+    <button
+      onClick={() => handleDelete(item.id)}
+      className="ml-3 text-red-500 hover:text-red-700"
+    >
+      <FaTrash />
+    </button>
+  </div>
+   ))
+)}
     </div>
   </div>
 )}
+
 
           {/* Profile */}
           <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-100 transition">

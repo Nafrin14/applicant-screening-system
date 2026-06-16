@@ -185,7 +185,7 @@ function AIResults() {
        <Sidebar />
 
       {/* Main */}
-      <div className="flex-1 md:ml-60 pt-20 md:pt-8 p-4 md:p-6 min-h-screen overflow-y-auto">
+      <div className="flex-1 md:ml-56 pt-20 md:pt-8 p-4 md:p-6 min-h-screen overflow-y-auto">
 
       {/* Header */}
       <div className="mb-5">

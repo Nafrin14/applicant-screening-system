@@ -133,27 +133,27 @@ function Dashboard() {
   <Navbar />
   <Sidebar />
 
- <div className="md:ml-56 mt-16 p-4 md:p-6">
+<div className="md:ml-56 mt-20 p-4 md:p-6">
         {/* Header */}
 
-        <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6 mb-8">
+          <div className="pt-12 md:pt-0">
 
-          <div>
-
-            <h1 className="text-4xl font-extrabold text-slate-800">
+           <h1 className="text-3xl md:text-4xl font-extrabold text-slate-800">
               Dashboard
             </h1>
 
-            <p className="text-slate-500 mt-2 text-base">
+          <p className="text-slate-500 mt-2 text-sm md:text-base max-w-md">
  Track applicants, interviews and hiring performance in one place.
 </p>
 
           </div>
 
-         <div className="flex flex-col md:flex-row gap-3">
+       <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3">
             <button
   onClick={() => navigate("/upload")}
-  className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-2xl shadow-lg transition"
+ className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r
+  from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-2xl shadow-lg"
 >
   <FaUpload />
   Upload Resume
@@ -161,8 +161,9 @@ function Dashboard() {
 
 <button
   onClick={() => navigate("/results")}
-  className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white px-5 py-3 rounded-2xl shadow-lg transition"
->
+ className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r
+  from-violet-600 to-purple-600 text-white px-5 py-3 rounded-2xl shadow-lg">
+
   <FaUsers />
   View Applicants
 </button>
@@ -173,15 +174,14 @@ function Dashboard() {
 
         {/* Stats Cards */}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
-
- <div className="bg-white rounded-3xl p-5 border-l-[4px] border-l-blue-500 border border-slate-200 shadow-sm">
+     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+ <div className="bg-white rounded-3xl p-4 min-h-[130px] border-l-[4px] border-l-blue-500 border border-slate-200 shadow-sm">
     <div className="flex justify-between items-start">
       <div>
         <p className="text-slate-500 text-sm">
           Total Applicants
         </p>
-        <h2 className="text-4xl font-bold text-slate-800 mt-3">
+        <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mt-3">
           {totalCandidates}
         </h2>
       </div>
@@ -192,13 +192,13 @@ function Dashboard() {
     </div>
   </div>
 
-<div className="bg-white rounded-3xl p-5 border-l-[4px] border-l-green-500 border border-slate-200 shadow-sm">
+<div className="bg-white rounded-3xl p-4 min-h-[130px] border-l-[4px] border-l-green-500 border border-slate-200 shadow-sm">
     <div className="flex justify-between items-start">
       <div>
         <p className="text-slate-500 text-sm">
           Shortlisted
         </p>
-        <h2 className="text-4xl font-bold text-green-600 mt-3">
+        <h2 className="text-3xl md:text-4xl font-bold text-green-600 mt-3">
           {shortlisted}
         </h2>
       </div>
@@ -209,13 +209,13 @@ function Dashboard() {
     </div>
   </div>
 
- <div className="bg-white rounded-3xl p-5 border-l-[4px] border-l-red-500 border border-slate-200 shadow-sm">
+ <div className="bg-white rounded-3xl p-4 min-h-[130px] border-l-[4px] border-l-red-500 border border-slate-200 shadow-sm">
     <div className="flex justify-between items-start">
       <div>
         <p className="text-slate-500 text-sm">
           Rejected
         </p>
-        <h2 className="text-4xl font-bold text-red-600 mt-3">
+        <h2 className="text-3xl md:text-4xl font-bold text-red-600 mt-3">
           {rejected}
         </h2>
       </div>
@@ -226,13 +226,13 @@ function Dashboard() {
     </div>
   </div>
 
-  <div className="bg-white rounded-3xl p-5 border-l-[4px] border-l-yellow-500 border border-slate-200 shadow-sm">
+  <div className="bg-white rounded-3xl p-4 min-h-[130px] border-l-[4px] border-l-yellow-500 border border-slate-200 shadow-sm">
     <div className="flex justify-between items-start">
       <div>
         <p className="text-slate-500 text-sm">
           Pending
         </p>
-        <h2 className="text-4xl font-bold text-yellow-600 mt-3">
+        <h2 className="text-3xl md:text-4xl font-bold text-yellow-600 mt-3">
           {pending}
         </h2>
       </div>
@@ -297,25 +297,25 @@ hover:shadow-xl hover:border-blue-200
 hover:-translate-y-1 transition-all duration-300 cursor-pointer"
 >
 
-                    <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-4">
 
-  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl shadow-sm">
-  {applicant.name?.charAt(0)}
-</div>                   
+  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl shadow-sm flex-shrink-0">
+    {applicant.name?.charAt(0)}
+  </div>
 
-                      <div>
+  <div className="min-w-0">
 
-        <h3 className="text-base font-bold text-slate-800 tracking-tight">
-  {applicant.name}
-</h3>
+    <h3 className="text-base font-bold text-slate-800 tracking-tight truncate">
+      {applicant.name}
+    </h3>
 
-        <p className="text-sm text-slate-400">
-  {applicant.email}
-</p>
+    <p className="text-sm text-slate-400 truncate">
+      {applicant.email}
+    </p>
 
-                      </div>
+  </div>
 
-                    </div>
+</div>
 
                     <div className="flex flex-col items-end gap-1">
 

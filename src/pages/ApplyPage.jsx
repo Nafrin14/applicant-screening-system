@@ -21,10 +21,7 @@ import {
 /* PDF WORKER */
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
+  `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 function ApplyPage() {
 

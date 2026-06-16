@@ -157,13 +157,13 @@ const handleImageUpload = async (e) => {
 
       {/* Main */}
 
-    <div className="flex-1 md:ml-56  p-5 md:p-6 overflow-y-auto">
+   <div className="flex-1 md:ml-56 p-4 md:p-6 overflow-y-auto overflow-x-hidden">
 
         {/* Header */}
 
-        <div className="mb-6">
+       <div className="mb-6 pt-14 md:pt-0">
 
-          <h1 className="text-4xl font-black text-slate-900 mb-1">
+        <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-1">
             Settings
           </h1>
 
@@ -175,43 +175,44 @@ const handleImageUpload = async (e) => {
 
         {/* Top Grid */}
 
-     <div className="grid grid-cols-1 lg:grid-cols-[3fr_1.2fr] gap-5 mb-5">
+    <div className="grid grid-cols-1 xl:grid-cols-[3fr_1.2fr] gap-5 mb-5">
           {/* Profile */}
 
-         <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+         <div  className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm">
 
-            <div className="flex items-center gap-4 mb-6">
-<div className="w-20 h-20 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center">
-  {profileImage ? (
-    <img
-      src={profileImage}
-      alt="Profile"
-      className="w-full h-full object-cover"
-    />
-  ) : (
-    <FaUserCircle className="text-5xl text-blue-600" />
-  )}
-</div>
-<input
+         <div className="flex flex-col items-center text-center sm:text-left sm:items-start gap-4 mb-6">
+ <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center">
+    {profileImage ? (
+      <img
+        src={profileImage}
+        alt="Profile"
+        className="w-full h-full object-cover"
+      />
+    ) : (
+      <FaUserCircle className="text-5xl text-blue-600" />
+    )}
+  </div>
+
+  <div className="w-full">
+
+    <h2 className="text-2xl font-black text-slate-800">
+      Profile Settings
+    </h2>
+
+    <p className="text-gray-500 text-sm mt-1">
+      Update company and HR details
+    </p>
+
+   <input
   type="file"
   accept="image/*"
   onChange={handleImageUpload}
-  className="mt-3 text-sm"
+  className="text-sm mt-4 mx-auto sm:mx-0"
 />
-              <div>
 
-                <h2 className="text-2xl font-black text-slate-800">
-                  Profile Settings
-                </h2>
+  </div>
 
-                <p className="text-gray-500 text-sm mt-1">
-                  Update company and HR details
-                </p>
-
-              </div>
-
-            </div>
-
+</div>
             <div className="space-y-4">
 
              <input
@@ -318,11 +319,11 @@ const handleImageUpload = async (e) => {
            
         {/* Bottom Buttons */}
 
-   <div className="flex justify-end mt-2">
+ <div className="flex justify-center md:justify-end mt-4">
 
-         <button
+        <button
   onClick={handleSave}
-  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
+  className="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
   px-6 py-3 rounded-2xl font-semibold shadow-lg hover:scale-105 transition-all"
 >
   <FaSave />
