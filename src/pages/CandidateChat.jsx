@@ -89,10 +89,10 @@ const LOCATION_ID = import.meta.env.VITE_GHL_LOCATION_ID;
   useEffect(() => {
     loadMessages();
 
-    const interval = setInterval(() => {
-      loadMessages();
-      fetchReplies();
-    }, 10000);
+   const interval = setInterval(async () => {
+  await fetchReplies();
+  await loadMessages();
+}, 10000);
 
     return () => clearInterval(interval);
   }, []);
