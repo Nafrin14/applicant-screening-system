@@ -11,6 +11,7 @@ import { supabase }
 from "../supabase";
 
 import Sidebar from "../components/Sidebar";
+import Navbar from "../components/Navbar";
 
 
 import {
@@ -146,7 +147,11 @@ const cancelledCount = interviews.filter(
 
 return (
 
-<div className="min-h-screen bg-slate-100">
+  <div className="min-h-screen bg-slate-100 flex flex-col">
+
+    <Navbar />
+
+    <div className="flex">
  
   <Sidebar />
   
@@ -388,7 +393,7 @@ return (
 
         </div>
 
-
+</div>
 
       </div>
 

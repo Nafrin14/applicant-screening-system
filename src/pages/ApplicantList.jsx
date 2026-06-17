@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Papa from "papaparse";
-
+import Navbar from "../components/Navbar";
 function ApplicantList() {
 
 const navigate = useNavigate();
