@@ -18,7 +18,6 @@ import {
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
 
 function Conversations() {
   const navigate = useNavigate();
@@ -30,6 +29,20 @@ function Conversations() {
   const [lastMessages, setLastMessages] = useState({});
   const [unreadCounts, setUnreadCounts] = useState({});
   const [selectedMessage, setSelectedMessage] = useState(null);
+  const [messageMenu, setMessageMenu] =
+  useState(null);
+  const [menuPosition, setMenuPosition] =
+  useState({ x: 0, y: 0 });
+  const [forwardMessage, setForwardMessage] =
+  useState(null);
+
+const [showForwardModal, setShowForwardModal] =
+  useState(false);
+
+const [
+  selectedForwardCandidate,
+  setSelectedForwardCandidate,
+] = useState(null);
   const [showMenu, setShowMenu] = useState(false);
   const [sortedCandidates, setSortedCandidates] = useState([]);
   const [newMessage, setNewMessage] = useState("");
@@ -40,6 +53,11 @@ console.log("TOKEN =", GHL_TOKEN);
 console.log("LOCATION =", LOCATION_ID);
 
   const messagesEndRef = useRef(null);
+  const [isRecording, setIsRecording] = useState(false);
+
+const mediaRecorderRef = useRef(null);
+
+const audioChunksRef = useRef([]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
@@ -67,10 +85,99 @@ console.log("LOCATION =", LOCATION_ID);
 
     setMessages(data);
   };
+  const fetchReplies = async () => {
+  console.log("FETCH REPLIES RUNNING");
+  const { data } = await supabase
+  .from("applicants")
+  .select("name, phone, contact_id")
+  .not("contact_id", "is", null);
 
- useEffect(() => {
+console.log("APPLICANTS =", data);
+for (const applicant of data) {
+  console.log(
+    "CONTACT ID =",
+    applicant.contact_id
+  );
+
+const response = await fetch(
+  `https://services.leadconnectorhq.com/conversations/search?contactId=${applicant.contact_id}&locationId=${LOCATION_ID}`,
+  {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${GHL_TOKEN}`,
+      Version: "2021-07-28",
+      "Content-Type": "application/json",
+    },
+  }
+
+);
+
+const result = await response.json();
+
+console.log("GHL RESPONSE =", result);
+console.log(
+  "CONVERSATIONS =",
+  result.conversations
+);
+if (result.conversations?.length > 0) {
+  console.log(
+    "FIRST CONVERSATION =",
+    result.conversations[0]
+  );
+  const conversation =
+  result.conversations[0];
+
+console.log(
+  "LAST MESSAGE =",
+  conversation.lastMessageBody
+);
+const { data: existingMessage } =
+  await supabase
+    .from("chat_messages")
+    .select("id")
+    .eq(
+      "message",
+      conversation.lastMessageBody
+    )
+    .eq(
+      "phone",
+      applicant.phone
+    )
+    .limit(1);
+
+console.log(
+  "EXISTING MESSAGE =",
+  existingMessage
+);
+if (existingMessage.length === 0) {
+  console.log("NEW MESSAGE FOUND");
+
+  await supabase
+    .from("chat_messages")
+    .insert([
+      {
+        candidate_name: applicant.name,
+        phone: applicant.phone,
+        message: conversation.lastMessageBody,
+        sender: "candidate",
+        is_read: false,
+      },
+    ]);
+
+  console.log("MESSAGE SAVED");
+await loadLastMessages(candidates);
+
+if (selectedCandidate) {
+  await loadMessages();
+}
+}
+}
+}
+};
+
+/* useEffect(() => {
   const interval = setInterval(() => {
-    loadLastMessages();
+  loadLastMessages(candidates);
 
     if (selectedCandidate) {
       loadMessages();
@@ -78,12 +185,48 @@ console.log("LOCATION =", LOCATION_ID);
   }, 2000);
 
   return () => clearInterval(interval);
-}, [selectedCandidate]);
+}, [selectedCandidate, candidates]);*/
+useEffect(() => {
+  const channel = supabase
+    .channel("chat-realtime")
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "chat_messages",
+      },
+      (payload) => {
+        console.log("NEW MESSAGE =", payload);
 
-  useEffect(() => {
-    loadCandidates();
-    loadLastMessages();
-  }, []);
+        loadLastMessages(candidates);
+
+        if (
+          selectedCandidate &&
+          payload.new.phone === selectedCandidate.phone
+        ) {
+          loadMessages();
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [candidates, selectedCandidate]);
+
+ useEffect(() => {
+  loadCandidates();
+}, []);
+
+useEffect(() => {
+  const interval = setInterval(async () => {
+    await fetchReplies();
+  }, 2000);
+
+  return () => clearInterval(interval);
+}, []);
 
   const loadCandidates = async () => {
     const { data, error } = await supabase
@@ -96,10 +239,15 @@ console.log("LOCATION =", LOCATION_ID);
     }
 
     setCandidates(data);
+    console.log("CANDIDATES =", data);
     setSortedCandidates(data);
+
+   loadLastMessages(data);
   };
 
-  const loadLastMessages = async () => {
+ const loadLastMessages = async (candidateList = []) => {
+  console.log("CANDIDATE LIST =", candidateList);
+console.log("CANDIDATE LIST LENGTH =", candidateList.length);
     const { data, error } = await supabase
       .from("chat_messages")
       .select("*")
@@ -122,6 +270,17 @@ console.log("LOCATION =", LOCATION_ID);
     });
 
     setLastMessages(latest);
+  const sorted = [...candidateList].sort((a, b) => {
+  const aTime = latest[a.phone]?.time || "";
+  const bTime = latest[b.phone]?.time || "";
+
+  return new Date(bTime) - new Date(aTime);
+});
+
+console.log("SORTED =", sorted);
+
+setSortedCandidates(sorted);
+   
 const counts = {};
 
 data.forEach((msg) => {
@@ -133,18 +292,90 @@ data.forEach((msg) => {
       (counts[msg.phone] || 0) + 1;
   }
 });
-
+console.log("UNREAD COUNTS =", counts);
 setUnreadCounts(counts);
-    setSortedCandidates((prev) => {
-      return [...prev].sort((a, b) => {
-        const aTime = latest[a.phone]?.time || "";
-        const bTime = latest[b.phone]?.time || "";
-
-        return new Date(bTime) - new Date(aTime);
-      });
+    
+  };
+const startRecording = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
     });
+
+    const mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorderRef.current = mediaRecorder;
+
+    audioChunksRef.current = [];
+
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunksRef.current.push(event.data);
+    };
+
+    mediaRecorder.start();
+
+    setIsRecording(true);
+
+  } catch (error) {
+    console.log(error);
+    alert("Microphone permission denied");
+  }
+};
+const stopRecording = async () => {
+  const recorder = mediaRecorderRef.current;
+
+  if (!recorder) return;
+
+  recorder.onstop = async () => {
+    const audioBlob = new Blob(
+      audioChunksRef.current,
+      {
+        type: "audio/webm",
+      }
+    );
+
+    const fileName =
+      `voice-${Date.now()}.webm`;
+
+    const { error } =
+      await supabase.storage
+        .from("chat-files")
+        .upload(fileName, audioBlob);
+
+    if (error) {
+      console.log(error);
+      return;
+    }
+
+    const { data } =
+      supabase.storage
+        .from("chat-files")
+        .getPublicUrl(fileName);
+
+    await supabase
+      .from("chat_messages")
+      .insert([
+        {
+          candidate_name:
+            selectedCandidate.name,
+          phone:
+            selectedCandidate.phone,
+          file_url:
+            data.publicUrl,
+          sender: "hr",
+          is_read: true,
+          message:
+            "🎤 Voice Message",
+        },
+      ]);
+
+    loadMessages();
   };
 
+  recorder.stop();
+
+  setIsRecording(false);
+};
   const handleSend = async () => {
     if (!newMessage.trim() && !selectedFile) return;
 
@@ -257,6 +488,46 @@ const sendSMS = async (message, contactId) => {
   } catch (error) {
     console.log("SMS Error:", error);
   }
+};
+
+const handleForward = async () => {
+  if (
+    !forwardMessage ||
+    !selectedForwardCandidate
+  ) {
+    alert("Select a candidate");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("chat_messages")
+    .insert([
+      {
+        candidate_name:
+          selectedForwardCandidate.name,
+        phone:
+          selectedForwardCandidate.phone,
+        message:
+          forwardMessage.message,
+        file_url:
+          forwardMessage.file_url || "",
+        sender: "hr",
+        is_read: true,
+      },
+    ]);
+
+  if (error) {
+    console.log(error);
+    return;
+  }
+
+  alert("Message Forwarded");
+
+  setShowForwardModal(false);
+  setForwardMessage(null);
+  setSelectedForwardCandidate(null);
+
+  loadLastMessages(candidates);
 };
   const handleDelete = async (id) => {
     const { error } = await supabase
@@ -412,6 +683,7 @@ const handleSelectCandidate = async (candidate) => {
   };
 
   // Filter candidates based on name, phone, or email
+  console.log("SORTED CANDIDATES =", sortedCandidates);
   const filteredCandidates = sortedCandidates.filter((candidate) => {
     const query = searchTerm.toLowerCase();
     return (
@@ -423,9 +695,9 @@ const handleSelectCandidate = async (candidate) => {
 
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <Navbar />
+     
       <Sidebar />
-      <div className="md:ml-56 mt-16 h-[calc(100vh-64px)] flex overflow-hidden bg-[#eae6df]">
+      <div className="md:ml-56 h-screen flex overflow-hidden bg-[#eae6df]">
       {/* Sidebar Panel */}
       <div className="w-80 border-r border-[#e9edef] bg-white flex flex-col h-full flex-shrink-0">
         {/* Sidebar Header */}
@@ -467,8 +739,9 @@ const handleSelectCandidate = async (candidate) => {
           {filteredCandidates.length > 0 ? (
             filteredCandidates.map((candidate) => (
               <div
-                key={candidate.id}
-            onClick={() => handleSelectCandidate(candidate)}
+         onClick={() =>
+  handleSelectCandidate(candidate)
+}
                 className={`flex items-center gap-3 p-3 cursor-pointer border-b border-[#f0f2f5] transition-colors duration-150 relative ${
                   selectedCandidate?.id === candidate.id
                     ? "bg-[#f0f2f5]"
@@ -626,9 +899,10 @@ const handleSelectCandidate = async (candidate) => {
             </div>
 
             {/* Chat Messages Area */}
-            <div
-              className="flex-1 p-4 overflow-y-auto"
-              style={{
+           <div
+  className="flex-1 p-4 overflow-y-auto"
+  onClick={() => setMessageMenu(null)}
+  style={{
                 backgroundColor: "#efeae2",
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23b5c0ad' fill-opacity='0.15'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
               }}
@@ -658,8 +932,18 @@ const handleSelectCandidate = async (candidate) => {
                             isHR ? "justify-end" : "justify-start"
                           } mb-2 group relative`}
                         >
-                          <div
-                            className={`relative max-w-[65%] px-3 py-1.5 rounded-lg shadow-sm text-[14.2px] leading-relaxed break-words ${
+                         <div
+ onContextMenu={(e) => {
+  e.preventDefault();
+
+  setMenuPosition({
+    x: e.clientX,
+    y: e.clientY,
+  });
+
+  setMessageMenu(msg.id);
+}}
+  className={`relative max-w-[65%] px-3 py-1.5 rounded-lg shadow-sm text-[14.2px] leading-relaxed break-words ${
                               isHR
                                 ? "bg-[#d9fdd3] text-[#111b21] rounded-tr-none"
                                 : "bg-white text-[#111b21] rounded-tl-none"
@@ -688,17 +972,39 @@ const handleSelectCandidate = async (candidate) => {
                             <div className="absolute bottom-1 right-2 flex items-center gap-1 text-[9.5px] text-[#667781] select-none">
                               <span>{msgTime}</span>
                             </div>
+               {/* Delete single message hover button */}
+                         {messageMenu === msg.id && (
+  <div
+    className="fixed bg-white shadow-xl rounded-lg border z-[9999] min-w-[180px]"
+    style={{
+      left: menuPosition.x,
+      top: menuPosition.y,
+    }}
+  >
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        setForwardMessage(msg);
+        setShowForwardModal(true);
+        setMessageMenu(null);
+      }}
+      className="w-full text-left px-4 py-3 hover:bg-gray-100"
+    >
+      Forward
+    </button>
 
-                            {/* Delete single message hover button */}
-                            <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity pr-1 pt-1">
-                              <button
-                                onClick={() => handleDelete(msg.id)}
-                                className="text-gray-400 hover:text-red-500 p-1 text-xs"
-                                title="Delete message"
-                              >
-                                ✕
-                              </button>
-                            </div>
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        handleDelete(msg.id);
+        setMessageMenu(null);
+      }}
+      className="w-full text-left px-4 py-3 hover:bg-gray-100 text-red-500"
+    >
+      Delete
+    </button>
+  </div>
+)}
                           </div>
                         </div>
                       );
@@ -783,12 +1089,21 @@ const handleSelectCandidate = async (candidate) => {
                   <FaPaperPlane className="text-xs ml-0.5" />
                 </button>
               ) : (
-                <button
-                  className="text-[#667781] hover:text-[#111b21] text-xl p-1.5 rounded-full hover:bg-gray-200 transition-colors"
-                  title="Voice message"
-                >
-                  <FaMicrophone />
-                </button>
+               <button
+  onClick={
+    isRecording
+      ? stopRecording
+      : startRecording
+  }
+  className={`text-xl p-1.5 rounded-full transition-colors ${
+    isRecording
+      ? "text-red-500"
+      : "text-[#667781]"
+  }`}
+  title="Voice message"
+>
+  <FaMicrophone />
+</button>
               )}
             </div>
           </div>
@@ -805,10 +1120,68 @@ const handleSelectCandidate = async (candidate) => {
             </p>
           </div>
         )}
+                
+
+{showForwardModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+
+    <div className="bg-white w-96 rounded-xl shadow-xl">
+
+      <div className="bg-green-600 text-white p-4 rounded-t-xl">
+        <h2 className="font-semibold">
+          Forward Message
+        </h2>
+      </div>
+
+      <div className="max-h-80 overflow-y-auto">
+
+        {candidates.map((candidate) => (
+          <div
+            key={candidate.id}
+            onClick={() =>
+              setSelectedForwardCandidate(candidate)
+            }
+            className={`p-3 border-b cursor-pointer hover:bg-gray-100 ${
+              selectedForwardCandidate?.id === candidate.id
+                ? "bg-green-100"
+                : ""
+            }`}
+          >
+            {candidate.name}
+          </div>
+        ))}
+
+      </div>
+
+      <div className="p-4 flex justify-end gap-2">
+
+        <button
+          onClick={() =>
+            setShowForwardModal(false)
+          }
+          className="px-4 py-2 bg-gray-200 rounded"
+        >
+          Cancel
+        </button>
+<button
+  onClick={handleForward}
+  className="px-4 py-2 bg-green-600 text-white rounded"
+>
+  Send
+</button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
+
       </div>
     </div>
   </div>
 );
+      
     }
-  
+
 export default Conversations;
