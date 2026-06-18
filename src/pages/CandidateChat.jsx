@@ -88,11 +88,12 @@ const LOCATION_ID = import.meta.env.VITE_GHL_LOCATION_ID;
 
   useEffect(() => {
     loadMessages();
+    console.log("useEffect running");
 
    const interval = setInterval(async () => {
   await fetchReplies();
   await loadMessages();
-}, 10000);
+}, 2000);
 
     return () => clearInterval(interval);
   }, []);
@@ -121,6 +122,7 @@ const LOCATION_ID = import.meta.env.VITE_GHL_LOCATION_ID;
   };
 
   const fetchReplies = async () => {
+    console.log("fetchReplies called");
     const { data: applicant } = await supabase
   .from("applicants")
   .select("contact_id")
@@ -128,7 +130,7 @@ const LOCATION_ID = import.meta.env.VITE_GHL_LOCATION_ID;
   .single();
 
 const contactId = applicant?.contact_id;
-
+console.log("CONTACT ID =", contactId);
 if (!contactId) return;
     try {
       const response = await fetch(
@@ -144,6 +146,7 @@ if (!contactId) return;
       );
 
       const result = await response.json();
+      console.log("FULL GHL RESPONSE =", result);
 
       console.log("GHL Replies:", result);
       if (result.conversations?.[0]?.lastMessageDirection === "inbound") {

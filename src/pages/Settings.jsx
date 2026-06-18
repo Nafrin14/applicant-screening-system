@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
+import Navbar from "../components/Navbar";
 import { supabase } from "../supabaseClient";
 
 import {
@@ -147,9 +148,13 @@ const handleImageUpload = async (e) => {
     alert("Profile image updated successfully");
   }
 };
-  return (
+ return (
 
-    <div className="min-h-screen bg-slate-100 flex">
+  <div className="min-h-screen bg-slate-100 flex flex-col">
+
+    <Navbar />
+
+    <div className="flex">
 
       {/* Sidebar */}
 
@@ -157,8 +162,7 @@ const handleImageUpload = async (e) => {
 
       {/* Main */}
 
-   <div className="flex-1 md:ml-56 p-4 md:p-6 overflow-y-auto overflow-x-hidden">
-
+  <div className="flex-1 md:ml-56 mt-16 p-4 md:p-6 min-h-screen overflow-y-auto">
         {/* Header */}
 
        <div className="mb-6 pt-14 md:pt-0">
@@ -333,7 +337,7 @@ const handleImageUpload = async (e) => {
         </div>
 
       </div>
-
+</div>
     </div>
   );
 }

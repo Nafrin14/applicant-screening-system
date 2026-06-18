@@ -9,6 +9,7 @@ import {
 
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
+import Navbar from "../components/Navbar";
 
 import {
   FaTachometerAlt,
@@ -178,15 +179,18 @@ function AIResults() {
 
   ];
 
-  return (
+ return (
 
-    <div className="min-h-screen bg-slate-100 flex">
+  <div className="min-h-screen bg-slate-100 flex flex-col">
+
+    <Navbar />
+
+    <div className="flex">
       {/* Sidebar */}
        <Sidebar />
 
       {/* Main */}
-      <div className="flex-1 md:ml-56 pt-20 md:pt-8 p-4 md:p-6 min-h-screen overflow-y-auto">
-
+     <div className="flex-1 md:ml-56 mt-16 p-4 md:p-6 min-h-screen overflow-y-auto">
       {/* Header */}
       <div className="mb-5">
 
@@ -447,7 +451,7 @@ shadow-md
 
   </div>
 )}
-
+</div>
     </div>
   );
 }
