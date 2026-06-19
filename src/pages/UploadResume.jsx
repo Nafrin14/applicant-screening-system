@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -22,17 +22,15 @@ import {
 function UploadResume() {
 
   const navigate = useNavigate();
-
-const [files, setFiles] = useState([]);
-
+  const [files, setFiles] = useState([]);
   const [role, setRole] = useState("");
-
   const [jobDescription, setJobDescription] = useState("");
-
- const [aiResult, setAiResult] = useState(null);
-
+  const [aiResult, setAiResult] = useState(null);
   const [loading, setLoading] = useState(false);
-
+  const [jobs, setJobs] = useState([]);
+  const [selectedJobId, setSelectedJobId] = useState("");
+  
+  
   /* AI SCORE */
 
   const generateAIScore = (fileName = "") => {
