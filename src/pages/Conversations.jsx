@@ -36,6 +36,8 @@ function Conversations() {
   const [selectedFile, setSelectedFile] = useState(null);
  const GHL_TOKEN = import.meta.env.VITE_GHL_TOKEN;
 const LOCATION_ID = import.meta.env.VITE_GHL_LOCATION_ID;
+console.log("TOKEN =", GHL_TOKEN);
+console.log("LOCATION =", LOCATION_ID);
 
   const messagesEndRef = useRef(null);
 
@@ -66,16 +68,17 @@ const LOCATION_ID = import.meta.env.VITE_GHL_LOCATION_ID;
     setMessages(data);
   };
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (selectedCandidate) {
-        loadMessages();
-loadLastMessages();
-      }
-    }, 5000);
+ useEffect(() => {
+  const interval = setInterval(() => {
+    loadLastMessages();
 
-    return () => clearInterval(interval);
-  }, [selectedCandidate]);
+    if (selectedCandidate) {
+      loadMessages();
+    }
+  }, 2000);
+
+  return () => clearInterval(interval);
+}, [selectedCandidate]);
 
   useEffect(() => {
     loadCandidates();
@@ -203,6 +206,7 @@ await sendSMS(newMessage, contactId);
     loadMessages();
   };
   const createGHLContact = async () => {
+   
   try {
     const response = await fetch(
       "https://services.leadconnectorhq.com/contacts/",
@@ -222,6 +226,9 @@ await sendSMS(newMessage, contactId);
     );
 
     const result = await response.json();
+    console.log("GHL STATUS:", response.status);
+console.log("GHL RESPONSE:", result);
+console.log("FULL RESPONSE:", JSON.stringify(result, null, 2));
 
     return result?.contact?.id;
   } catch (error) {

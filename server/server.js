@@ -2,6 +2,10 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+console.log(
+  "API KEY =>",
+  process.env.ANTHROPIC_API_KEY
+);
 const aiScreeningRoutes =
   require("./routes/aiScreening");
 
