@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import { FaArrowLeft, FaMapMarkerAlt, FaBriefcase, FaDollarSign, FaUser } from "react-icons/fa";
+import { FaArrowLeft, FaMapMarkerAlt, FaBriefcase, FaDollarSign, FaUser, FaTrash} from "react-icons/fa";
 
 export default function JobDetails() {
   const { jobId } = useParams();
@@ -52,6 +52,13 @@ export default function JobDetails() {
     return map[status] || { backgroundColor: "#f3f4f6", color: "#374151" };
   };
 
+  async function handleDeleteApplicant(id) {
+  if (!window.confirm("Remove this applicant?")) return;
+  await supabase.from("applicants").delete().eq("id", id);
+  fetchData();
+}
+
+
   return (
   <div className="mt-20 flex h-screen w-screen overflow-hidden bg-gray-100">
     <Sidebar />
@@ -81,48 +88,59 @@ export default function JobDetails() {
                   </div>
                 </div>
               )}
+              
 
               {/* Applicants */}
               <div style={{ backgroundColor: "white", borderRadius: "12px", padding: "24px", boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}>
                 <h2 style={{ fontSize: "18px", fontWeight: "700", color: "#1f2937", marginBottom: "16px" }}>
                   Applicants ({applicants.length})
+                  
                 </h2>
+                
 
                 {applicants.length === 0 ? (
                   <p style={{ color: "#9ca3af" }}>No applicants found for this job yet.</p>
                 ) : (
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
-                    <thead>
-                      <tr style={{ borderBottom: "2px solid #e5e7eb", textAlign: "left", color: "#6b7280" }}>
-                        <th style={{ paddingBottom: "12px" }}>Name</th>
-                        <th style={{ paddingBottom: "12px" }}>Email</th>
-                        <th style={{ paddingBottom: "12px" }}>Phone</th>
-                        <th style={{ paddingBottom: "12px" }}>Skills</th>
-                        <th style={{ paddingBottom: "12px" }}>Status</th>
-                        <th style={{ paddingBottom: "12px" }}>AI Score</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {applicants.map((a) => (
-                        <tr key={a.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-                          <td style={{ padding: "12px 0", fontWeight: "600", color: "#1f2937" }}>
-                            <FaUser style={{ color: "#9ca3af", marginRight: "6px" }} />{a.name}
-                          </td>
-                          <td style={{ padding: "12px 0", color: "#6b7280" }}>{a.email}</td>
-                          <td style={{ padding: "12px 0", color: "#6b7280" }}>{a.phone || "—"}</td>
-                          <td style={{ padding: "12px 0", color: "#6b7280", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.skills}</td>
-                          <td style={{ padding: "12px 0" }}>
-                            <span style={{ ...statusStyle(a.status), padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" }}>
-                              {a.status}
-                            </span>
-                          </td>
-                          <td style={{ padding: "12px 0", fontWeight: "700", color: a.ai_score >= 70 ? "#059669" : "#dc2626" }}>
-                            {a.ai_score ?? "—"}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+  <thead>
+    <tr style={{ borderBottom: "2px solid #e5e7eb", textAlign: "left", color: "#6b7280" }}>
+      <th style={{ paddingBottom: "12px" }}>Name</th>
+      <th style={{ paddingBottom: "12px" }}>Email</th>
+      <th style={{ paddingBottom: "12px" }}>Phone</th>
+      <th style={{ paddingBottom: "12px" }}>Skills</th>
+      <th style={{ paddingBottom: "12px" }}>Status</th>
+      <th style={{ paddingBottom: "12px" }}>AI Score</th>
+      <th style={{ paddingBottom: "12px" }}>Action</th>
+    </tr>
+  </thead>
+  <tbody>
+    {applicants.map((a) => (
+      <tr key={a.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
+        <td style={{ padding: "12px 0", fontWeight: "600", color: "#1f2937" }}>{a.name}</td>
+        <td style={{ padding: "12px 0", color: "#6b7280" }}>{a.email}</td>
+        <td style={{ padding: "12px 0", color: "#6b7280" }}>{a.phone || "—"}</td>
+        <td style={{ padding: "12px 0", color: "#6b7280", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.skills}</td>
+        <td style={{ padding: "12px 0" }}>
+          <span style={{ ...statusStyle(a.status), padding: "3px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" }}>
+            {a.status}
+          </span>
+        </td>
+        <td style={{ padding: "12px 0", fontWeight: "700", color: a.ai_score >= 70 ? "#059669" : "#dc2626" }}>
+          {a.ai_score ?? "—"}
+        </td>
+        <td style={{ padding: "12px 0" }}>
+          <button
+            onClick={() => handleDeleteApplicant(a.id)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "#ef4444" }}
+            title="Remove applicant"
+          >
+            <FaTrash />
+          </button>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+</table>
                 )}
               </div>
             </>

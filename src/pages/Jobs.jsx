@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
-import { FaPlus, FaMapMarkerAlt, FaBriefcase, FaDollarSign, FaTimes } from "react-icons/fa";
+import { FaPlus, FaMapMarkerAlt, FaBriefcase, FaDollarSign, FaTimes, FaTrash } from "react-icons/fa";
 
 export default function Jobs() {
   const navigate = useNavigate();
@@ -38,12 +38,21 @@ export default function Jobs() {
     }
   }
 
+  async function handleDeleteJob(e, jobId) {
+  e.stopPropagation(); // prevent card click navigation
+  if (!window.confirm("Delete this job?")) return;
+  await supabase.from("job_posts").delete().eq("id", jobId);
+  fetchJobs();
+}
+
   return (
    <div style={{ display: "flex", height: "100vh", width: "100vw", overflow: "hidden", backgroundColor: "#f3f4f6" }}>
   <Sidebar />
   <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, overflow: "hidden", marginLeft: "220px" }}>
     <Navbar />
     <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
+
+        
 
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
@@ -64,11 +73,21 @@ export default function Jobs() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {jobs.map((job) => (
+
+                
                 <div
                   key={job.id}
                   onClick={() => navigate(`/jobs/${job.id}`)}
-                  className="bg-white rounded-xl shadow p-5 cursor-pointer hover:shadow-md hover:border-blue-500 border-2 border-transparent transition"
+                  className="relative bg-white rounded-xl shadow p-5 cursor-pointer hover:shadow-md hover:border-blue-500 border-2 border-transparent transition"
                 >
+                  <button
+                    onClick={(e) => handleDeleteJob(e, job.id)}
+                    className="absolute top-4 right-0 text-red-500 hover:text-red-600 focus:outline-none"
+                    style={{ background: "none", border: "none", cursor: "pointer", padding: "6px", borderRadius: "9999px" }}
+                    title="Delete job"
+                  >
+                    <FaTrash />
+                  </button>
                   <h2 className="text-lg font-semibold text-gray-800 mb-2">{job.title}</h2>
                   <p className="text-sm text-gray-500 mb-4 line-clamp-2">{job.description}</p>
                   <div className="flex flex-col gap-1 text-sm text-gray-600">
