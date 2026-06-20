@@ -2,6 +2,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import Navbar from "../components/Navbar";
 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -252,7 +253,11 @@ const bulkUpdateStatus = async (status) => {
 
   return (
 
-    <div className="min-h-screen bg-slate-100 flex">
+   <div className="min-h-screen bg-slate-100 flex flex-col">
+
+  <Navbar />
+
+  <div className="flex">
 
       
 
@@ -263,9 +268,7 @@ const bulkUpdateStatus = async (status) => {
 
       {/* Main */}
 
-<div className="flex-1 md:ml-56 pt-20 md:pt-8 p-4 md:p-8 overflow-y-auto">
-
-
+<div className="flex-1 md:ml-56 mt-16 p-4 md:p-8 overflow-y-auto">
 
         {/* Header */}
 
@@ -713,7 +716,7 @@ const bulkUpdateStatus = async (status) => {
         </div>
 
       </div>
-
+</div>
     </div>
   );
 }

@@ -67,6 +67,45 @@ Resume:
 ${resumeText}
 
 You are an expert HR recruiter.
+Also extract:
+
+1. Candidate Full Name
+2. Total Years of Experience
+3. Current Location
+4. Best Recommended Job Role
+5. Top 3 Suitable Job Roles
+
+Evaluate the candidate based on:
+
+1. Direct experience related to the role
+2. Similar or transferable experience
+3. Leadership and supervisory experience
+4. Technical and practical skills
+5. Education and certifications
+6. Overall suitability for the position
+
+Even if the candidate does not have direct experience in the role,
+consider related experience and transferable skills.
+
+Scoring Rules:
+
+90-100 = Best Match
+75-89 = Strong Match
+60-74 = Moderate Match
+Below 60 = Weak Match
+
+Recommendation Rules:
+
+- Best Match
+- Strong Match
+- Moderate Match
+- Weak Match
+
+The score should represent overall suitability.
+
+Do not wrap JSON in markdown.
+Do not use \`\`\`json.
+Return raw JSON only.
 
 Return ONLY valid JSON:
 
@@ -76,6 +115,7 @@ Return ONLY valid JSON:
   "location": "",
   "recommendedRole": "",
   "score": 0,
+  "suitableJobs": [],
   "recommendation": "",
   "summary": "",
   "strengths": [],
@@ -99,11 +139,18 @@ Return ONLY valid JSON:
 const aiText =
   response.data.choices[0].message.content;
 
+  let cleanedText = aiText
+  .replace(/```json/g, "")
+  .replace(/```/g, "")
+  .trim();
+
       let parsedResult;
 
       try {
+        console.log("CLEANED TEXT START");
+console.log(cleanedText);
 
-        parsedResult = JSON.parse(aiText);
+       parsedResult = JSON.parse(cleanedText);
 
       } catch {
 
@@ -112,6 +159,7 @@ const aiText =
   experience: "",
   location: "",
   recommendedRole: "",
+  suitableJobs: [],
   score: 50,
   recommendation: "Moderate Match",
   summary: aiText,
@@ -128,6 +176,8 @@ const aiText =
   experience: parsedResult.experience,
   location: parsedResult.location,
   recommendedRole: parsedResult.recommendedRole,
+  suitableJobs:
+  parsedResult.suitableJobs,
 
 
         score:

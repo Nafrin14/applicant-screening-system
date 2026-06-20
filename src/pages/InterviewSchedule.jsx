@@ -1,5 +1,7 @@
 import React, {
   useState,
+  useEffect,
+  useRef,
 } from "react";
 
 import {
@@ -9,6 +11,7 @@ import {
 
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
+import Navbar from "../components/Navbar";
 
 
 import {
@@ -29,8 +32,9 @@ import {
 
 function InterviewSchedule() {
 
-  const GHL_TOKEN = "pit-82420460-73f4-4d6f-a5bc-3e497505ff75";
-const LOCATION_ID = "t5PXdZcOHlQwyi2gtJkM";
+ const GHL_TOKEN = import.meta.env.VITE_GHL_TOKEN;
+const LOCATION_ID = import.meta.env.VITE_GHL_LOCATION_ID;
+
 
 const navigate =
   useNavigate();
@@ -45,7 +49,64 @@ const applicant =
   "Applicant Data:",
   applicant
 );
+useEffect(() => {
+  fetchCandidates();
+}, []);
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (
+      dropdownRef.current &&
+      !dropdownRef.current.contains(event.target)
+    ) {
+      setFilteredCandidates([]);
+    }
+  };
 
+  document.addEventListener(
+    "mousedown",
+    handleClickOutside
+  );
+
+  return () => {
+    document.removeEventListener(
+      "mousedown",
+      handleClickOutside
+    );
+  };
+}, []);
+
+const fetchCandidates = async () => {
+  const { data, error } = await supabase
+    .from("applicants")
+   .select("*");
+
+    console.log("Candidates:", data);
+console.log("Error:", error);
+
+  if (!error) {
+    setCandidates(data || []);
+  }
+};
+
+const handleCandidateChange = (e) => {
+  console.log("Typing:", e.target.value);
+  const value = e.target.value;
+
+  setCandidateName(value);
+
+  if (!value.trim()) {
+    setFilteredCandidates([]);
+    return;
+  }
+
+  const filtered = candidates.filter((candidate) =>
+    candidate.name
+      ?.toLowerCase()
+      .includes(value.toLowerCase())
+  );
+console.log("Filtered:", filtered);
+  setFilteredCandidates(filtered);
+};
 const [
   candidateName,
   setCandidateName,
@@ -67,6 +128,9 @@ const [
   applicant?.phone || ""
 );
 
+const [candidates, setCandidates] = useState([]);
+const [filteredCandidates, setFilteredCandidates] = useState([]);
+const dropdownRef = useRef(null);
 const [
     interviewDate,
     setInterviewDate,
@@ -364,12 +428,16 @@ await sendSMS(contactId);
 
   return (
 
-    <div className="min-h-screen bg-slate-100 flex">
+   <div className="min-h-screen bg-slate-100 flex flex-col">
+
+  <Navbar />
+
+  <div className="flex">
       {/* Sidebar */}
        <Sidebar />
 
       {/* Main */}
-    <div className="flex-1 md:ml-56 pt-20 md:pt-8 px-6 md:px-8 py-6 min-h-screen overflow-y-auto">
+   <div className="flex-1 md:ml-56 pt-28 px-6 md:px-8 py-6 min-h-screen overflow-y-auto">
         {/* Header */}
 
 <div className="mb-4">
@@ -402,28 +470,51 @@ mb-2
 
             {/* Candidate */}
 
-            <div className="md:col-span-2">
+          <div
+  className="md:col-span-2 relative"
+  ref={dropdownRef}
+>
 
               <label className="text-sm font-semibold text-slate-700 mb-2 block">
                 Candidate Name
               </label>
 
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4">
+            <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4">
 
                 <FaUser className="text-gray-400" />
 
                 <input
-                  type="text"
-                  placeholder="Enter candidate name"
-                  value={candidateName}
-                  onChange={(e) =>
-                    setCandidateName(
-                      e.target.value
-                    )
-                  }
-                  className="w-full bg-transparent px-4 py-4 outline-none"
-                />
+  type="text"
+  placeholder="Enter candidate name"
+  value={candidateName}
+  onChange={handleCandidateChange}
+  className="w-full bg-transparent px-4 py-4 outline-none"
+/>
+{filteredCandidates.length > 0 && (
+ <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-[9999] max-h-52 overflow-y-auto">
+    {filteredCandidates.map((candidate, index) => (
+      <div
+        key={index}
+        onClick={() => {
+          setCandidateName(candidate.name);
+          setEmail(candidate.email);
+          setPhone(candidate.phone);
+          setFilteredCandidates([]);
+        }}
+        className="p-3 hover:bg-blue-50 cursor-pointer border-b"
+      >
+        <p className="font-medium">
+          {candidate.name}
+        </p>
 
+        <p className="text-xs text-slate-500">
+          {candidate.email}
+        </p>
+      </div>
+    ))}
+
+  </div>
+)}
               </div>
 
             </div>
@@ -499,7 +590,7 @@ transition-all
                 Interview Time
               </label>
 
-              <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4">
+             <div className="relative flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4">
 
                 <FaClock className="text-gray-400" />
 
@@ -641,6 +732,7 @@ transition-all
 
   </div>
 )}
+    </div>
     </div>
   );
 }
