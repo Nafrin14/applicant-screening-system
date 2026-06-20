@@ -236,15 +236,23 @@ if (!jobDescription) {
         /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
       )?.[0] || "Not Found";
 
+     
    /* PHONE */
 
-const phoneMatch = fileText.match(
-  /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/
+const cleanedText = fileText.replace(
+  /\s+/g,
+  " "
+);
+
+const phoneMatch = cleanedText.match(
+  /\+?\d{1,3}\s\d{3}\s\d{3}\s\d{4}|\d{10}/
 );
 
 const phone = phoneMatch
   ? phoneMatch[0]
   : "--";
+
+
 
 
       const experienceMatch =
