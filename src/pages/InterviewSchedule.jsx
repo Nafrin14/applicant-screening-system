@@ -651,14 +651,7 @@ transition-all
 
         <div className="flex justify-center mt-8">
  <button
-  onClick={() =>
-    navigate("/candidate-chat", {
-      state: {
-        candidateName,
-        phone,
-      },
-    })
-  }
+  onClick={scheduleInterview}
   className="
   bg-gradient-to-r
   from-blue-600

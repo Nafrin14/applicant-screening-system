@@ -125,17 +125,34 @@ function UploadResume() {
         const email =
           fileText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "Not Found";
 
-        /* PHONE */
-        const phoneMatch = fileText.match(
-          /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/
-        );
-        const phone = phoneMatch ? phoneMatch[0] : "--";
+     
+   /* PHONE */
 
-        /* EXPERIENCE */
-        const experienceMatch = fileText.match(
-          /(\d+(\.\d+)?\+?\s*(years?|yrs?|months?))/i
-        );
-        const experience = experienceMatch ? experienceMatch[0] : "--";
+const cleanedText = fileText.replace(
+  /\s+/g,
+  " "
+);
+
+const phoneMatch = cleanedText.match(
+  /\+?\d{1,3}\s\d{3}\s\d{3}\s\d{4}|\d{10}/
+);
+
+const phone = phoneMatch
+  ? phoneMatch[0]
+  : "--";
+
+
+
+
+      const experienceMatch =
+  fileText.match(
+    /(\d+(\.\d+)?\+?\s*(years?|yrs?|months?))/i
+  );
+
+const experience =
+  experienceMatch
+    ? experienceMatch[0]
+    : "--";
 
         /* LOCATION */
         const locationMatch = fileText.match(
