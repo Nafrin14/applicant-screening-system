@@ -311,68 +311,97 @@ const handleDelete = async (id) => {
           </button>
 
           {showNotifications && (
-  <div className="absolute top-14 right-0 w-96 bg-white rounded-2xl shadow-xl border border-slate-200 z-50 overflow-hidden">
+  <div className="absolute top-14 right-0 w-[380px] bg-[#242424] text-white rounded-2xl shadow-2xl border border-white/10 z-50 overflow-hidden">
     
-    <div className="p-4 border-b border-slate-200">
-      <h3 className="font-bold text-slate-800">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+      <h3 className="font-semibold text-sm">
         Notifications
       </h3>
+
+      <button
+        type="button"
+        className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-md"
+      >
+        Clear all
+      </button>
     </div>
 
-    <div className="max-h-80 overflow-y-auto">
-      {hasUpcomingInterview && (
-  <div className="bg-red-100 border-l-4 border-red-500 p-4">
-    <p className="font-bold text-red-700">
-      🚨 Interview Starting Soon
-    </p>
+    <div className="max-h-[420px] overflow-y-auto p-3">
+      <p className="text-xs text-gray-300 mb-3">
+        Today
+      </p>
 
-   <div className="mt-2 text-sm text-red-700">
-  <p>
-    👤 {upcomingInterview?.message}
-  </p>
-</div>
-  </div>
-)}
+      {hasUpcomingInterview && (
+        <div className="mb-3 rounded-xl p-4 bg-red-500/20 border border-red-400/40">
+          <p className="text-sm font-semibold text-red-200">
+            🚨 Interview Starting Soon
+          </p>
+
+          <p className="text-sm text-red-100 mt-2">
+            {upcomingInterview?.candidate_name || "Candidate"}
+          </p>
+
+          <p className="text-xs text-red-100/80 mt-1">
+            {upcomingInterview?.interview_date} • {upcomingInterview?.interview_time}
+          </p>
+        </div>
+      )}
 
       {notifications.length === 0 ? (
-        <p className="p-4 text-sm text-slate-500">
+        <p className="text-sm text-gray-400 p-4">
           No notifications found
         </p>
       ) : (
-       
- notifications.map((item) => (
-  <div
-    key={item.id}
-    className={`flex justify-between items-start p-4 border-b border-slate-100 ${
-      !item.is_read ? "bg-blue-50" : ""
-    }`}
-  >
-    <div
-      onClick={() => markAsRead(item.id)}
-      className="flex-1 cursor-pointer"
-    >
-      <p className="font-semibold text-sm text-slate-800">
-        {item.title}
-      </p>
+        notifications.map((item) => (
+          <div
+            key={item.id}
+            onClick={() => markAsRead(item.id)}
+            className={`mb-3 rounded-xl p-4 cursor-pointer border border-white/10 bg-[#3a3a3a] hover:bg-[#444] transition ${
+              !item.is_read ? "ring-1 ring-blue-400/40" : ""
+            }`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-xs font-semibold text-gray-300 mb-2">
+                  🔔 Notification
+                </p>
 
-      <p className="text-xs text-slate-500 mt-1">
-        {item.message}
-      </p>
+                <p className="text-sm font-semibold text-white">
+                  {item.title || "Interview Scheduled"}
+                </p>
+
+                <p className="text-sm font-medium text-gray-200 mt-2">
+                  {item.candidate_name || "Candidate"}
+                </p>
+
+                <p className="text-xs text-gray-400 mt-1">
+                  {item.interview_date} • {item.interview_time}
+                </p>
+
+                {!item.is_read && (
+                  <span className="inline-block mt-3 text-xs bg-white/10 px-3 py-1 rounded-md text-gray-200">
+                    New notification
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(item.id);
+                }}
+                className="text-gray-400 hover:text-red-400"
+              >
+                <FaTrash size={13} />
+              </button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
-
-    <button
-      onClick={() => handleDelete(item.id)}
-      className="ml-3 text-red-500 hover:text-red-700"
-    >
-      <FaTrash />
-    </button>
-  </div>
-   ))
-)}
-    </div>
   </div>
 )}
-
 
           {/* Profile */}
           <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-100 transition">
