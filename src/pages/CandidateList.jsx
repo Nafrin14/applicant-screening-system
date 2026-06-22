@@ -2,7 +2,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import Navbar from "../components/Navbar";
+
 
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -255,7 +255,7 @@ const bulkUpdateStatus = async (status) => {
 
    <div className="min-h-screen bg-slate-100 flex flex-col">
 
-  <Navbar />
+ 
 
   <div className="flex">
 
@@ -267,8 +267,8 @@ const bulkUpdateStatus = async (status) => {
 
 
       {/* Main */}
+<div className="flex-1 md:ml-56 p-4 md:p-8 overflow-y-auto">
 
-<div className="flex-1 md:ml-56 mt-16 p-4 md:p-8 overflow-y-auto">
 
         {/* Header */}
 
@@ -444,9 +444,8 @@ const bulkUpdateStatus = async (status) => {
                   <th className="text-gray-500 font-semibold">
                     Email
                   </th>
-
-                  <th className="text-gray-500 font-semibold">
-  Suitable Jobs
+<th className="text-gray-500 font-semibold">
+  Applied Job
 </th>
 
                   <th className="text-gray-500 font-semibold">
@@ -565,7 +564,7 @@ const bulkUpdateStatus = async (status) => {
   <div className="max-w-xs">
 
     <p className="text-sm text-blue-600 font-medium">
-     {applicant.recommended_role || "Not Available"}
+    {applicant.role || "Not Available"}
     </p>
 
   </div>

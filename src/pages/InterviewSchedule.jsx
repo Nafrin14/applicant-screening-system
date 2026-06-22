@@ -11,7 +11,7 @@ import {
 
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
+
 
 
 import {
@@ -430,14 +430,14 @@ await sendSMS(contactId);
 
    <div className="min-h-screen bg-slate-100 flex flex-col">
 
-  <Navbar />
+ 
 
   <div className="flex">
       {/* Sidebar */}
        <Sidebar />
 
       {/* Main */}
-   <div className="flex-1 md:ml-56 pt-28 px-6 md:px-8 py-6 min-h-screen overflow-y-auto">
+   <div className="flex-1 md:ml-56  px-6 md:px-8 py-6 min-h-screen overflow-y-auto">
         {/* Header */}
 
 <div className="mb-4">

@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import { screenResume } from "../services/aiService";
 import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
 import * as pdfjsLib from "pdfjs-dist";
 pdfjsLib.GlobalWorkerOptions.workerSrc =
-  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  new URL(
+    "pdfjs-dist/build/pdf.worker.min.mjs",
+    import.meta.url
+  ).toString();
 
 import { FaCloudUploadAlt } from "react-icons/fa";
 
@@ -15,7 +17,6 @@ function UploadResume() {
 
   const [files, setFiles] = useState([]);
   const [role, setRole] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
   const [aiResult, setAiResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -90,10 +91,8 @@ function UploadResume() {
       alert("Please select resumes");
       return;
     }
-    if (!jobDescription) {
-      alert("Please enter Job Description");
-      return;
-    }
+   
+    
     if (!selectedJobId) {
       alert("Please select a job position");
       return;
@@ -112,7 +111,14 @@ function UploadResume() {
         }
 
         /* AI SCREENING */
-        const aiResponse = await screenResume(fileText, jobDescription);
+       const selectedJob = jobs.find(
+  (job) => job.id === parseInt(selectedJobId)
+);
+
+const aiResponse = await screenResume(
+  fileText,
+  selectedJob?.title || ""
+);
         console.log("AI RESPONSE:", aiResponse);
         setAiResult(aiResponse);
 
@@ -122,8 +128,15 @@ function UploadResume() {
           aiScore >= 75 ? "Shortlisted" : aiScore >= 60 ? "Pending" : "Rejected";
 
         /* EMAIL */
-        const email =
-          fileText.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i)?.[0] || "Not Found";
+        const emailText = fileText
+  .replace(/\s*@\s*/g, "@")
+  .replace(/\s*\.\s*/g, ".")
+  .replace(/\s+/g, "");
+
+const email =
+  emailText.match(
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
+  )?.[0] || "Not Found";
 
      
    /* PHONE */
@@ -133,16 +146,17 @@ const cleanedText = fileText.replace(
   " "
 );
 
-const phoneMatch = cleanedText.match(
-  /\+?\d{1,3}\s\d{3}\s\d{3}\s\d{4}|\d{10}/
+const phoneMatch = fileText.match(
+  /(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4}/
 );
 
 const phone = phoneMatch
-  ? phoneMatch[0]
+  ? phoneMatch[0].trim()
   : "--";
 
 
-
+console.log("EMAIL =", email);
+console.log("PHONE =", phone);
 
       const experienceMatch =
   fileText.match(
@@ -183,10 +197,19 @@ const experience =
         /* DATABASE */
         const { error } = await supabase.from("applicants").insert([
           {
-            name: aiResponse?.name || file?.name || "Unknown Candidate",
+           name:
+  aiResponse?.name &&
+  aiResponse.name !== "Not Found"
+    ? aiResponse.name
+    : file.name
+        .replace(".pdf", "")
+        .replace(".docx", "")
+        .replace(".doc", "")
+        .replace("Resume", "")
+        .trim(),
             email: email,
             phone: phone,
-            role: role,
+           role: selectedJob?.title || "",
             experience: experience !== "Not Found" ? experience : "--",
             location: aiResponse?.location || location,
             work_authorization: "Yes",
@@ -213,7 +236,6 @@ const experience =
         } else {
           alert("All resumes uploaded successfully!");
           setFiles([]);
-          setRole("");
           setSelectedJobId("");
         }
 
@@ -227,13 +249,13 @@ const experience =
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex flex-col">
-      <Navbar />
+   <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
+     
 
       <div className="flex">
         <Sidebar />
 
-        <div className="flex-1 md:ml-60 mt-16 px-4 md:px-4 py-4 md:py-8 min-h-screen">
+       <div className="flex-1 md:ml-60 px-4 md:px-4 py-4 md:py-8 min-h-screen">
           <div className="mb-6 md:mb-8">
             <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Resume Upload
@@ -250,14 +272,6 @@ const experience =
                   Candidate Information
                 </h2>
 
-                {/* Job Description */}
-                <textarea
-                  placeholder="Paste Job Description Here"
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  rows={6}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-3xl px-5 py-4 outline-none text-sm md:text-base mb-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                />
 
                 {/* NEW: Job Position Dropdown */}
                 <div className="mb-6">
