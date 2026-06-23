@@ -1,426 +1,240 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
-import { screenResume } from "../services/aiService";
-import Sidebar from "../components/Sidebar";
-import * as pdfjsLib from "pdfjs-dist";
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
 
-import { FaCloudUploadAlt } from "react-icons/fa";
-
-function UploadResume() {
+const UploadResume = () => {
   const navigate = useNavigate();
 
-  const [files, setFiles] = useState([]);
-  const [role, setRole] = useState("");
-  const [aiResult, setAiResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [file, setFile] = useState(null);
 
-  // NEW: jobs list and selected job
-  const [jobs, setJobs] = useState([]);
-  const [selectedJobId, setSelectedJobId] = useState("");
-
-  // Fetch job positions on mount
-  useEffect(() => {
-    supabase.from("job_posts").select("id, title").then(({ data }) => {
-      if (data) setJobs(data);
-    });
-  }, []);
-
-  /* AI SCORE */
-  const generateAIScore = (fileName = "") => {
+  // AI Score Generator
+  const generateAIScore = (fileName) => {
     let score = 50;
-    const lowerCaseFile = fileName.toLowerCase();
-    if (lowerCaseFile.includes("react")) score += 15;
-    if (lowerCaseFile.includes("node")) score += 15;
-    if (lowerCaseFile.includes("sql")) score += 15;
-    if (lowerCaseFile.includes("python")) score += 15;
-    if (lowerCaseFile.includes("java")) score += 10;
+
+    const lowerCaseFile =
+      fileName.toLowerCase();
+
+    if (lowerCaseFile.includes("react")) {
+      score += 15;
+    }
+
+    if (lowerCaseFile.includes("node")) {
+      score += 15;
+    }
+
+    if (lowerCaseFile.includes("sql")) {
+      score += 15;
+    }
+
+    if (lowerCaseFile.includes("python")) {
+      score += 15;
+    }
+
+    if (lowerCaseFile.includes("java")) {
+      score += 10;
+    }
+
     return score;
   };
 
-  /* SKILLS */
-  const extractSkills = (fileText = "") => {
-    const lowerCaseText = fileText.toLowerCase();
+  // Extract Skills
+  const extractSkills = (fileName) => {
+    const lowerCaseFile =
+      fileName.toLowerCase();
+
     let skills = [];
-    if (lowerCaseText.includes("react")) skills.push("React");
-    if (lowerCaseText.includes("node")) skills.push("Node.js");
-    if (lowerCaseText.includes("sql")) skills.push("SQL");
-    if (lowerCaseText.includes("python")) skills.push("Python");
-    if (lowerCaseText.includes("java")) skills.push("Java");
-    if (lowerCaseText.includes("javascript")) skills.push("JavaScript");
+
+    if (lowerCaseFile.includes("react")) {
+      skills.push("React");
+    }
+
+    if (lowerCaseFile.includes("node")) {
+      skills.push("Node.js");
+    }
+
+    if (lowerCaseFile.includes("sql")) {
+      skills.push("SQL");
+    }
+
+    if (lowerCaseFile.includes("python")) {
+      skills.push("Python");
+    }
+
+    if (lowerCaseFile.includes("java")) {
+      skills.push("Java");
+    }
+
     return skills.join(", ");
   };
 
-  /* STATUS */
-  const getStatus = (aiText = "") => {
-    const lowerText = aiText.toLowerCase();
-    if (
-      lowerText.includes("strong match") ||
-      lowerText.includes("highly recommended") ||
-      lowerText.includes("excellent fit")
-    ) return "Shortlisted";
-    if (
-      lowerText.includes("moderate match") ||
-      lowerText.includes("partial match")
-    ) return "Pending";
-    return "Rejected";
-  };
-
-  /* PDF TEXT EXTRACT */
-  const extractPDFText = async (file) => {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = "";
-    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item) => item.str).join(" ");
-      fullText += pageText + "\n";
+  // Candidate Status
+  const getStatus = (score) => {
+    if (score >= 85) {
+      return "Shortlisted";
+    } else if (score >= 70) {
+      return "Pending";
+    } else {
+      return "Rejected";
     }
-    return fullText;
   };
 
-  /* UPLOAD FUNCTION */
+  // Upload Function
   const addCandidate = async () => {
-    if (files.length === 0) {
-      alert("Please select resumes");
-      return;
-    }
-   
-    
-    if (!selectedJobId) {
-      alert("Please select a job position");
+    if (!file) {
+      alert("Please select a resume");
       return;
     }
 
-    try {
-      setLoading(true);
+    // Generate AI Score
+    const aiScore =
+      generateAIScore(file.name);
 
-      for (const file of files) {
-        let fileText = "";
+    // Extract Skills
+    const skills =
+      extractSkills(file.name);
 
-        if (file.type === "application/pdf") {
-          fileText = await extractPDFText(file);
-        } else {
-          fileText = await file.text();
-        }
+    const status = getStatus(aiScore);
 
-        /* AI SCREENING */
-       const selectedJob = jobs.find(
-  (job) => job.id === parseInt(selectedJobId)
-);
+    // Upload PDF
+    const fileName = `${Date.now()}-${file.name}`;
 
-const aiResponse = await screenResume(
-  fileText,
-  selectedJob?.title || ""
-);
-        console.log("AI RESPONSE:", aiResponse);
-        setAiResult(aiResponse);
+    const { error: uploadError } =
+      await supabase.storage
+        .from("resumes")
+        .upload(fileName, file);
 
-        const aiScore = aiResponse?.score || 0;
-        const skills = aiResponse?.strengths?.join(", ") || "";
-        const status =
-          aiScore >= 75 ? "Shortlisted" : aiScore >= 60 ? "Pending" : "Rejected";
+    if (uploadError) {
+      console.log(uploadError);
+      alert("File upload failed");
+      return;
+    }
 
-        /* EMAIL */
-        const emailText = fileText
-  .replace(/\s*@\s*/g, "@")
-  .replace(/\s*\.\s*/g, ".")
-  .replace(/\s+/g, "");
+    // Get Resume URL
+    const {
+      data: { publicUrl },
+    } = supabase.storage
+      .from("resumes")
+      .getPublicUrl(fileName);
 
-const email =
-  emailText.match(
-    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
-  )?.[0] || "Not Found";
+    // Save Database
+    const { error } = await supabase
+      .from("candidates")
+      .insert([
+        {
+          name: file.name,
+          role: "Frontend Developer",
+          score: `${aiScore}%`,
+          status: status,
+          skills: skills,
+          resume_url: publicUrl,
+        },
+      ]);
 
-     
-   /* PHONE */
-
-const cleanedText = fileText.replace(
-  /\s+/g,
-  " "
-);
-
-const phoneMatch = fileText.match(
-  /(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]*\d{3}[\s.-]*\d{4}/
-);
-
-const phone = phoneMatch
-  ? phoneMatch[0].trim()
-  : "--";
-
-
-console.log("EMAIL =", email);
-console.log("PHONE =", phone);
-
-      const experienceMatch =
-  fileText.match(
-    /(\d+(\.\d+)?\+?\s*(years?|yrs?|months?))/i
-  );
-
-const experience =
-  experienceMatch
-    ? experienceMatch[0]
-    : "--";
-
-        /* LOCATION */
-        const locationMatch = fileText.match(
-          /(Colombo|Kalmunai|Kandy|Galle|Jaffna|Batticaloa|Trincomalee|Doha|Qatar|Dubai|UAE|Chennai|Bangalore|India|Sri Lanka)/i
-        );
-        const location = locationMatch ? locationMatch[0] : "Not Found";
-
-        /* FILE NAME */
-        const fileName = `${Date.now()}-${file.name}`;
-
-        /* STORAGE */
-        const { error: uploadError } = await supabase.storage
-          .from("resumes")
-          .upload(fileName, file);
-
-        if (uploadError) {
-          console.log("UPLOAD ERROR:", uploadError);
-          alert(uploadError.message);
-          setLoading(false);
-          return;
-        }
-
-        /* PUBLIC URL */
-        const { data: { publicUrl } } = supabase.storage
-          .from("resumes")
-          .getPublicUrl(fileName);
-
-        /* DATABASE */
-        const { error } = await supabase.from("applicants").insert([
-          {
-           name:
-  aiResponse?.name &&
-  aiResponse.name !== "Not Found"
-    ? aiResponse.name
-    : file.name
-        .replace(".pdf", "")
-        .replace(".docx", "")
-        .replace(".doc", "")
-        .replace("Resume", "")
-        .trim(),
-            email: email,
-            phone: phone,
-           role: selectedJob?.title || "",
-            experience: experience !== "Not Found" ? experience : "--",
-            location: aiResponse?.location || location,
-            work_authorization: "Yes",
-            source: "Manual",
-            ai_score: aiScore,
-            status: status,
-            ai_status: status,
-            skills: skills,
-            matched_skills: aiResponse?.strengths?.join(", ") || "",
-            missing_skills: aiResponse?.missingSkills?.join(", ") || "",
-            recommendation: aiResponse?.recommendation || "Pending",
-            why_suitable: aiResponse?.whySuitable || "",
-            recommended_role: aiResponse?.recommendedRole || "",
-            resume_url: publicUrl,
-
-            // NEW: link to selected job
-            job_post_id: selectedJobId ? parseInt(selectedJobId) : null,
-          },
-        ]);
-
-        if (error) {
-          console.log("DATABASE ERROR:", error);
-          alert(error.message);
-        } else {
-          alert("All resumes uploaded successfully!");
-          setFiles([]);
-          setSelectedJobId("");
-        }
-
-        setLoading(false);
-      }
-    } catch (err) {
-      console.log("MAIN ERROR:", err);
-      alert(err?.message || JSON.stringify(err) || "Upload failed");
-      setLoading(false);
+    if (error) {
+      console.log(error);
+    } else {
+      alert(
+        `Resume Uploaded!\nAI Score: ${aiScore}%`
+      );
     }
   };
 
   return (
-   <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
-     
+    <div className="min-h-screen bg-gray-100 flex">
 
-      <div className="flex">
-        <Sidebar />
+      {/* Sidebar */}
+      <div className="w-64 bg-black text-white p-5">
 
-       <div className="flex-1 md:ml-60 px-4 md:px-4 py-4 md:py-8 min-h-screen">
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              Resume Upload
-            </h1>
-            <p className="text-gray-500 mt-1 md:mt-2 text-sm md:text-base">
-              Upload and analyze candidate resumes
+        <h1 className="text-3xl font-bold mb-10">
+          HireDesk
+        </h1>
+
+        <ul className="space-y-6 text-lg">
+
+          <li
+            onClick={() => navigate("/dashboard")}
+            className="cursor-pointer hover:text-blue-400"
+          >
+            Dashboard
+          </li>
+
+          <li
+            onClick={() => navigate("/results")}
+            className="cursor-pointer hover:text-blue-400"
+          >
+            Candidates
+          </li>
+
+          <li
+            onClick={() => navigate("/upload")}
+            className="cursor-pointer hover:text-blue-400"
+          >
+            Resume Upload
+          </li>
+
+          <li
+            onClick={() => navigate("/ai-results")}
+            className="cursor-pointer hover:text-blue-400"
+          >
+            AI Results
+          </li>
+
+          <li
+            onClick={() => navigate("/settings")}
+            className="cursor-pointer hover:text-blue-400"
+          >
+            Settings
+          </li>
+
+        </ul>
+
+      </div>
+
+      {/* Main */}
+      <div className="flex-1 p-10">
+
+        <div className="bg-white rounded-2xl shadow-md p-10 max-w-3xl">
+
+          <h1 className="text-4xl font-bold mb-8">
+            Upload Resume
+          </h1>
+
+          {/* Upload Box */}
+          <div className="border-2 border-dashed border-gray-400 rounded-2xl p-16 text-center">
+
+            <p className="text-gray-600 text-lg mb-6">
+              Upload Resume PDF
             </p>
+
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx"
+              onChange={(e) =>
+                setFile(e.target.files[0])
+              }
+              className="mb-6"
+            />
+
+            {file && (
+              <p className="mb-6 text-green-600 font-semibold">
+                Selected File: {file.name}
+              </p>
+            )}
+
+            <button
+              onClick={addCandidate}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700"
+            >
+              Upload Resume
+            </button>
+
           </div>
 
-          <div className="bg-white rounded-3xl shadow-xl border border-slate-200 p-6 md:p-8 w-full mx-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start">
-              <div className="lg:sticky lg:top-8 self-start">
-                <h2 className="text-2xl font-bold text-slate-800 mb-6">
-                  Candidate Information
-                </h2>
-
-
-                {/* NEW: Job Position Dropdown */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Select Job Position <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedJobId}
-                    onChange={(e) => setSelectedJobId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  >
-                    <option value="">-- Select Job Position --</option>
-                    {jobs.map((job) => (
-                      <option key={job.id} value={job.id}>
-                        {job.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Drag & Drop */}
-                <div
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const droppedFiles = Array.from(e.dataTransfer.files);
-                    if (droppedFiles.length > 0) setFiles(droppedFiles);
-                  }}
-                  className="border-2 border-dashed border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl min-h-[500px] flex flex-col justify-center items-center p-10 md:p-14 text-center hover:scale-[1.02] hover:shadow-xl transition-all duration-300 cursor-pointer"
-                >
-                  <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg">
-                    <FaCloudUploadAlt className="text-white text-4xl" />
-                  </div>
-                  <p className="text-lg md:text-xl font-bold text-blue-700 mb-1 md:mb-2">
-                    Drag & Drop Resume
-                  </p>
-                  <p className="text-xs md:text-sm text-gray-500 mb-4 md:mb-6">
-                    Upload PDF, DOC, DOCX
-                  </p>
-
-                  <input
-                    id="resumeUpload"
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx"
-                    onChange={(e) => setFiles(Array.from(e.target.files))}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="resumeUpload"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-4 text-lg font-semibold rounded-2xl cursor-pointer shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                  >
-                    📄 Choose Resume Files
-                  </label>
-
-                  {files.length > 0 && (
-                    <div className="mt-4 bg-white rounded-xl p-3 md:p-4 shadow-sm text-left">
-                      <p className="text-green-600 font-bold text-sm">Selected Files</p>
-                      {files.map((file, index) => (
-                        <p key={index} className="text-gray-700 text-xs md:text-sm mt-1 truncate">
-                          {file.name}
-                        </p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={async () => { await addCandidate(); }}
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-4 rounded-2xl mt-6 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                >
-                  {loading ? "Uploading..." : "Upload Resume"}
-                </button>
-              </div>
-
-              {/* AI Result Panel */}
-              <div className="bg-gradient-to-br from-slate-50 to-blue-50 rounded-3xl border border-slate-200 p-6 h-[800px] overflow-y-auto mt-4 lg:mt-0">
-                <h2 className="text-3xl font-bold text-slate-800 mb-6">
-                  AI Screening Result
-                </h2>
-
-                {aiResult ? (
-                  <div className="bg-white rounded-3xl p-6 shadow-lg border border-slate-100">
-                    <div className="flex justify-between items-center mb-4 md:mb-6">
-                      <h3 className="text-lg md:text-xl font-bold text-slate-800">
-                        AI Analysis Result
-                      </h3>
-                      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2 rounded-full font-bold shadow-md text-sm md:text-base">
-                        {aiResult?.score || 0}%
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <p className="font-semibold text-slate-700 text-sm md:text-base">Recommendation</p>
-                      <p className={`mt-1 font-bold text-sm md:text-base ${
-                        aiResult?.score >= 75 ? "text-green-600" : aiResult?.score >= 60 ? "text-yellow-600" : "text-red-600"
-                      }`}>
-                        {aiResult?.recommendation}
-                      </p>
-                    </div>
-
-                    <div className="mb-4">
-                      <p className="font-semibold text-slate-700 text-sm md:text-base">Summary</p>
-                      <p className="text-gray-600 text-xs md:text-sm mt-1 leading-relaxed">
-                        {aiResult?.summary}
-                      </p>
-                    </div>
-
-                    <div className="mb-4">
-                      <p className="font-semibold text-slate-700 text-sm md:text-base mb-2">Strengths</p>
-                      <ul className="list-disc pl-5 text-green-700 text-xs md:text-sm space-y-1">
-                        {aiResult?.strengths?.map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="mb-4">
-                      <p className="font-semibold text-slate-700 text-sm md:text-base mb-2">Missing Skills</p>
-                      <ul className="list-disc pl-5 text-red-600 text-xs md:text-sm space-y-1">
-                        {aiResult?.missingSkills?.map((item, index) => (
-                          <li key={index}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-slate-700 text-sm md:text-base mb-2">Why Suitable</p>
-                      <p className="text-gray-600 text-xs md:text-sm leading-relaxed">
-                        {aiResult?.whySuitable}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-[350px] flex flex-col items-center justify-center text-center">
-                    <div className="text-6xl mb-4">🤖</div>
-                    <h3 className="text-lg font-semibold text-slate-700">AI Screening Ready</h3>
-                    <p className="text-slate-500 mt-2">Upload a resume to generate AI analysis</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
+
       </div>
     </div>
   );
-}
+};
 
 export default UploadResume;

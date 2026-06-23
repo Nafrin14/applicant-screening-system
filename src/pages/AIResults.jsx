@@ -9,7 +9,7 @@ import {
 
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
+
 
 import {
   FaTachometerAlt,
@@ -32,11 +32,10 @@ function AIResults() {
   const [selectedResume, setSelectedResume] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Filter candidates by name dynamically
-  const filteredCandidates = candidates.filter((candidate) =>
-    candidate.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [statusFilter, setStatusFilter] = useState("All");
+  const [scoreFilter, setScoreFilter] = useState("All");
 
+ 
   useEffect(() => {
     fetchCandidates();
   }, []);
@@ -110,9 +109,36 @@ function AIResults() {
     },
   ];
 
+ const filteredCandidates = candidates.filter((candidate) => {
+
+  const matchesName =
+    candidate.name
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+  const matchesStatus =
+    statusFilter === "All"
+      ? true
+      : candidate.status === statusFilter;
+
+  const score =
+    candidate.ai_score || candidate.score || 0;
+
+  const matchesScore =
+    scoreFilter === "All"
+      ? true
+      : score >= Number(scoreFilter);
+
+  return (
+    matchesName &&
+    matchesStatus &&
+    matchesScore
+  );
+});
+
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
-      <Navbar />
+      
 
       <div className="flex">
         {/* Sidebar */}
@@ -122,23 +148,54 @@ function AIResults() {
         <div className="flex-1 md:ml-56 mt-16 p-4 md:p-6 min-h-screen overflow-y-auto">
           {/* Header */}
           <div className="mb-5">
+            
             <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-1">
               AI Screening
             </h1>
             <p className="text-gray-500 text-sm">
-              Smart AI candidate analysis dashboard
-            </p>
-          </div>
+              Smart AI candidate analysis dashboard 
 
-          <div className="w-full md:w-64">
-            <input
-              type="text"
-              placeholder="Search candidates by name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full mb-10 px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            />
+              
+            </p>
+
+            
           </div>
+          
+
+         <div className="flex flex-wrap gap-3 mb-6">
+  {/* Search */}
+  <input
+    type="text"
+    placeholder="Search candidates by name..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="w-full md:w-64 px-4 py-2 rounded-xl border border-slate-200 bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+
+  {/* Status */}
+  <select
+    value={statusFilter}
+    onChange={(e) => setStatusFilter(e.target.value)}
+  className="w-48 px-4 py-2 border rounded-xl bg-white">
+    <option value="All">All Status</option>
+    <option value="Shortlisted">Shortlisted</option>
+    <option value="Pending">Pending</option>
+    <option value="Rejected">Rejected</option>
+  </select>
+
+  {/* Score */}
+  <select
+    value={scoreFilter}
+    onChange={(e) => setScoreFilter(e.target.value)}
+   
+  className="w-48 px-4 py-2 border rounded-xl bg-white">
+    <option value="All">All Scores</option>
+    <option value="90">90+ Score</option>
+    <option value="80">80+ Score</option>
+    <option value="70">70+ Score</option>
+  </select>
+</div>
+         
 
           {/* Cards Grid Container */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">

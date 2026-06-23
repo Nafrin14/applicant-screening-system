@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
 
 import {
@@ -13,6 +12,8 @@ import {
   FaEye,
   FaChartLine,
   FaFunnelDollar,
+  FaBullhorn,
+FaHeadset,
   FaVideo,
   FaPaintBrush,
   FaUserTie,
@@ -24,7 +25,95 @@ import {
   FaList,
 } from "react-icons/fa";
 
-export default function Jobs() {
+const initialJobs = [
+  { id: "1", title: "Sales Representative", applicants: 0, icon: FaChartLine, color: "emerald", tag: "Sales" },
+  { id: "2", title: "Lead Generation Specialist", applicants: 0, icon: FaBullhorn, color: "blue", tag: "Marketing" },
+  { id: "3", title: "Video Editor", applicants: 0, icon: FaVideo, color: "orange", tag: "Creative" },
+  { id: "4", title: "Graphic Designer", applicants: 0, icon: FaPaintBrush, color: "purple", tag: "Creative" },
+  { id: "5", title: "Full Stack React & Supabase Developer", applicants: 0, icon: FaCode, color: "indigo", tag: "Tech" },
+  { id: "6", title: "Diesel Mechanic", applicants: 0, icon: FaTools, color: "blue", tag: "Technical" },
+  { id: "7", title: "Landscaping Sales Rep (1099/Commission)", applicants: 0, icon: FaLeaf, color: "emerald", tag: "Sales" },
+  { id: "8", title: "SEO Specialist", applicants: 0, icon: FaBullhorn, color: "orange", tag: "Marketing" },
+  { id: "9", title: "Landscaping Sales / Estimator (1099)", applicants: 0, icon: FaLeaf, color: "emerald", tag: "Sales" },
+  { id: "10", title: "Customer Service Representative", applicants: 0, icon: FaHeadset, color: "blue", tag: "Support" },
+  { id: "11", title: "Customer Service Agent (Remote)", applicants: 0, icon: FaHeadset, color: "purple", tag: "Support" },
+  { id: "12", title: "Landscaping Team Hiring - Immediate", applicants: 30, icon: FaLeaf, color: "emerald", tag: "Landscaping" },
+  { id: "13", title: "Landscaping Crew Member", applicants: 0, icon: FaLeaf, color: "emerald", tag: "Landscaping" },
+  { id: "14", title: "Landscaping Foreman", applicants: 0, icon: FaLeaf, color: "blue", tag: "Landscaping" },
+  { id: "15", title: "Web Development", applicants: 2, icon: FaCode, color: "indigo", tag: "Tech" },
+];
+
+const colorConfig = {
+  emerald: {
+    iconBg: "bg-emerald-100", iconText: "text-emerald-600",
+    tagBg: "bg-emerald-50", tagText: "text-emerald-600",
+    btn: "bg-emerald-50 hover:bg-emerald-100 text-emerald-700",
+    dot: "bg-emerald-400", bar: "bg-emerald-400",
+  },
+  blue: {
+    iconBg: "bg-blue-100", iconText: "text-blue-600",
+    tagBg: "bg-blue-50", tagText: "text-blue-600",
+    btn: "bg-blue-50 hover:bg-blue-100 text-blue-700",
+    dot: "bg-blue-400", bar: "bg-blue-400",
+  },
+  purple: {
+    iconBg: "bg-purple-100", iconText: "text-purple-600",
+    tagBg: "bg-purple-50", tagText: "text-purple-600",
+    btn: "bg-purple-50 hover:bg-purple-100 text-purple-700",
+    dot: "bg-purple-400", bar: "bg-purple-400",
+  },
+  orange: {
+    iconBg: "bg-orange-100", iconText: "text-orange-600",
+    tagBg: "bg-orange-50", tagText: "text-orange-600",
+    btn: "bg-orange-50 hover:bg-orange-100 text-orange-700",
+    dot: "bg-orange-400", bar: "bg-orange-400",
+  },
+  indigo: {
+    iconBg: "bg-indigo-100", iconText: "text-indigo-600",
+    tagBg: "bg-indigo-50", tagText: "text-indigo-600",
+    btn: "bg-indigo-50 hover:bg-indigo-100 text-indigo-700",
+    dot: "bg-indigo-400", bar: "bg-indigo-400",
+  },
+};
+const getJobStyle = (title) => {
+  const text = title.toLowerCase();
+
+  if (text.includes("sales")) {
+    return { icon: FaChartLine, color: "emerald", tag: "Sales" };
+  }
+
+  if (text.includes("lead") || text.includes("seo") || text.includes("marketing")) {
+    return { icon: FaBullhorn, color: "orange", tag: "Marketing" };
+  }
+
+  if (text.includes("video")) {
+    return { icon: FaVideo, color: "orange", tag: "Creative" };
+  }
+
+  if (text.includes("graphic") || text.includes("designer") || text.includes("design")) {
+    return { icon: FaPaintBrush, color: "purple", tag: "Creative" };
+  }
+
+  if (text.includes("web") || text.includes("react") || text.includes("developer") || text.includes("supabase")) {
+    return { icon: FaCode, color: "indigo", tag: "Tech" };
+  }
+
+  if (text.includes("mechanic") || text.includes("technician") || text.includes("maintenance")) {
+    return { icon: FaTools, color: "blue", tag: "Technical" };
+  }
+
+  if (text.includes("customer") || text.includes("support") || text.includes("agent")) {
+    return { icon: FaHeadset, color: "blue", tag: "Support" };
+  }
+
+  if (text.includes("landscaping") || text.includes("landscape") || text.includes("crew") || text.includes("foreman")) {
+    return { icon: FaLeaf, color: "emerald", tag: "Landscaping" };
+  }
+
+  return { icon: FaBriefcase, color: "indigo", tag: "General" };
+};
+
+function Jobs() {
   const navigate = useNavigate();
 const [sortBy, setSortBy] = useState(
   localStorage.getItem("jobsSortBy") || "newest"
@@ -463,36 +552,32 @@ const sortedJobs = [...filteredJobs].sort((a, b) => {
           </div>
         </main>
       </div>
+         {showModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-2xl relative">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-5 right-5 text-slate-400 hover:text-slate-700"
+            >
+              <FaTimes />
+            </button>
 
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 px-4 transition-all duration-300">
-          <div className="bg-white rounded-[32px] p-8 w-full max-w-md shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden transform transition-all">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-indigo-500 to-violet-500" />
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                New Category
-              </h2>
-
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-slate-400 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 p-2.5 rounded-full transition-colors"
-              >
-                <FaTimes />
-              </button>
-            </div>
-
-            <div className="w-20 h-20 rounded-[24px] bg-gradient-to-br from-violet-100 to-violet-50 text-violet-600 flex items-center justify-center mx-auto text-3xl mb-8 shadow-sm border border-violet-100/50">
+            <div className="w-16 h-16 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-2xl mb-5">
               <FaBriefcase />
             </div>
 
-            <form onSubmit={handleAddJob}>
-              <label className="block text-sm font-bold text-slate-700 mb-2 ml-1">
-                Job Category Name
-              </label>
+            <h2 className="text-2xl font-black text-slate-900 mb-2">
+              Add Job Category
+            </h2>
 
+            <p className="text-slate-500 text-sm mb-6">
+              Enter job title to create a new category.
+            </p>
+
+            <form onSubmit={handleAddJob}>
               <input
                 required
-                placeholder="e.g. Frontend Developer"
+                placeholder="Enter job title"
                 value={form.title}
                 onChange={(e) =>
                   setForm({
@@ -500,14 +585,13 @@ const sortedJobs = [...filteredJobs].sort((a, b) => {
                     title: e.target.value,
                   })
                 }
-                className="w-full bg-slate-50/50 border border-slate-200/80 rounded-2xl px-5 py-4 text-sm outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all mb-6 shadow-sm"
+                className="w-full border border-slate-200 rounded-2xl px-5 py-4 outline-none mb-5"
               />
 
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-4 rounded-2xl font-bold shadow-[0_8px_30px_rgb(79,70,229,0.2)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.35)] hover:-translate-y-1 transition-all duration-300"
+                className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-4 rounded-2xl font-bold"
               >
-                <FaPlus />
                 Add Category
               </button>
             </form>
@@ -517,3 +601,7 @@ const sortedJobs = [...filteredJobs].sort((a, b) => {
     </div>
   );
 }
+
+export default Jobs;
+
+export default Jobs;

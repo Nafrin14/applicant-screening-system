@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
@@ -15,8 +15,34 @@ import {
   FaSearch,
 } from "react-icons/fa";
 
-export default function JobDetails() {
-  const { jobId } = useParams();
+const JOB_MAP = {
+  "1": "Sales Representative",
+  "2": "Lead Generation Specialist",
+  "3": "Video Editor",
+  "4": "Graphic Designer",
+  "5": "Full Stack React & Supabase Developer",
+  "6": "Diesel Mechanic",
+  "7": "Landscaping Sales Representative (1099/Commission Based)",
+  "8": "SEO Specialist",
+  "9": "Landscaping Sales / Estimator (1099/Commission Based)",
+  "10": "Customer Service Representative",
+  "11": "Customer Service Agent (Remote)",
+  "12": "Landscaping Team Hiring - Immediate Openings",
+  "13": "Landscaping Crew Member",
+  "14": "Landscaping Foreman",
+  "15": "web development",
+};
+
+const STATUS_STYLES = {
+  Shortlisted: "bg-emerald-100 text-emerald-700",
+  Rejected: "bg-red-100 text-red-600",
+  "Interview Scheduled": "bg-violet-100 text-violet-700",
+  Selected: "bg-blue-100 text-blue-700",
+  Pending: "bg-amber-100 text-amber-700",
+};
+
+function JobDetails() {
+  const { id } = useParams();
   const navigate = useNavigate();
 
   const [job, setJob] = useState(null);
@@ -25,17 +51,17 @@ export default function JobDetails() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  useEffect(() => {
-    fetchData();
-  }, [jobId]);
+ useEffect(() => {
+  fetchApplicants();
+}, [id]);
 
-  async function fetchData() {
+  const fetchApplicants = async () => {
     setLoading(true);
 
     const { data: jobData } = await supabase
       .from("job_posts")
       .select("*")
-      .eq("id", jobId)
+    .eq("id", id)
       .single();
 
     setJob(jobData);
@@ -43,7 +69,10 @@ export default function JobDetails() {
     let { data: appData } = await supabase
       .from("applicants")
       .select("*")
-      .eq("job_post_id", jobId);
+      .or(
+  `role.ilike.%${jobData?.title}%,recommended_role.ilike.%${jobData?.title}%`
+)
+      .order("ai_score", { ascending: false });
 
     if (!appData || appData.length === 0) {
       const { data: byRole } = await supabase
@@ -62,7 +91,7 @@ export default function JobDetails() {
 
     setApplicants(sortedApplicants);
     setLoading(false);
-  }
+  };
 
   const filteredApplicants = applicants.filter((item) => {
     const keyword = search.toLowerCase();
@@ -128,7 +157,7 @@ export default function JobDetails() {
       .delete()
       .eq("id", id);
 
-    fetchData();
+   fetchApplicants();
   }
 
   return (
@@ -389,12 +418,20 @@ export default function JobDetails() {
                   </div>
                 )}
 
-                <div className="flex justify-between items-center mt-6 px-2">
-                  <p className="text-sm font-medium text-slate-500">
-                    Showing <span className="font-bold text-slate-700">{filteredApplicants.length}</span> of{" "}
-                    <span className="font-bold text-slate-700">{applicants.length}</span> applicants
-                  </p>
-                </div>
+               <div className="flex justify-between items-center mt-6 px-2">
+  <p className="text-sm font-medium text-slate-500">
+    Showing
+    <span className="font-bold text-slate-700">
+      {filteredApplicants.length}
+    </span>
+    of
+    <span className="font-bold text-slate-700">
+      {applicants.length}
+    </span>
+    applicants
+  </p>
+</div>
+
               </div>
             </>
           )}
@@ -403,3 +440,5 @@ export default function JobDetails() {
     </div>
   );
 }
+
+export default JobDetails;

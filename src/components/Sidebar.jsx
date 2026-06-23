@@ -22,7 +22,7 @@ function Sidebar() {
 
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt /> },
-    {name : "Jobs", path: "/jobs", icon: <FaBriefcase />},
+    { name: "Jobs", path: "/jobs", icon: <FaBriefcase /> },
     { name: "Candidates", path: "/results", icon: <FaUsers /> },
     { name: "Resume Upload", path: "/upload", icon: <FaFileUpload /> },
     { name: "AI Results", path: "/ai-results", icon: <FaRobot /> },
