@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import { screenResume } from "../services/aiService";
 import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
+
+
 import * as pdfjsLib from "pdfjs-dist";
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -13,11 +15,24 @@ import { FaCloudUploadAlt } from "react-icons/fa";
 function UploadResume() {
   const navigate = useNavigate();
 
-  const [files, setFiles] = useState([]);
+const [files, setFiles] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [selectedJobId, setSelectedJobId] = useState("");
   const [role, setRole] = useState("");
-  const [jobDescription, setJobDescription] = useState("");
-  const [aiResult, setAiResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  async function fetchJobs() {
+    const { data, error } = await supabase
+      .from("job_posts")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error) {
+      setJobs(data || []);
+    }
+  }
 
   // NEW: jobs list and selected job
   const [jobs, setJobs] = useState([]);
@@ -86,10 +101,61 @@ function UploadResume() {
 
   /* UPLOAD FUNCTION */
   const addCandidate = async () => {
+
     if (files.length === 0) {
       alert("Please select resumes");
       return;
     }
+
+    if (!selectedJobId) {
+      alert("Please select a Job Category");
+      return;
+    }
+
+    try {
+
+  setLoading(true);
+
+  for (const file of files) {
+
+    let fileText = "";
+
+    /* PDF */
+
+    if (file.type === "application/pdf") {
+
+      fileText =
+        await extractPDFText(file);
+
+    } else {
+
+      fileText =
+        await file.text();
+    }
+
+    /* AI SCREENING */
+
+    const selectedJobTitle = jobs.find(j => j.id === selectedJobId)?.title || "General Candidate";
+
+    const aiResponse =
+  await screenResume(
+    fileText,
+    selectedJobTitle
+  );
+
+      console.log(
+  "AI RESPONSE:",
+  aiResponse
+);
+
+    setAiResult(aiResponse);
+
+    /* AI SCORE */
+
+    const aiScore =
+      aiResponse?.score || 0;
+
+    /* SKILLS */
     if (!jobDescription) {
       alert("Please enter Job Description");
       return;
@@ -218,6 +284,94 @@ const experience =
         }
 
         setLoading(false);
+
+        return;
+      }
+
+      /* PUBLIC URL */
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage
+        .from("resumes")
+        .getPublicUrl(fileName);
+
+      /* DATABASE */
+
+      const { error } =
+        await supabase
+          .from("applicants")
+          .insert([
+            {
+              name:
+  aiResponse?.name ||
+  file?.name ||
+  "Unknown Candidate",
+
+              email: email,
+              phone: phone,
+              role: jobs.find(j => j.id === selectedJobId)?.title || "",
+              job_post_id: selectedJobId,
+
+              experience:
+  experience !== "Not Found"
+    ? experience
+    : "--",
+
+location:
+  aiResponse?.location ||
+  location,
+              work_authorization: "Yes",
+
+              source: "Manual",
+
+              ai_score: aiScore,
+
+              status: status,
+
+              ai_status: status,
+
+              skills: skills,
+
+matched_skills:
+  aiResponse?.strengths?.join(", ") || "",
+
+missing_skills:
+  aiResponse?.missingSkills?.join(", ") || "",
+
+recommendation:
+  aiResponse?.recommendation || "Pending",
+
+why_suitable:
+  aiResponse?.whySuitable || "",
+
+recommended_role:
+  aiResponse?.recommendedRole || "",
+
+
+
+resume_url: publicUrl,
+            },
+          ]);
+
+      if (error) {
+
+        console.log(
+          "DATABASE ERROR:",
+          error
+        );
+
+        alert(error.message);
+
+      } else {
+
+        alert(
+  "All resumes uploaded successfully!"
+);
+
+        setFiles([]);
+
+        setRole("");
       }
     } catch (err) {
       console.log("MAIN ERROR:", err);
@@ -225,6 +379,147 @@ const experience =
       setLoading(false);
     }
   };
+ return (
+  <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex flex-col">
+
+   
+
+    <div className="flex">
+      {/* Sidebar */}
+      <Sidebar />
+
+   <div className="flex-1 md:ml-60  px-4 md:px-4 py-4 md:py-8 min-h-screen">
+        <div className="mb-6 md:mb-8">
+<h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            Resume Upload
+          </h1>
+          <p className="text-gray-500 mt-1 md:mt-2 text-sm md:text-base">
+            Upload and analyze candidate resumes
+          </p>
+        </div>
+
+       <div className="
+bg-white
+rounded-3xl
+shadow-xl
+border
+border-slate-200
+p-6 md:p-8
+w-full mx-auto
+">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 items-start">
+           <div className="lg:sticky lg:top-8 self-start">
+             <h2 className="text-2xl font-bold text-slate-800 mb-6">
+                Candidate Information
+              </h2>
+
+              <select
+                value={selectedJobId}
+                onChange={(e) => setSelectedJobId(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-[20px] px-5 py-4 outline-none text-sm md:text-base mb-6 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-semibold text-slate-700"
+              >
+                <option value="">Select Job Category...</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                  </option>
+                ))}
+              </select>
+
+              <div
+                onDragOver={(e) =>
+                  e.preventDefault()
+                }
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const droppedFiles = Array.from(e.dataTransfer.files);
+                  if (droppedFiles.length > 0) {
+                    setFiles(droppedFiles);
+                  }
+                }}
+               
+
+className="
+border-2
+border-dashed
+border-blue-400
+bg-gradient-to-br
+from-blue-50
+to-indigo-50
+rounded-3xl
+min-h-[500px]
+flex
+flex-col
+justify-center
+items-center
+p-10
+md:p-14
+text-center
+hover:scale-[1.02]
+hover:shadow-xl
+transition-all
+duration-300
+cursor-pointer
+"
+              >
+               <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg">
+  <FaCloudUploadAlt className="text-white text-4xl" />
+</div>
+                <p className="text-lg md:text-xl font-bold text-blue-700 mb-1 md:mb-2">
+                  Drag & Drop Resume
+                </p>
+
+                <p className="text-xs md:text-sm text-gray-500 mb-4 md:mb-6">
+                  Upload PDF, DOC, DOCX
+                </p>
+
+                <input
+  id="resumeUpload"
+  type="file"
+  multiple
+  accept=".pdf,.doc,.docx"
+  onChange={(e) =>
+    setFiles(Array.from(e.target.files))
+  }
+  className="hidden"
+/>
+
+<label
+  htmlFor="resumeUpload"
+  className="
+  inline-flex
+  items-center
+  gap-2
+  bg-gradient-to-r
+  from-blue-600
+  to-indigo-600
+  text-white
+  
+  px-8 py-4 text-lg font-semibold
+  rounded-2xl
+  cursor-pointer
+  shadow-lg
+  hover:shadow-xl
+  transition-all
+  duration-300
+  hover:-translate-y-1
+  "
+>
+  📄 Choose Resume Files
+</label>
+
+                {files.length > 0 && (
+                  <div className="mt-4 bg-white rounded-xl p-3 md:p-4 shadow-sm text-left">
+                    <p className="text-green-600 font-bold text-sm">
+                      Selected Files
+                    </p>
+                    {files.map((file, index) => (
+                      <p
+                        key={index}
+                        className="text-gray-700 text-xs md:text-sm mt-1 truncate"
+                      >
+                        {file.name}
+                      </p>
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex flex-col">

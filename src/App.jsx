@@ -21,9 +21,10 @@ import CandidateProfile from "./pages/CandidateProfile";
 import InterviewSchedule from "./pages/InterviewSchedule";
 import ScheduledInterviews from "./pages/ScheduledInterviews";
 import CSVUpload from "./pages/CSVUpload";
-
 import ApplyPage from "./pages/ApplyPage";
 import ResumeViewer from "./pages/ResumeViewer";
+import Jobs from "./pages/Jobs";
+import JobDetails from "./pages/JobDetails";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Conversations from "./pages/Conversations";
 import Jobs from "./pages/Jobs";
@@ -126,7 +127,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+       
        
 
         <Route
@@ -151,6 +152,24 @@ function App() {
         <Route
           path="/apply/:id"
           element={<ApplyPage />}
+        />
+
+        <Route
+          path="/jobs"
+          element={
+            <ProtectedRoute>
+              <Jobs />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/jobs/:id"
+          element={
+            <ProtectedRoute>
+              <JobDetails />
+            </ProtectedRoute>
+          }
         />
 
         {/* NEW ROUTE */}

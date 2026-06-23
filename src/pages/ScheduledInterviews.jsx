@@ -11,7 +11,7 @@ import { supabase }
 from "../supabase";
 
 import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
+
 
 
 import {
@@ -149,7 +149,7 @@ return (
 
   <div className="min-h-screen bg-slate-100 flex flex-col">
 
-    <Navbar />
+   
 
     <div className="flex">
  
@@ -159,7 +159,7 @@ return (
 
       {/* Main */}
 
-    <div className="md:ml-56 mt-16 p-4 md:p-6">
+    <div className="md:ml-56  p-4 md:p-6">
 
         {/* Header */}
 
