@@ -604,4 +604,3 @@ const sortedJobs = [...filteredJobs].sort((a, b) => {
 
 export default Jobs;
 
-export default Jobs;
