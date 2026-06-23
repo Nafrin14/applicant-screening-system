@@ -27,6 +27,10 @@ import Jobs from "./pages/Jobs";
 import JobDetails from "./pages/JobDetails";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Conversations from "./pages/Conversations";
+import Jobs from "./pages/Jobs";
+import JobDetails from "./pages/JobDetails";
+import JobCard from "./components/JobCard";
+
 
 function App() {
   return (
@@ -208,6 +212,8 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
+<Route path="/jobs/:jobId" element={<ProtectedRoute><JobDetails /></ProtectedRoute>} />
 
       </Routes>
     </BrowserRouter>
