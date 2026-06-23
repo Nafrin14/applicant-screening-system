@@ -27,8 +27,6 @@ import Jobs from "./pages/Jobs";
 import JobDetails from "./pages/JobDetails";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Conversations from "./pages/Conversations";
-import Jobs from "./pages/Jobs";
-import JobDetails from "./pages/JobDetails";
 import JobCard from "./components/JobCard";
 
 
