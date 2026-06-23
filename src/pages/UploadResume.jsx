@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -7,7 +7,7 @@ import { supabase } from "../supabase";
 import { screenResume } from "../services/aiService";
 
 import Sidebar from "../components/Sidebar";
-import Navbar from "../components/Navbar";
+
 
 import * as pdfjsLib from "pdfjs-dist";
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -24,10 +24,23 @@ function UploadResume() {
   const navigate = useNavigate();
 
 const [files, setFiles] = useState([]);
-
+  const [jobs, setJobs] = useState([]);
+  const [selectedJobId, setSelectedJobId] = useState("");
   const [role, setRole] = useState("");
 
-  const [jobDescription, setJobDescription] = useState("");
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  async function fetchJobs() {
+    const { data, error } = await supabase
+      .from("job_posts")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error) {
+      setJobs(data || []);
+    }
+  }
 
  const [aiResult, setAiResult] = useState(null);
 
@@ -159,21 +172,15 @@ const [files, setFiles] = useState([]);
 
   const addCandidate = async () => {
 
-   if (files.length === 0) {
+    if (files.length === 0) {
+      alert("Please select resumes");
+      return;
+    }
 
-  alert("Please select resumes");
-
-  return;
-}
-
-if (!jobDescription) {
-
-  alert("Please enter Job Description");
-
-  return;
-}
-
-    
+    if (!selectedJobId) {
+      alert("Please select a Job Category");
+      return;
+    }
 
     try {
 
@@ -198,10 +205,12 @@ if (!jobDescription) {
 
     /* AI SCREENING */
 
+    const selectedJobTitle = jobs.find(j => j.id === selectedJobId)?.title || "General Candidate";
+
     const aiResponse =
   await screenResume(
     fileText,
-    jobDescription
+    selectedJobTitle
   );
 
       console.log(
@@ -325,10 +334,9 @@ const location =
   "Unknown Candidate",
 
               email: email,
-
               phone: phone,
-
-              role: role,
+              role: jobs.find(j => j.id === selectedJobId)?.title || "",
+              job_post_id: selectedJobId,
 
               experience:
   experience !== "Not Found"
@@ -412,13 +420,13 @@ resume_url: publicUrl,
  return (
   <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex flex-col">
 
-    <Navbar />
+   
 
     <div className="flex">
       {/* Sidebar */}
       <Sidebar />
 
-   <div className="flex-1 md:ml-60 mt-16 px-4 md:px-4 py-4 md:py-8 min-h-screen">
+   <div className="flex-1 md:ml-60  px-4 md:px-4 py-4 md:py-8 min-h-screen">
         <div className="mb-6 md:mb-8">
 <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
             Resume Upload
@@ -443,31 +451,18 @@ w-full mx-auto
                 Candidate Information
               </h2>
 
-              <textarea
-                placeholder="Paste Job Description Here"
-                value={jobDescription}
-                onChange={(e) =>
-                  setJobDescription(e.target.value)
-                }
-                rows={6}
-               className="
-w-full
-bg-slate-50
-border
-border-slate-200
-rounded-3xl
-px-5
-py-4
-outline-none
-text-sm
-md:text-base
-mb-6
-focus:ring-2
-focus:ring-blue-500
-focus:border-blue-500
-transition-all
-"
-              />
+              <select
+                value={selectedJobId}
+                onChange={(e) => setSelectedJobId(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-[20px] px-5 py-4 outline-none text-sm md:text-base mb-6 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-semibold text-slate-700"
+              >
+                <option value="">Select Job Category...</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.title}
+                  </option>
+                ))}
+              </select>
 
               <div
                 onDragOver={(e) =>

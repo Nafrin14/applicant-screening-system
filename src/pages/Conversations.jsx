@@ -10,6 +10,7 @@ import {
   FaTimes,
   FaArrowLeft,
   FaTrash,
+  FaBars,
 } from "react-icons/fa";
 import EmojiPicker from "emoji-picker-react";
 import throttle from "lodash/throttle";
@@ -90,7 +91,10 @@ const getDateLabel = (date) => {
     });
   }
 };
-
+const normalizePhone = (phone) => {
+  if (!phone) return "";
+  return String(phone).replace(/\D/g, "");
+};
 // ==========================================
 // SUB-COMPONENTS (Defined within the same file)
 // ==========================================
@@ -103,15 +107,26 @@ const ChatSidebarPanel = ({
   handleSelectCandidate,
   lastMessages,
   unreadCounts,
+  navigate,
+  sidebarOpen,
+  setSidebarOpen,
 }) => (
   <div
     className={`${
-      selectedCandidate ? "hidden md:flex" : "flex"
-    } w-full md:w-[360px] border-r border-[#e9edef] bg-white flex-col h-full flex-shrink-0`}
+      sidebarOpen || !selectedCandidate
+        ? "flex"
+        : "hidden"
+    } md:flex w-full md:w-[360px] border-r border-[#e9edef] bg-white flex-col h-full flex-shrink-0`}
   >
     {/* Sidebar Header */}
     <div className="h-[60px] bg-[#f0f2f5] px-4 flex items-center justify-between border-b border-[#e9edef]">
       <div className="flex items-center gap-3">
+       <button
+ onClick={() => setSidebarOpen(true)}
+  className="md:hidden w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md"
+>
+  <FaBars className="text-base" />
+</button>
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-sm select-none">
           HR
         </div>
@@ -171,16 +186,16 @@ const ChatSidebarPanel = ({
                 <h3 className="font-medium text-[#111b21] truncate text-[15px]">
                   {candidate.name}
                 </h3>
-                {lastMessages[candidate.phone]?.time && (
+                {lastMessages[normalizePhone(candidate.phone)]?.time && (
                   <span className="text-xs text-[#667781] font-normal ml-2 flex-shrink-0">
-                    {formatMessageTime(lastMessages[candidate.phone].time)}
+                    {formatMessageTime(lastMessages[normalizePhone(candidate.phone)].time)}
                   </span>
                 )}
               </div>
 
               <div className="flex justify-between items-center">
                 <p className="text-[13.5px] text-[#667781] truncate pr-2">
-                  {lastMessages[candidate.phone]?.message || "No messages"}
+                  {lastMessages[normalizePhone(candidate.phone)]?.message || "No messages"}
                 </p>
                 {unreadCounts[candidate.phone] > 0 && (
                   <span className="bg-[#25d366] text-white text-[11px] font-bold px-1.5 rounded-full flex items-center justify-center min-w-[20px] h-5 flex-shrink-0 select-none">
@@ -232,6 +247,7 @@ function Conversations() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Refs
   const emojiRef = useRef(null);
@@ -263,8 +279,28 @@ function Conversations() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "chat_messages" },
-        (payload) => {
-          loadLastMessages(candidates);
+      async (payload) => {
+  console.log("NEW MESSAGE:", payload);
+
+  const phone = payload.new?.phone || payload.old?.phone;
+
+  await loadCandidates();
+
+  if (phone) {
+    setSortedCandidates((prev) => {
+     const found = prev.find(
+  (c) => normalizePhone(c.phone) === normalizePhone(phone)
+);
+      if (!found) return prev;
+
+      return [
+        found,
+        ...prev.filter(
+  (c) => normalizePhone(c.phone) !== normalizePhone(phone)
+)
+      ];
+    });
+  }
           if (
             selectedCandidate &&
             (payload.new?.phone === selectedCandidate.phone ||
@@ -339,33 +375,45 @@ function Conversations() {
   // DATA FETCHING & SYNC FUNCTIONS
   // ==========================================
 
-  const loadCandidates = async () => {
-    const { data, error } = await supabase.from("applicants").select("*");
-    if (error) {
-      console.log(error);
-      return;
-    }
-    setCandidates(data);
-    setSortedCandidates(data);
-    loadLastMessages(data);
-  };
+const loadCandidates = async () => {
+  const { data, error } = await supabase
+    .from("applicants")
+    .select("*");
 
-  const loadMessages = async () => {
-    const { data, error } = await supabase
-      .from("chat_messages")
-      .select("*")
-      .eq("phone", selectedCandidate.phone)
-      .order("created_at", { ascending: true });
+  if (error) {
+    console.log(error);
+    return;
+  }
 
-    if (error) {
-      console.log(error);
-      return;
-    }
-    const filteredData = data.filter(m => m.message !== "[DELETED_MSG]");
-    setMessages(filteredData);
-    const pinned = filteredData.find((m) => m.is_pinned === true);
-    setPinnedMessage(pinned || null);
-  };
+  setCandidates(data);
+  await loadLastMessages(data);
+};
+   const loadMessages = async () => {
+  if (!selectedCandidate) return;
+
+  const { data, error } = await supabase
+    .from("chat_messages")
+    .select("*")
+    .eq("phone", selectedCandidate.phone)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.log(error);
+    return;
+  }
+
+  const filteredData = data.filter(
+    (m) => m.message !== "[DELETED_MSG]"
+  );
+
+  setMessages(filteredData);
+
+  const pinned = filteredData.find(
+    (m) => m.is_pinned === true
+  );
+
+  setPinnedMessage(pinned || null);
+};
 
   const loadLastMessages = async (candidateList = []) => {
     const { data, error } = await supabase
@@ -379,19 +427,34 @@ function Conversations() {
     const latest = {};
     data.forEach((msg) => {
       if (msg.message === "[DELETED_MSG]") return;
-      if (!latest[msg.phone]) {
-        latest[msg.phone] = {
-          message: msg.message || "📎 Attachment",
-          time: msg.created_at,
-        };
-      }
+    const msgPhone = normalizePhone(msg.phone);
+
+if (!latest[msgPhone]) {
+  latest[msgPhone] = {
+    message: msg.message || "📎 Attachment",
+    time: msg.created_at,
+  };
+}
     });
     setLastMessages(latest);
-    const sorted = [...candidateList].sort((a, b) => {
-      const aTime = latest[a.phone]?.time || "";
-      const bTime = latest[b.phone]?.time || "";
-      return new Date(bTime) - new Date(aTime);
-    });
+
+    const getTime = (phone) => {
+  const normalized = normalizePhone(phone);
+  return latest[normalized]?.time
+    ? new Date(latest[normalized].time).getTime()
+    : 0;
+};
+
+const sorted = [...candidateList].sort((a, b) => {
+  return getTime(b.phone) - getTime(a.phone);
+});
+   
+    console.log("SORTED =", sorted);
+    console.log(
+  "FIRST CANDIDATE =",
+  sorted[0]?.name,
+  sorted[0]?.phone
+);
     setSortedCandidates(sorted);
     const counts = {};
     data.forEach((msg) => {
@@ -455,6 +518,7 @@ function Conversations() {
               ghl_message_id: msg.id,
             },
           ]);
+         await loadCandidates();
         }
       }
     } catch (err) {
@@ -467,6 +531,8 @@ function Conversations() {
   // ==========================================
 
   const handleSelectCandidate = async (candidate) => {
+    setSelectedCandidate(candidate);
+    setSidebarOpen(false);
     await supabase
       .from("chat_messages")
       .update({ is_read: true })
@@ -573,6 +639,7 @@ function Conversations() {
       setEditingMessage(null);
       setNewMessage("");
       loadMessages();
+loadLastMessages(candidates);
       return;
     }
 
@@ -602,6 +669,7 @@ function Conversations() {
         reply_text: replyMessage?.message || null,
       },
     ]);
+    loadLastMessages(candidates);
 
     if (error) {
       console.log(error);
@@ -629,6 +697,25 @@ function Conversations() {
     setReplyMessage(null);
     setSelectedFile(null);
     loadMessages();
+    await loadCandidates();
+   setSortedCandidates((prev) => {
+  const current = prev.find(
+    (c) =>
+      normalizePhone(c.phone) ===
+      normalizePhone(selectedCandidate.phone)
+  );
+
+  if (!current) return prev;
+
+  return [
+    current,
+    ...prev.filter(
+      (c) =>
+        normalizePhone(c.phone) !==
+        normalizePhone(selectedCandidate.phone)
+    ),
+  ];
+});
   };
 
   const startRecording = async () => {
@@ -824,20 +911,22 @@ function Conversations() {
 
   return (
     <div className="h-screen flex bg-slate-100 overflow-hidden">
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
+      <Sidebar />
+    
       <div className="md:ml-56 h-screen flex overflow-hidden bg-[#eae6df] relative w-full">
         {/* Chat Sidebar */}
-        <ChatSidebarPanel
-          selectedCandidate={selectedCandidate}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          filteredCandidates={filteredCandidates}
-          handleSelectCandidate={handleSelectCandidate}
-          lastMessages={lastMessages}
-          unreadCounts={unreadCounts}
-        />
+     <ChatSidebarPanel
+  selectedCandidate={selectedCandidate}
+  searchTerm={searchTerm}
+  setSearchTerm={setSearchTerm}
+  filteredCandidates={filteredCandidates}
+  handleSelectCandidate={handleSelectCandidate}
+  lastMessages={lastMessages}
+  unreadCounts={unreadCounts}
+  navigate={navigate}
+  sidebarOpen={sidebarOpen}
+  setSidebarOpen={setSidebarOpen}
+/>
 
         {/* Main Chat Area */}
         <div
@@ -851,10 +940,11 @@ function Conversations() {
               <div className="sticky top-0 z-20 h-[60px] bg-[#f0f2f5] border-b border-[#e9edef] px-4 py-2 flex items-center justify-between flex-shrink-0 select-none">
                 <div className="flex items-center gap-3 min-w-0">
                   <button
-                    onClick={() => {
-                      setSelectedCandidate(null);
-                      localStorage.removeItem("selectedCandidate");
-                    }}
+                   onClick={() => {
+  setSelectedCandidate(null);
+  setSidebarOpen(true);
+  localStorage.removeItem("selectedCandidate");
+}}
                     className="md:hidden text-[#667781] hover:text-[#111b21] mr-1"
                   >
                     <FaArrowLeft className="text-lg" />
