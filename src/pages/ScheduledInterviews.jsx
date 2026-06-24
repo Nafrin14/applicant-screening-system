@@ -168,7 +168,8 @@ return (
 
         <div className="mb-8">
 
-         <h1 className="text-4xl font-extrabold text-slate-800">
+        <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600
+ to-purple-600 bg-clip-text text-transparent">
   Scheduled Interviews
 </h1>
 

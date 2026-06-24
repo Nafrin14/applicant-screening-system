@@ -166,7 +166,8 @@ const handleImageUpload = async (e) => {
 
        <div className="mb-6 pt-14 md:pt-0">
 
-        <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-1">
+       <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600
+ to-purple-600 bg-clip-text text-transparent">
             Settings
           </h1>
 
@@ -309,7 +310,7 @@ const handleImageUpload = async (e) => {
 
               <button
   onClick={handlePasswordUpdate}
-  className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-2xl font-semibold transition-all"
+ className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-2xl font-semibold transition-all"
 >
   Update Password
 </button>

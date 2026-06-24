@@ -210,8 +210,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
-<Route path="/jobs/:jobId" element={<ProtectedRoute><JobDetails /></ProtectedRoute>} />
+
 
       </Routes>
     </BrowserRouter>
