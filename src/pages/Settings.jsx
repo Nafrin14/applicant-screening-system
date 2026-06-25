@@ -9,8 +9,8 @@ import {
 } from "react-icons/fa";
 
 function Settings() {
-  const [companyName, setCompanyName] = useState("SmartHire");
-  const [hrRole, setHrRole] = useState("HR Manager");
+const [companyName, setCompanyName] = useState("SmartHire");
+const [hrRole, setHrRole] = useState("HR Manager");
 const [email, setEmail] = useState("");
 const [newEmail, setNewEmail] = useState("");
 const [newPassword, setNewPassword] = useState("");
@@ -20,8 +20,8 @@ const [profileImage, setProfileImage] = useState("");
     fetchSettings();
   }, []);
 
-  const fetchSettings = async () => {
-    const { data, error } = await supabase
+const fetchSettings = async () => {
+const { data, error } = await supabase
       .from("settings")
       .select("*")
       .eq("id", 1)
@@ -33,17 +33,15 @@ const [profileImage, setProfileImage] = useState("");
   setEmail(data.email);
   setProfileImage(data.profile_image || "");
 }
-
     console.log("FETCH DATA:", data);
     console.log("FETCH ERROR:", error);
   };
 
-  const handleSave = async () => {
+const handleSave = async () => {
     alert("Button Clicked");
-
     console.log("Saving...", companyName, hrRole);
 
-    const { data, error } = await supabase
+const { data, error } = await supabase
       .from("settings")
      .update({
   company_name: companyName,
@@ -64,7 +62,7 @@ const [profileImage, setProfileImage] = useState("");
       fetchSettings();
     }
   };
-  const handlePasswordUpdate = async () => {
+const handlePasswordUpdate = async () => {
   if (newPassword !== confirmPassword) {
     alert("Passwords do not match");
     return;
@@ -75,7 +73,7 @@ const [profileImage, setProfileImage] = useState("");
     return;
   }
 
-  const { error } = await supabase.auth.updateUser({
+const { error } = await supabase.auth.updateUser({
     password: newPassword,
   });
 
@@ -108,15 +106,11 @@ const handleEmailUpdate = async () => {
   }
 };
 
-
 const handleImageUpload = async (e) => {
-  const file = e.target.files[0];
-
+const file = e.target.files[0];
   if (!file) return;
-
-  const fileName = `${Date.now()}-${file.name}`;
-
-  const { error: uploadError } = await supabase.storage
+const fileName = `${Date.now()}-${file.name}`;
+const { error: uploadError } = await supabase.storage
     .from("profile-images")
     .upload(fileName, file);
 
@@ -125,15 +119,14 @@ const handleImageUpload = async (e) => {
     return;
   }
 
-  const {
+const {
     data: { publicUrl },
   } = supabase.storage
     .from("profile-images")
     .getPublicUrl(fileName);
+     setProfileImage(publicUrl);
 
-  setProfileImage(publicUrl);
-
-  const { error: updateError } = await supabase
+const { error: updateError } = await supabase
     .from("settings")
     .update({
       profile_image: publicUrl,
@@ -149,43 +142,36 @@ const handleImageUpload = async (e) => {
 };
  return (
 
-  <div className="min-h-screen bg-slate-100 flex flex-col">
+<div className="min-h-screen bg-slate-100 flex flex-col">
+<div className="flex">
 
-    
+{/* Sidebar */}
 
-    <div className="flex">
+<Sidebar />
 
-      {/* Sidebar */}
+{/* Main */}
+<div className="flex-1 md:ml-56  p-4 md:p-6 min-h-screen overflow-y-auto">
+        
+{/* Header */}
 
-   <Sidebar />
-
-      {/* Main */}
-
-  <div className="flex-1 md:ml-56  p-4 md:p-6 min-h-screen overflow-y-auto">
-        {/* Header */}
-
-       <div className="mb-6 pt-14 md:pt-0">
-
-       <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600
+<div className="mb-6 pt-14 md:pt-0">
+<h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600
  to-purple-600 bg-clip-text text-transparent">
-            Settings
-          </h1>
+Settings
+</h1>
 
-          <p className="text-gray-500 text-sm">
-            Manage your account and system settings
-          </p>
+<p className="text-gray-500 text-sm">
+ Manage your account and system settings</p></div>
 
-        </div>
+{/* Top Grid */}
 
-        {/* Top Grid */}
-
-    <div className="grid grid-cols-1 xl:grid-cols-[3fr_1.2fr] gap-5 mb-5">
+<div className="grid grid-cols-1 xl:grid-cols-[3fr_1.2fr] gap-5 mb-5">
+          
           {/* Profile */}
 
-         <div  className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm">
-
-         <div className="flex flex-col items-center text-center sm:text-left sm:items-start gap-4 mb-6">
- <div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center">
+<div  className="bg-white rounded-3xl border border-slate-200 p-5 md:p-6 shadow-sm">
+<div className="flex flex-col items-center text-center sm:text-left sm:items-start gap-4 mb-6">
+<div className="w-16 h-16 md:w-20 md:h-20 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center">
     {profileImage ? (
       <img
         src={profileImage}
@@ -193,39 +179,42 @@ const handleImageUpload = async (e) => {
         className="w-full h-full object-cover"
       />
     ) : (
-      <FaUserCircle className="text-5xl text-blue-600" />
+<FaUserCircle className="text-5xl text-blue-600" />
     )}
-  </div>
+</div>
 
-  <div className="w-full">
+<div className="w-full">
+<h2 className="text-2xl font-black text-slate-800">
+  Profile Settings</h2>
 
-    <h2 className="text-2xl font-black text-slate-800">
-      Profile Settings
-    </h2>
+<p className="text-gray-500 text-sm mt-1">
+Update company and HR details</p>
 
-    <p className="text-gray-500 text-sm mt-1">
-      Update company and HR details
-    </p>
-
-   <input
+<input
   type="file"
   accept="image/*"
   onChange={handleImageUpload}
   className="text-sm mt-4 mx-auto sm:mx-0"
 />
-
-  </div>
-
 </div>
-            <div className="space-y-4">
+</div>
+<div className="space-y-4">
 
-             <input
+<input
   type="text"
   value={companyName}
   onChange={(e) => setCompanyName(e.target.value)}
   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
 />
 
+
+<input
+  type="text"
+  placeholder="Admin Name"
+  value={hrRole}
+  onChange={(e) => setHrRole(e.target.value)}
+  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
+/>
 
 <input
   type="email"
@@ -244,50 +233,34 @@ const handleImageUpload = async (e) => {
 
 <button
   onClick={handleEmailUpdate}
-  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-2xl font-semibold transition-all"
->
+ className="inline-flex items-center gap-2 text-sm font-bold bg-gradient-to-r from-emerald-600 to-green-500
+   hover:from-emerald-700 hover:to-green-600 text-white transition-all px-6 py-3 rounded-2xl shadow-lg
+   hover:shadow-xl hover:-translate-y-1 w-fit">
   Update Email
 </button>
+</div>
+</div>
 
-             <input
-  type="text"
-  value={hrRole}
-  onChange={(e) => setHrRole(e.target.value)}
-  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
-/>
+{/* Security */}
 
-            </div>
+<div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm h-fit">
+<div className="flex items-center gap-3 mb-5">
+<div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center">
+<FaShieldAlt className="text-red-500 text-xl" />
+</div>
+<div>
+<h2 className="text-xl font-black text-slate-800">
+  Security
+</h2>
 
-          </div>
+<p className="text-gray-500 text-sm">
+ Password protection
+</p></div>
+</div>
 
-          {/* Security */}
+<div className="space-y-4">
 
-       <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm h-fit">
-            <div className="flex items-center gap-3 mb-5">
-
-              <div className="w-12 h-12 rounded-2xl bg-red-100 flex items-center justify-center">
-
-                <FaShieldAlt className="text-red-500 text-xl" />
-
-              </div>
-
-              <div>
-
-                <h2 className="text-xl font-black text-slate-800">
-                  Security
-                </h2>
-
-                <p className="text-gray-500 text-sm">
-                  Password protection
-                </p>
-
-              </div>
-
-            </div>
-
-            <div className="space-y-4">
-
-              <input
+<input
   type="password"
   placeholder="New Password"
   value={newPassword}
@@ -295,7 +268,7 @@ const handleImageUpload = async (e) => {
   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
 />
 
-              <input
+<input
   type="password"
   placeholder="Confirm Password"
   value={confirmPassword}
@@ -304,42 +277,30 @@ const handleImageUpload = async (e) => {
 />
 
 
-              <p className="text-xs text-slate-500">
+<p className="text-xs text-slate-500">
   Password must contain at least 8 characters.
 </p>
 
-              <button
+ <button
   onClick={handlePasswordUpdate}
- className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-2xl font-semibold transition-all"
->
+ className="inline-flex items-center gap-2 text-sm font-bold bg-gradient-to-r from-emerald-600 to-green-500
+  hover:from-emerald-700 hover:to-green-600 text-white transition-all px-6 py-2.5 rounded-2xl shadow-lg
+   hover:shadow-xl hover:-translate-y-1 w-fit">
+
   Update Password
 </button>
-
-            </div>
-
-          </div>
-
-        </div>
-           
-        {/* Bottom Buttons */}
-
- <div className="flex justify-center md:justify-end mt-4">
-
-        <button
+<button
   onClick={handleSave}
-  className="w-full md:w-auto flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
-  px-6 py-3 rounded-2xl font-semibold shadow-lg hover:scale-105 transition-all"
+  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-2xl font-semibold shadow-lg hover:scale-105 transition-all"
 >
-  <FaSave />
+<FaSave />
   Save Changes
 </button>
-            
-        </div>
-
       </div>
-</div>
     </div>
+  </div>
+</div>
+</div></div>
   );
 }
-
 export default Settings;

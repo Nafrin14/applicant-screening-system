@@ -110,6 +110,8 @@ const ChatSidebarPanel = ({
   navigate,
   sidebarOpen,
   setSidebarOpen,
+  setCandidateMenu,
+  setCandidateMenuPos,
 }) => (
   <div
     className={`${
@@ -165,6 +167,14 @@ const ChatSidebarPanel = ({
           <div
             key={candidate.id}
             onClick={() => handleSelectCandidate(candidate)}
+              onContextMenu={(e) => {
+    e.preventDefault();
+    setCandidateMenu(candidate);
+    setCandidateMenuPos({
+      x: e.clientX,
+      y: e.clientY,
+    });
+  }}
             className={`flex items-center gap-3 p-3 cursor-pointer border-b border-[#f0f2f5] transition-colors duration-150 relative ${
               selectedCandidate?.id === candidate.id
                 ? "bg-[#f0f2f5]"
@@ -248,6 +258,12 @@ function Conversations() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [candidateMenu, setCandidateMenu] = useState(null);
+
+const [candidateMenuPos, setCandidateMenuPos] = useState({
+  x: 0,
+  y: 0,
+});
 
   // Refs
   const emojiRef = useRef(null);
@@ -846,7 +862,35 @@ loadLastMessages(candidates);
     }
     setMessages((prev) => prev.filter((msg) => msg.id !== id));
   };
+const handleDeleteCandidate = async (candidate) => {
+  if (!candidate) return;
 
+  if (
+    !window.confirm(
+      `Delete ${candidate.name} and all chat messages?`
+    )
+  ) {
+    return;
+  }
+
+  await supabase
+    .from("chat_messages")
+    .delete()
+    .eq("phone", candidate.phone);
+
+  await supabase
+    .from("applicants")
+    .delete()
+    .eq("id", candidate.id);
+
+  if (selectedCandidate?.id === candidate.id) {
+    setSelectedCandidate(null);
+    localStorage.removeItem("selectedCandidate");
+  }
+
+  setCandidateMenu(null);
+  await loadCandidates();
+};
   const handleClearChat = async () => {
     if (!selectedCandidate) return;
     if (
@@ -926,7 +970,32 @@ loadLastMessages(candidates);
   navigate={navigate}
   sidebarOpen={sidebarOpen}
   setSidebarOpen={setSidebarOpen}
+  setCandidateMenu={setCandidateMenu}
+setCandidateMenuPos={setCandidateMenuPos}
 />
+{candidateMenu && (
+  <>
+    <div
+      className="fixed inset-0 z-[9998]"
+      onClick={() => setCandidateMenu(null)}
+    />
+
+    <div
+      className="fixed bg-white shadow-xl rounded-lg border z-[9999] min-w-[190px]"
+      style={{
+        left: candidateMenuPos.x,
+        top: candidateMenuPos.y,
+      }}
+    >
+      <button
+        onClick={() => handleDeleteCandidate(candidateMenu)}
+        className="w-full text-left px-4 py-3 hover:bg-red-50 text-red-500 font-medium"
+      >
+        🗑️ Delete Candidate
+      </button>
+    </div>
+  </>
+)}
 
         {/* Main Chat Area */}
         <div

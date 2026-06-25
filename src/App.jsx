@@ -28,7 +28,8 @@ import JobDetails from "./pages/JobDetails";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Conversations from "./pages/Conversations";
 import JobCard from "./components/JobCard";
-
+import SalesDashboard from "./pages/SalesDashboard";
+import SalesAdminDashboard from "./pages/SalesAdminDashboard";
 
 function App() {
   return (
@@ -198,6 +199,23 @@ function App() {
   element={
     <ProtectedRoute>
       <Conversations />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/sales-dashboard"
+  element={
+    <ProtectedRoute>
+      <SalesDashboard />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/sales-admin-dashboard"
+  element={
+    <ProtectedRoute>
+      <SalesAdminDashboard />
     </ProtectedRoute>
   }
 />
