@@ -25,33 +25,67 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleLogin = async () => {
+ const handleLogin = async () => {
     if (!email || !password) {
       alert("Enter email & password");
       return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    // 1. Authenticate user against Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      alert(error.message);
+    if (authError) {
+      alert(authError.message);
       return;
     }
 
-    localStorage.setItem("isLoggedIn", "true");
+    try {
+      // 2. Fetch profile metrics to confirm role mappings and active status bounds
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role, is_active")
+        .eq("id", authData.user.id)
+        .single();
 
-    if (activeTab === "smarthire") {
-      navigate("/dashboard");
-    } else if (salesRole === "user") {
-      navigate("/sales-dashboard");
-    } else {
-      navigate("/sales-admin-dashboard");
+      if (profileError) {
+        throw new Error("Could not find user profile configuration rules.");
+      }
+
+      // 3. Prevent login if the administrator has marked this user account as disabled/deactivated
+      if (profile.is_active === false) {
+        alert("Your account has been deactivated by the system administrator.");
+        await supabase.auth.signOut();
+        return;
+      }
+
+      // 4. SMART HIRE RULE: Only let admin user access SmartHire
+      if (activeTab === "smarthire") {
+        if (profile.role !== "admin") {
+          alert("Access Denied: Only administrators can access the SmartHire Platform.");
+          await supabase.auth.signOut();
+          return;
+        }
+        localStorage.setItem("isLoggedIn", "true");
+        navigate("/dashboard");
+        return;
+      }
+
+      // 5. SALES TEAM TRACK: Route admins to Admin Dashboard, and normal users to their Unique Dashboard
+      localStorage.setItem("isLoggedIn", "true");
+      if (profile.role === "admin") {
+        navigate("/sales-admin-dashboard");
+      } else {
+        navigate("/sales-dashboard");
+      }
+
+    } catch (err) {
+      alert(err.message || "An authentication verification error occurred.");
+      await supabase.auth.signOut();
     }
-  };
-
+ }
   return (
     <div
       className="h-screen relative overflow-hidden bg-black text-white"
