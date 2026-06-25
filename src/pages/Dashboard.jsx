@@ -78,11 +78,9 @@ function Dashboard() {
         .select("*");
 
     if (error) {
-
       console.log(error);
 
     } else {
-
       setApplicants(data || []);
 
       setTotalCandidates(
@@ -116,17 +114,12 @@ function Dashboard() {
   };
 
   const handleLogout = () => {
-
     localStorage.removeItem(
       "isLoggedIn"
     );
 
     navigate("/login");
   };
-
-  
-
- 
   return (
 
   <div className="min-h-screen bg-slate-100">
@@ -134,35 +127,33 @@ function Dashboard() {
   <Sidebar />
 
 <div className="md:ml-56 mt-20 p-4 md:p-6">
+        
         {/* Header */}
 
-      <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6 mb-8">
-          <div className="pt-12 md:pt-0">
-
-           <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600
+<div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6 mb-8">
+<div className="pt-12 md:pt-0">
+<h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600
  to-purple-600 bg-clip-text text-transparent">
-              Dashboard
-            </h1>
+ Dashboard </h1>
 
-          <p className="text-slate-500 mt-2 text-sm md:text-base max-w-md">
+<p className="text-slate-500 mt-2 text-sm md:text-base max-w-md">
  Track applicants, interviews and hiring performance in one place.
 </p>
+</div>
 
-          </div>
-
-       <div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3">
-            <button
+<div className="flex flex-col sm:flex-row w-full lg:w-auto gap-3">
+<button
   onClick={() => navigate("/upload")}
  className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r
   from-blue-600 to-indigo-600 text-white px-5 py-3 rounded-2xl shadow-lg"
 >
-  <FaUpload />
-  Upload Resume
+<FaUpload />
+Upload Resume
 </button>
 
 <button
-  onClick={() => navigate("/results")}
- className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r
+onClick={() => navigate("/results")}
+className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-to-r
   from-violet-600 to-purple-600 text-white px-5 py-3 rounded-2xl shadow-lg">
 
   <FaUsers />
