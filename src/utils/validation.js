@@ -1,5 +1,4 @@
-// Simple utility to validate client side inputs before sending to services
+// Client-side guard verifying email layout strings before hitting remote tables
 export const validateEmail = (email) => {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };

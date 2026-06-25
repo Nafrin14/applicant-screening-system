@@ -1,4 +1,4 @@
-// Extracts and standardizes a timestamp into a clean YYYY-MM-DD format for calendar tracking
+// Conversions of datetime ISO strings into standard calendar grid flags
 export const formatDateString = (dateInput) => {
   if (!dateInput) return '';
   const date = new Date(dateInput);
