@@ -73,13 +73,32 @@ export default function Login() {
         return;
       }
 
-      // 5. SALES TEAM TRACK: Route admins to Admin Dashboard, and normal users to their Unique Dashboard
-      localStorage.setItem("isLoggedIn", "true");
-      if (profile.role === "admin") {
-        navigate("/sales-admin-dashboard");
-      } else {
-        navigate("/sales-dashboard");
-      }
+      // SALES TEAM LOGIN
+
+localStorage.setItem("isLoggedIn", "true");
+
+if (activeTab === "sales") {
+
+  // Admin button select pannitu user account login panna
+  if (salesRole === "admin" && profile.role !== "admin") {
+    alert("This account is not an Admin account.");
+    await supabase.auth.signOut();
+    return;
+  }
+
+  // User button select pannitu admin account login panna
+  if (salesRole === "user" && profile.role !== "user") {
+    alert("This account is not a User account.");
+    await supabase.auth.signOut();
+    return;
+  }
+
+  if (profile.role === "admin") {
+    navigate("/sales-admin-dashboard");
+  } else {
+    navigate("/sales-dashboard");
+  }
+}
 
     } catch (err) {
       alert(err.message || "An authentication verification error occurred.");
