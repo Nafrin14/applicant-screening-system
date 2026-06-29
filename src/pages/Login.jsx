@@ -53,6 +53,19 @@ export default function Login() {
       if (profileError) {
         throw new Error("Could not find user profile configuration rules.");
       }
+      console.log("LOGIN USER ID:", authData.user.id);
+console.log("LOGIN EMAIL:", authData.user.email);
+    const { data, error } = await supabase
+  .from("profiles")
+  .update({
+    last_login: new Date().toISOString(),
+  })
+  .eq("id", authData.user.id)
+  .select();
+
+console.log("UPDATE DATA:", data);
+console.log("UPDATE ERROR:", error);
+
 
       // 3. Prevent login if the administrator has marked this user account as disabled/deactivated
       if (profile.is_active === false) {

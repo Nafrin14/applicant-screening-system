@@ -24,7 +24,10 @@ import ResumeViewer from "./pages/ResumeViewer";
 import Jobs from "./pages/Jobs";
 import JobDetails from "./pages/JobDetails";
 import Settings from "./pages/Settings";
-
+import UploadHistory from "./pages/UploadHistory";
+import SalesReports from "./pages/SalesReports";
+import Notifications from "./pages/Notifications";
+import SalesProfile from "./pages/SalesProfile";
 // Components Layout wrappers
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -189,6 +192,39 @@ function App() {
             </ProtectedRoute>
           }
         />
+       <Route
+  path="/upload-history"
+  element={
+    <ProtectedRoute allowedRoles={["user", "admin"]}>
+      <UploadHistory />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/sales-reports"
+  element={
+    <ProtectedRoute allowedRoles={["user", "admin"]}>
+      <SalesReports />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/notifications"
+  element={
+    <ProtectedRoute allowedRoles={["user", "admin"]}>
+      <Notifications />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/profile"
+  element={
+    <ProtectedRoute allowedRoles={["user", "admin"]}>
+      <SalesProfile />
+    </ProtectedRoute>
+  }
+/>
+
 
         {/* =========================================================
             CATCH-ALL REDIRECT ROUTING INTERCEPTOR

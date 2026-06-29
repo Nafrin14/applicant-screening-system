@@ -297,6 +297,7 @@ const {
       interview_date: interviewDate,
       interview_time: interviewTime,
       is_read: false,
+      module: "smarthire",
     },
   ]);
 
