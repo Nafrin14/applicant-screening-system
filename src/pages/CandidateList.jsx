@@ -37,6 +37,7 @@ function CandidateList() {
 
 const [selectedApplicants, setSelectedApplicants] = useState([]);
 const [statusFilter, setStatusFilter] = useState("All");
+const [selectedDate, setSelectedDate] = useState("");
 
   useEffect(() => {
     fetchApplicants();
@@ -50,12 +51,8 @@ await supabase
   .from("applicants")
   .select("*")
   .eq("source", "Manual")
-  .order(
-    "ai_score",
-    {
-      ascending: false,
-    }
-  );
+ .order("created_at", { ascending: false })
+.order("ai_score", { ascending: false });
 
   if (error) {
 
@@ -68,7 +65,6 @@ await supabase
   }
 };
 const filteredApplicants = applicants.filter((applicant) => {
-
   const matchesSearch =
     applicant.name
       ?.toLowerCase()
@@ -79,11 +75,60 @@ const filteredApplicants = applicants.filter((applicant) => {
       ? true
       : applicant.status === statusFilter;
 
-  return matchesSearch && matchesStatus;
+  const matchesDate =
+    !selectedDate ||
+    new Date(applicant.created_at)
+      .toISOString()
+      .slice(0, 10) === selectedDate;
 
+  return (
+    matchesSearch &&
+    matchesStatus &&
+    matchesDate
+  );
 });
 
-    
+    const getDateLabel = (date) => {
+  if (!date) return "No Date";
+
+  const d = new Date(date);
+
+  if (isNaN(d.getTime())) {
+    return "No Date";
+  }
+
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (d.toDateString() === today.toDateString()) {
+    return "Today";
+  }
+
+  if (d.toDateString() === yesterday.toDateString()) {
+    return "Yesterday";
+  }
+
+  return d.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const groupedApplicants = filteredApplicants.reduce((groups, applicant) => {
+ const label = getDateLabel(
+  applicant.created_at || applicant.createdAt || applicant.uploaded_at
+);
+
+  if (!groups[label]) {
+    groups[label] = [];
+  }
+
+  groups[label].push(applicant);
+
+  return groups;
+}, {});
   
 
   /* DELETE */
@@ -392,6 +437,7 @@ const bulkUpdateStatus = async (status) => {
 
   <select
     value={statusFilter}
+    
     onChange={(e) => setStatusFilter(e.target.value)}
     className="bg-slate-100 border border-gray-200 px-4 py-3 rounded-2xl outline-none w-full md:w-auto"
   >
@@ -403,6 +449,19 @@ const bulkUpdateStatus = async (status) => {
       Interview Scheduled
     </option>
   </select>
+  <input
+  type="date"
+  value={selectedDate}
+  onChange={(e) => setSelectedDate(e.target.value)}
+  className="bg-slate-100 border border-gray-200 px-4 py-3 rounded-2xl outline-none w-full md:w-auto"
+/>
+
+<button
+  onClick={() => setSelectedDate("")}
+  className="bg-gray-200 hover:bg-gray-300 px-4 py-3 rounded-2xl"
+>
+  Clear
+</button>
 
   <input
     type="text"
@@ -467,8 +526,18 @@ const bulkUpdateStatus = async (status) => {
 
               <tbody>
 
-                {filteredApplicants.map(
-  (applicant, index) => (
+                {Object.entries(groupedApplicants).map(([date, list]) => (
+  <React.Fragment key={date}>
+    <tr>
+      <td
+        colSpan="7"
+        className="bg-slate-100 py-3 px-4 text-center text-sm font-bold text-slate-600"
+      >
+        ───── {date} ─────
+      </td>
+    </tr>
+
+    {list.map((applicant, index) => (
                   <tr
   key={applicant.id}
   className={`border-b border-gray-100 transition ${
@@ -705,7 +774,9 @@ const bulkUpdateStatus = async (status) => {
 </td>
                   </tr>
 
-                ))}
+                    ))}
+  </React.Fragment>
+))}
 
               </tbody>
 

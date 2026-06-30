@@ -303,6 +303,7 @@ const {
               why_suitable:aiResponse?.whySuitable || "",
               recommended_role:aiResponse?.recommendedRole || "",
               resume_url: publicUrl,
+              created_at: new Date().toISOString(),
             },
           ]);
 
