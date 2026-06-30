@@ -3,7 +3,7 @@ import { supabase } from '../supabase';
 import CalendarTracker from '../components/CalendarTracker';
 import { validateEmail } from '../utils/validation';
 import { formatDateString } from '../utils/helpers';
-
+import Papa from "papaparse";
 
 // ─── Date Range Helper ──────────────────────────────────────────────────────
 const getDateRange = (preset) => {
@@ -17,31 +17,6 @@ const getDateRange = (preset) => {
     default: return { start:'', end:'' };
   }
 };
-const [parsedCsvData, setParsedCsvData] = useState([]);
-const [csvFileName, setCsvFileName] = useState('');
-
-const handleCsvUpload = (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  setCsvFileName(file.name); // add this state too
-  const reader = new FileReader();
-  reader.onload = (evt) => {
-    const lines = evt.target.result.split('\n').filter(Boolean);
-    const headers = lines[0].split(',').map(h => h.trim());
-    const rows = lines.slice(1).map(line => {
-      const vals = line.split(',');
-      return Object.fromEntries(headers.map((h, i) => [h, vals[i]?.trim()]));
-    });
-    setParsedCsvData(rows);
-  };
-  reader.readAsText(file);
-};
-
-{csvFileName && (
-  <div className="text-sm font-bold text-emerald-700">
-    📄 Analyzing: {csvFileName}
-  </div>
-)}
 
 export default function SalesAdminDashboard() {
   // ── Database State ─────────────────────────────────────────────────────────
@@ -116,47 +91,143 @@ export default function SalesAdminDashboard() {
   useEffect(()=>{ fetchDashboardData(); },[]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 2. USER CRUD
+  // 2. USER CRUD - FIXED VERSION
   // ─────────────────────────────────────────────────────────────────────────
+  
   const handleOpenCreateMode = () => {
-    setIsEditing(false); setTargetUserId(null);
-    setFormName(''); setFormEmail(''); setFormPassword(''); setFormResetPassword('');
+    setIsEditing(false); 
+    setTargetUserId(null);
+    setFormName(''); 
+    setFormEmail(''); 
+    setFormPassword(''); 
+    setFormResetPassword('');
     setActiveTab('user-form');
   };
+
   const handleOpenEditMode = (user) => {
-    setIsEditing(true); setTargetUserId(user.id);
-    setFormName(user.name||''); setFormEmail(user.email||'');
-    setFormPassword(''); setFormResetPassword('');
+    console.log("✏️ Editing user:", user);
+    if (!user || !user.id) {
+      alert('Invalid user data');
+      return;
+    }
+    setIsEditing(true); 
+    setTargetUserId(user.id);
+    setFormName(user.name || ''); 
+    setFormEmail(user.email || '');
+    setFormPassword(''); 
+    setFormResetPassword('');
     setActiveTab('user-form');
   };
+
+  // ─── FIXED: Save User Form ────────────────────────────────────────────────
+  // Problem: auth.admin.updateUserById doesn't work from browser
+  // Fix: Use resetPasswordForEmail for password reset
   const handleSaveUserForm = async (e) => {
     e.preventDefault();
-    if (!validateEmail(formEmail)) { alert('Please enter a valid email address.'); return; }
+    if (!validateEmail(formEmail)) { 
+      alert('Please enter a valid email address.'); 
+      return; 
+    }
+    
     try {
       if (isEditing) {
-        const { error } = await supabase.from('profiles').update({name:formName,email:formEmail}).eq('id',targetUserId);
-        if (error) throw error;
-        if (formResetPassword.trim().length>0) {
-          if (formResetPassword.trim().length<6) { alert('Password must be at least 6 characters.'); return; }
-          const {error:pwErr} = await supabase.auth.admin.updateUserById(targetUserId,{password:formResetPassword.trim()});
-          if (pwErr) throw pwErr;
-          showToast(`Password updated for: ${formEmail}`);
-        } else { showToast(`User details saved for: ${formEmail}`); }
+        if (!targetUserId) {
+          alert('No user selected for editing');
+          return;
+        }
+        
+        console.log("📝 Updating user:", targetUserId, { name: formName, email: formEmail });
+        
+        // Only update name and email — this works from frontend
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ name: formName, email: formEmail })
+          .eq('id', targetUserId);
+        
+        if (updateError) throw updateError;
+
+        // For password reset — send a reset email instead
+        if (formResetPassword.trim().length > 0) {
+          if (formResetPassword.trim().length < 6) { 
+            alert('Password must be at least 6 characters.'); 
+            return; 
+          }
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(formEmail, {
+            redirectTo: window.location.origin + '/reset-password',
+          });
+          if (resetError) throw resetError;
+          showToast(`Password reset email sent to: ${formEmail}`);
+        } else {
+          showToast(`User details saved for: ${formEmail}`);
+        }
       } else {
-        const {error:authError} = await supabase.auth.signUp({email:formEmail,password:formPassword||'PasswordSecure123!',options:{data:{full_name:formName,role:'user'}}});
+        // Create new user
+        console.log("➕ Creating new user:", { email: formEmail, name: formName });
+        
+        const { error: authError } = await supabase.auth.signUp({
+          email: formEmail,
+          password: formPassword || 'PasswordSecure123!',
+          options: {
+            data: { 
+              full_name: formName, 
+              role: 'user' 
+            }
+          }
+        });
+        
         if (authError) throw authError;
         showToast(`New user created: ${formEmail}`);
       }
-      setActiveTab('users'); fetchDashboardData();
-    } catch(err) { alert(err.message||'Failed to save user.'); }
+      
+      setActiveTab('users'); 
+      await fetchDashboardData();
+    } catch(err) { 
+      console.error("❌ Save user error:", err);
+      alert(err.message || 'Failed to save user. Please check console for details.'); 
+    }
   };
+
+  // ─── FIXED: Delete User ──────────────────────────────────────────────────
+  // Problem: Only soft-deletes profile, user can still log in
+  // Fix: Add is_active check on login (see login flow)
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Delete this user?')) return;
+    
     try {
-      const {error} = await supabase.from('profiles').update({is_active:false}).eq('id',id);
-      if (error) throw error;
-      showToast('User deleted.'); fetchDashboardData();
-    } catch(err) { alert('Error deleting user.'); }
+      console.log("🗑️ Deleting user:", id);
+      
+      // First check if user exists
+      const { data: user, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, email, name')
+        .eq('id', id)
+        .single();
+      
+      if (checkError) {
+        console.error("❌ User not found:", checkError);
+        alert('User not found in database.');
+        return;
+      }
+      
+      console.log("Found user to delete:", user);
+      
+      // Soft delete - set is_active to false
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: false })
+        .eq('id', id);
+      
+      if (error) {
+        console.error("❌ Delete error:", error);
+        throw error;
+      }
+      
+      showToast(`User ${user.name || user.email || 'deleted'} successfully.`);
+      await fetchDashboardData();
+    } catch(err) { 
+      console.error("❌ Delete error:", err);
+      alert('Error deleting user: ' + err.message); 
+    }
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -191,37 +262,58 @@ export default function SalesAdminDashboard() {
   const clearCsvFilters = () => { setCsvFilterName('');setCsvDatePreset('');setCsvCustomStart('');setCsvCustomEnd('');setCsvFilterStatus('');setSelectedCsvIds([]); };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 5. PDF DOWNLOAD — Clean Location-wise Data Sheet Generation
+  // 4. PDF DOWNLOAD — Grouped by Location
   // ─────────────────────────────────────────────────────────────────────────
+  
   const handleDownloadAIPdf = async () => {
     setPdfGenerating(true);
     try {
       let query = supabase
-        .from('csv_uploads')
-        .select('file_name, status, created_at, user_id, profiles:user_id(name)')
+        .from('sales_leads')
+        .select(`
+          name,
+          phone,
+          location,
+          business_line,
+          stage,
+          lead_date,
+          created_at,
+          user_id,
+          csv_upload_id,
+          profiles:user_id(name)
+        `)
         .order('created_at', { ascending: false });
 
-      if (pdfFilterUser)  query = query.eq('user_id', pdfFilterUser);
+      if (pdfFilterUser) query = query.eq('user_id', pdfFilterUser);
       if (pdfFilterStart) query = query.gte('created_at', pdfFilterStart);
-      if (pdfFilterEnd)   query = query.lte('created_at', pdfFilterEnd + 'T23:59:59');
+      if (pdfFilterEnd) query = query.lte('created_at', pdfFilterEnd + 'T23:59:59');
+      if (pdfFilterStage) query = query.ilike('stage', `%${pdfFilterStage}%`);
 
       const { data: leads, error } = await query;
 
       if (error) {
-        console.warn('Error downloading database leads, reverting to fallback data state:', error.message);
-        generateFallbackPdf();
+        console.warn('Error downloading leads from sales_leads, falling back to csv_uploads:', error.message);
+        await generateFallbackPdfFromCsvUploads();
         return;
       }
 
-      generateLeadsPdf(leads || []);
-    } catch(err) {
+      if (!leads || leads.length === 0) {
+        showToast('No leads found matching the filters.');
+        setPdfGenerating(false);
+        return;
+      }
+
+      generateLeadsPdf(leads);
+    } catch (err) {
       console.error(err);
-      generateFallbackPdf();
+      showToast('Error generating PDF. Using fallback data.');
+      await generateFallbackPdfFromCsvUploads();
     } finally {
       setPdfGenerating(false);
     }
   };
 
+  // Generate PDF from leads data - Grouped by Location
   const generateLeadsPdf = (leads) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) { showToast('Allow pop-ups to download the PDF.'); return; }
@@ -233,80 +325,93 @@ export default function SalesAdminDashboard() {
     const uniqueLeadsMap = new Map();
     leads.forEach(lead => {
       const phoneDigits = (lead.phone || '').replace(/\D/g, '');
-      const matchKey = phoneDigits.slice(-10) || lead.name || lead.file_name;
+      const matchKey = phoneDigits.slice(-10) || `${lead.name}|${lead.location}`;
       
       if (!uniqueLeadsMap.has(matchKey)) {
-        let location = 'Other / Unassigned';
-        const fileContext = (lead.file_name || '').toLowerCase();
-        const rawLoc = (lead.location || '').toLowerCase();
-        
-        if (fileContext.includes('rochester') || rawLoc.includes('rochester') || matchKey.startsWith('585')) {
-          location = 'Rochester';
-        } else if (fileContext.includes('albany') || rawLoc.includes('albany') || matchKey.startsWith('518')) {
-          location = 'Albany';
-        } else if (fileContext.includes('buffalo') || rawLoc.includes('buffalo') || matchKey.startsWith('716')) {
-          location = 'Buffalo';
-        } else if (matchKey.startsWith('347') || matchKey.startsWith('646')) {
-          location = 'NYC Metro';
-        }
-
-        let businessLine = 'General Pipeline';
-        if (fileContext.includes('fence')) businessLine = 'Fencing';
-        else if (fileContext.includes('tree') || fileContext.includes('branch')) businessLine = 'Tree Service';
-        else if (fileContext.includes('landscaping')) businessLine = 'Landscaping';
-
         uniqueLeadsMap.set(matchKey, {
-          name: (lead.name || lead.file_name || 'Opportunity Lead').split(',')[0].split('  ')[0].trim(),
+          name: lead.name || 'Unknown Lead',
           phone: lead.phone || '—',
-          location: location,
-          business_line: businessLine,
-          stage: lead.stage || 'Appointment Booked',
-          date: lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+          location: lead.location || 'Other / Unassigned',
+          business_line: lead.business_line || 'General Pipeline',
+          stage: lead.stage || 'New Leads',
+          date: lead.lead_date || (lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—')
         });
       }
     });
 
     const processedLeads = Array.from(uniqueLeadsMap.values());
 
-    // 2. GROUP LEADS BY GEOGRAPHIC REGION
-    const locationsList = ['Rochester', 'Albany', 'Buffalo', 'NYC Metro', 'Other / Unassigned'];
+    // 2. GROUP LEADS BY LOCATION
+    const locationGroups = {};
+    processedLeads.forEach(lead => {
+      const loc = lead.location || 'Other / Unassigned';
+      if (!locationGroups[loc]) {
+        locationGroups[loc] = [];
+      }
+      locationGroups[loc].push(lead);
+    });
+
+    // Sort locations
+    const locationOrder = ['Albany', 'Buffalo', 'Rochester', 'NYC Metro'];
+    const sortedLocations = Object.keys(locationGroups).sort((a, b) => {
+      const indexA = locationOrder.indexOf(a);
+      const indexB = locationOrder.indexOf(b);
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+      if (indexA === -1) return 1;
+      if (indexB === -1) return -1;
+      return indexA - indexB;
+    });
+
+    // 3. Generate HTML for each location group
     let tablesHtml = '';
 
-    locationsList.forEach(loc => {
-      const locLeads = processedLeads.filter(l => l.location === loc);
+    sortedLocations.forEach(location => {
+      const locLeads = locationGroups[location];
       if (locLeads.length === 0) return;
 
-      const totalLoc = locLeads.length;
-      const bookedLoc = locLeads.filter(l => l.stage.toLowerCase().includes('book')).length;
+      const totalLeads = locLeads.length;
+      const bookedLeads = locLeads.filter(l => l.stage.toLowerCase().includes('book')).length;
+      const newLeads = locLeads.filter(l => l.stage.toLowerCase().includes('new')).length;
+      const pendingLeads = locLeads.filter(l => l.stage.toLowerCase().includes('pending')).length;
 
       const rows = locLeads.map((lead, i) => `
         <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'}">
-          <td style="padding: 12px 16px; font-weight: 600; color: #1e293b;">${lead.name}</td>
-          <td style="padding: 12px 16px; color: #475569; font-family: monospace;">${lead.phone}</td>
-          <td style="padding: 12px 16px; color: #475569;">${lead.business_line}</td>
-          <td style="padding: 12px 16px;">
-            <span class="badge-stage ${lead.stage.toLowerCase().includes('book') ? 'bg-booked' : 'bg-new'}">${lead.stage}</span>
+          <td style="padding: 10px 14px; font-weight: 500; color: #1e293b; border-bottom: 1px solid #e2e8f0;">${lead.name}</td>
+          <td style="padding: 10px 14px; color: #475569; font-family: monospace; border-bottom: 1px solid #e2e8f0;">${lead.phone}</td>
+          <td style="padding: 10px 14px; color: #475569; border-bottom: 1px solid #e2e8f0;">${lead.business_line}</td>
+          <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; ${lead.stage.toLowerCase().includes('book') ? 'background-color: #dbeafe; color: #1e40af;' : lead.stage.toLowerCase().includes('pending') ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #dcfce7; color: #166534;'}">
+              ${lead.stage}
+            </span>
           </td>
-          <td style="padding: 12px 16px; color: #64748b;">${lead.date}</td>
+          <td style="padding: 10px 14px; color: #64748b; border-bottom: 1px solid #e2e8f0;">${lead.date}</td>
         </tr>
       `).join('');
 
-      const themeClass = loc === 'Rochester' ? 'bg-rochester' : loc === 'Albany' ? 'bg-albany' : 'bg-slate';
+      const locationColors = {
+        'Albany': 'background: linear-gradient(135deg, #11998e, #38ef7d);',
+        'Buffalo': 'background: linear-gradient(135deg, #f7971e, #ffd200);',
+        'Rochester': 'background: linear-gradient(135deg, #1e3c72, #2a5298);',
+        'NYC Metro': 'background: linear-gradient(135deg, #e44d26, #f39c12);',
+      };
+      const headerColor = locationColors[location] || 'background: linear-gradient(135deg, #475569, #1e293b);';
 
       tablesHtml += `
-        <div class="location-card">
-          <div class="location-header ${themeClass}">
-            <h2>📍 ${loc.toUpperCase()} REGION</h2>
-            <span class="summary-count">Leads: ${totalLoc} | Appointments: ${bookedLoc}</span>
+        <div style="margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+          <div style="${headerColor} padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="color: #ffffff; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">📍 ${location.toUpperCase()} REGION</h2>
+            <span style="color: #ffffff; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px;">
+              Leads: ${totalLeads} | Booked: ${bookedLeads} | New: ${newLeads} | Pending: ${pendingLeads}
+            </span>
           </div>
-          <table class="data-table">
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
             <thead>
-              <tr>
-                <th>Opportunity Name</th>
-                <th>Phone Number</th>
-                <th>Line of Business</th>
-                <th>Pipeline Stage</th>
-                <th>Created Date</th>
+              <tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Name</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Phone</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Business Line</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Stage</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Date</th>
               </tr>
             </thead>
             <tbody>
@@ -317,6 +422,19 @@ export default function SalesAdminDashboard() {
       `;
     });
 
+    if (!tablesHtml) {
+      tablesHtml = `
+        <div style="text-align: center; padding: 60px 20px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <p style="color: #94a3b8; font-size: 14px;">No leads found for the selected filters.</p>
+        </div>
+      `;
+    }
+
+    const totalLeads = processedLeads.length;
+    const totalBooked = processedLeads.filter(l => l.stage.toLowerCase().includes('book')).length;
+    const totalNew = processedLeads.filter(l => l.stage.toLowerCase().includes('new')).length;
+    const totalPending = processedLeads.filter(l => l.stage.toLowerCase().includes('pending')).length;
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -324,38 +442,101 @@ export default function SalesAdminDashboard() {
         <title>Sales Lead Report — ${today}</title>
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f8fafc; color: #1e293b; padding: 30px; font-size: 13px; }
-          .report-title-block { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 14px; border-bottom: 2px solid #0f172a; }
-          .report-title-block h1 { font-size: 24px; font-weight: 900; color: #0f172a; }
-          .report-title-block p { font-size: 11px; color: #64748b; margin-top: 2px; }
-          .date-stamp { background: #0f172a; color: #ffffff; padding: 6px 14px; border-radius: 6px; font-weight: 700; font-size: 12px; }
-          .location-card { background: #ffffff; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 30px; border: 1px solid #e2e8f0; overflow: hidden; }
-          .location-header { padding: 14px 20px; color: #ffffff; display: flex; justify-content: space-between; align-items: center; }
-          .location-header h2 { font-size: 14px; font-weight: 800; letter-spacing: 0.5px; }
-          .summary-count { font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; }
-          .bg-rochester { background: linear-gradient(135deg, #1e3c72, #2a5298); }
-          .bg-albany { background: linear-gradient(135deg, #11998e, #38ef7d); }
-          .bg-slate { background: linear-gradient(135deg, #475569, #1e293b); }
-          .data-table { width: 100%; border-collapse: collapse; text-align: left; }
-          .data-table th { background: #f1f5f9; padding: 12px 16px; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 11px; border-bottom: 1px solid #e2e8f0; }
-          .data-table td { padding: 12px 16px; border-bottom: 1px solid #f1f3f5; font-size: 13px; }
-          .badge-stage { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-          .bg-booked { background-color: #dbeafe; color: #1e40af; }
-          .bg-new { background-color: #dcfce7; color: #166534; }
-          .footer { margin-top: 40px; text-align: center; font-size: 11px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 15px; }
-          @media print { body { padding: 0; background: #fff; } .location-card { page-break-inside: avoid; } }
+          body { 
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: #ffffff; 
+            color: #1e293b; 
+            padding: 30px 40px; 
+            font-size: 13px;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid #0f172a;
+          }
+          .header-left h1 {
+            font-size: 22px;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: -0.5px;
+          }
+          .header-left p {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 4px;
+            font-weight: 500;
+          }
+          .date-badge {
+            background: #0f172a;
+            color: #ffffff;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-weight: 700;
+            font-size: 12px;
+            white-space: nowrap;
+          }
+          .summary-stats {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+          }
+          .summary-stats span {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+          }
+          .summary-stats .num {
+            color: #0f172a;
+            font-weight: 800;
+            margin-left: 4px;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+            font-size: 11px;
+            color: #94a3b8;
+            text-align: center;
+          }
+          @media print {
+            body { padding: 16px 20px; }
+            .no-print { display: none; }
+          }
         </style>
       </head>
       <body>
-        <div class="report-title-block">
-          <div>
-            <h1>Consolidated Sales Operations Ledger</h1>
-            <p>HQ Database Pipeline Export &nbsp;·&nbsp; Filter Window: ${dateLabel}</p>
+        <div class="header">
+          <div class="header-left">
+            <h1>📋 Sales Lead Report</h1>
+            <p>KD Marketing Sales Database · Filter: ${dateLabel}</p>
           </div>
-          <div class="date-stamp">${today}</div>
+          <div class="date-badge">${today}</div>
         </div>
+
+        <div class="summary-stats">
+          <span>Total Leads: <span class="num">${totalLeads}</span></span>
+          <span>|</span>
+          <span>Appointment Booked: <span class="num">${totalBooked}</span></span>
+          <span>|</span>
+          <span>New Leads: <span class="num">${totalNew}</span></span>
+          <span>|</span>
+          <span>Pending Service: <span class="num">${totalPending}</span></span>
+        </div>
+
         ${tablesHtml}
-        <div class="footer">Confidential Internal Sales Dashboard Log — HQ Sales Console</div>
+
+        <div class="footer">
+          Confidential Internal Sales Report · Generated on ${new Date().toLocaleString()}
+        </div>
+
         <script>
           setTimeout(() => { window.print(); }, 500);
         </script>
@@ -365,45 +546,68 @@ export default function SalesAdminDashboard() {
 
     printWindow.document.write(html);
     printWindow.document.close();
-    showToast('PDF Ledger structured by location successfully.');
+    showToast(`PDF generated with ${totalLeads} leads grouped by location.`);
   };
 
-  const generateFallbackPdf = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    const today = new Date().toLocaleDateString('en-GB');
+  // Fallback function - queries csv_uploads if sales_leads fails
+  const generateFallbackPdfFromCsvUploads = async () => {
+    try {
+      let query = supabase
+        .from('csv_uploads')
+        .select('file_name, status, created_at, user_id, profiles:user_id(name)')
+        .order('created_at', { ascending: false });
 
-    let rows = [...uploadedCsvFiles];
-    if (pdfFilterUser)  rows = rows.filter(f=>f.user_id===pdfFilterUser);
-    if (pdfFilterStart) rows = rows.filter(f=>f.created_at>=pdfFilterStart);
-    if (pdfFilterEnd)   rows = rows.filter(f=>f.created_at<=pdfFilterEnd+'T23:59:59');
+      if (pdfFilterUser) query = query.eq('user_id', pdfFilterUser);
+      if (pdfFilterStart) query = query.gte('created_at', pdfFilterStart);
+      if (pdfFilterEnd) query = query.lte('created_at', pdfFilterEnd + 'T23:59:59');
 
-    const rowsHtml = rows.length===0
-      ? `<tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8">No data found for selected filters.</td></tr>`
-      : rows.map((f,i)=>`
-        <tr style="background:${i%2===0?'#fff':'#f8fafc'}">
-          <td style="padding:11px 14px;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:600">${f.profiles?.name||'—'}</td>
-          <td style="padding:11px 14px;border-bottom:1px solid #e2e8f0;font-size:13px;font-family:monospace">${f.file_name}</td>
-          <td style="padding:11px 14px;border-bottom:1px solid #e2e8f0;font-size:13px">
-            <span style="background:${f.status==='success'?'#dcfce7':'#fee2e2'};color:${f.status==='success'?'#166534':'#991b1b'};padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700">${f.status||'success'}</span>
-          </td>
-          <td style="padding:11px 14px;border-bottom:1px solid #e2e8f0;font-size:13px;white-space:nowrap">${new Date(f.created_at).toLocaleString()}</td>
-        </tr>`).join('');
+      const { data: uploads, error } = await query;
+      if (error) throw error;
 
-    const html=`<!DOCTYPE html><html><head><title>Upload Report — ${today}</title>
-<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;padding:28px 32px;font-size:13px;color:#1e293b}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #064e3b}.title{font-size:22px;font-weight:900;color:#064e3b}.meta{font-size:11px;color:#64748b;margin-top:4px}.badge{background:#064e3b;color:#fff;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse}thead tr{background:#1a3d2e}thead th{padding:11px 14px;color:#fff;font-size:11px;font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:.05em}.footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px}@media print{body{padding:16px 20px}}</style>
-</head><body>
-<div class="header"><div><div class="title">Upload Activity Report</div><div class="meta">HQ Sales Console · Generated: ${new Date().toLocaleString()}</div></div><div class="badge">${today}</div></div>
-<table><thead><tr><th>Salesperson</th><th>File Name</th><th>Status</th><th>Upload Date</th></tr></thead><tbody>${rowsHtml}</tbody></table>
-<div class="footer">Upload Activity Report · ${today} · Total: ${rows.length} files</div>
-<script>setTimeout(()=>window.print(),600);<\/script></body></html>`;
-    printWindow.document.write(html); printWindow.document.close();
-    showToast('PDF ready — use Print → Save as PDF.');
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) return;
+      
+      const today = new Date().toLocaleDateString('en-GB');
+      const rowsHtml = !uploads || uploads.length === 0
+        ? `<tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8">No data found for selected filters.</td></tr>`
+        : uploads.map((f, i) => `
+          <tr style="background:${i % 2 === 0 ? '#fff' : '#f8fafc'}">
+            <td style="padding:11px 14px;border-bottom:1px solid #e2e8f0;font-size:13px;font-weight:600">${f.profiles?.name || '—'}</td>
+            <td style="padding:11px 14px;border-bottom:1px solid #e2e8f0;font-size:13px;font-family:monospace">${f.file_name}</td>
+            <td style="padding:11px 14px;border-bottom:1px solid #e2e8f0;font-size:13px">
+              <span style="background:${f.status === 'success' ? '#dcfce7' : '#fee2e2'};color:${f.status === 'success' ? '#166534' : '#991b1b'};padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700">${f.status || 'success'}</span>
+            </td>
+            <td style="padding:11px 14px;border-bottom:1px solid #e2e8f0;font-size:13px;white-space:nowrap">${new Date(f.created_at).toLocaleString()}</td>
+          </tr>`).join('');
+
+      const html = `<!DOCTYPE html><html><head><title>Upload Report — ${today}</title>
+      <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;padding:28px 32px;font-size:13px;color:#1e293b}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #064e3b}.title{font-size:22px;font-weight:900;color:#064e3b}.meta{font-size:11px;color:#64748b;margin-top:4px}.badge{background:#064e3b;color:#fff;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse}thead tr{background:#1a3d2e}thead th{padding:11px 14px;color:#fff;font-size:11px;font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:.05em}.footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px}@media print{body{padding:16px 20px}}</style>
+      </head><body>
+      <div class="header"><div><div class="title">Upload Activity Report</div><div class="meta">KD Marketing Sales Console · Generated: ${new Date().toLocaleString()}</div></div><div class="badge">${today}</div></div>
+      <table><thead><tr><th>Salesperson</th><th>File Name</th><th>Status</th><th>Upload Date</th></tr></thead><tbody>${rowsHtml}</tbody></table>
+      <div class="footer">Upload Activity Report · ${today} · Total: ${uploads?.length || 0} files</div>
+      <script>setTimeout(()=>window.print(),600);<\/script></body></html>`;
+      
+      printWindow.document.write(html);
+      printWindow.document.close();
+      showToast('Fallback PDF generated from upload records.');
+    } catch (err) {
+      console.error('Fallback PDF generation failed:', err);
+      showToast('Failed to generate PDF. Please try again.');
+    }
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // 5. TOAST & LOGOUT HELPERS
+  // ─────────────────────────────────────────────────────────────────────────
   const showToast = (msg) => { setNotification(msg); setTimeout(()=>setNotification(''),4500); };
+  
   const handleLogout = async () => {
-    if (window.confirm('Log out?')) { await supabase.auth.signOut(); localStorage.removeItem('isLoggedIn'); window.location.href='/login'; }
+    if (window.confirm('Log out?')) { 
+      await supabase.auth.signOut(); 
+      localStorage.removeItem('isLoggedIn'); 
+      window.location.href='/login'; 
+    }
   };
 
   // ── Computed ───────────────────────────────────────────────────────────────
@@ -422,12 +626,12 @@ export default function SalesAdminDashboard() {
           <div className="p-6 border-b border-emerald-900/60">
             <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
               <span className="w-3 h-3 bg-white rounded-full inline-block animate-pulse"></span>
-              HQ Sales Console
+             KD Marketing Sales 
             </h1>
             <p className="text-xs text-emerald-300/70 font-medium mt-1">Admin Dashboard Workspace</p>
           </div>
           <nav className="p-4 space-y-1.5">
-            {[['overview','📊 Performance Overview'],['users','👥 Manage All Users'],['csv-vault','📄 View Salesperson CSVs'],['ai-report','🤖 AI Audit Report']].map(([key,label])=>(
+            {[['overview','📊 Performance Overview'],['users','👥 Manage All Users'],['csv-vault','📄 View Salesperson Records'],['ai-report','Final Audit Report']].map(([key,label])=>(
               <button key={key} onClick={()=>setActiveTab(key)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab===key?'bg-white text-emerald-950 shadow-md':'text-emerald-100 hover:bg-emerald-900/50'}`}>
                 {label}
@@ -451,7 +655,7 @@ export default function SalesAdminDashboard() {
         <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center shadow-sm">
           <div>
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              {activeTab==='user-form'?(isEditing?'Edit User':'Create User'):activeTab==='ai-report'?'AI Audit Report':activeTab==='overview'?'Performance Overview':activeTab==='users'?'Manage Users':'CSV Vault'}
+              {activeTab==='user-form'?(isEditing?'Edit User':'Create User'):activeTab==='ai-report'?'Final Audit Report':activeTab==='overview'?'Performance Overview':activeTab==='users'?'Manage Users':'Records '}
             </h2>
             <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Database Sync: Live</p>
           </div>
@@ -604,9 +808,10 @@ export default function SalesAdminDashboard() {
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-900 focus:outline-none"/>
                 </div>}
                 {isEditing && <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Reset Password <span className="normal-case font-normal text-slate-400">(leave blank to keep current)</span></label>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Reset Password <span className="normal-case font-normal text-slate-400">(enter to send reset email)</span></label>
                   <input type="password" value={formResetPassword} onChange={e=>setFormResetPassword(e.target.value)} placeholder="Enter new password to reset"
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-900 focus:outline-none"/>
+                  <p className="text-[10px] text-slate-400 mt-1">Password reset email will be sent to the user</p>
                 </div>}
                 <div className="flex gap-2 pt-2">
                   <button type="submit" className="bg-emerald-900 text-white font-bold text-xs px-5 py-3 rounded-xl hover:bg-emerald-950">{isEditing?'Save Changes':'Create User'}</button>
@@ -721,7 +926,7 @@ export default function SalesAdminDashboard() {
                   <span className="text-2xl">📥</span>
                   <div>
                     <h3 className="text-white font-black text-sm">Download Lead Summary Report</h3>
-                    <p className="text-emerald-300/70 text-xs mt-0.5">Structured Location Ledger — Name · Phone · Business Line · Stage · Date</p>
+                    <p className="text-emerald-300/70 text-xs mt-0.5">Simple table format — Name · Phone · Location · Business Line · Stage · Date</p>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
@@ -772,7 +977,7 @@ export default function SalesAdminDashboard() {
 
                   <button onClick={handleDownloadAIPdf} disabled={pdfGenerating}
                     className="w-full sm:w-auto bg-emerald-900 text-white font-black text-sm px-8 py-3.5 rounded-xl hover:bg-emerald-950 disabled:opacity-60 transition-all flex items-center gap-2">
-                    {pdfGenerating ? '⏳ Processing Leads…' : '📥 Download Regional Master PDF'}
+                    {pdfGenerating ? '⏳ Processing Leads…' : '📥 Download Lead Report (PDF)'}
                   </button>
                 </div>
               </div>

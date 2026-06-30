@@ -6,6 +6,7 @@ import { formatDateString } from "../utils/helpers";
 import confetti from "canvas-confetti";
 import SalesSidebar from "../components/SalesSidebar";
 import SalesNavbar from "../components/SalesNavbar";
+import Papa from "papaparse";
 import {
   FaFolderOpen,
   FaCloudUploadAlt,
@@ -21,10 +22,9 @@ export default function SalesDashboard() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadToast, setUploadToast] = useState(false);
-const [uploadedFileName, setUploadedFileName] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState("");
  
   const loadUserUploadHistory = async () => {
-   
     try {
       const {
         data: { user },
@@ -32,7 +32,7 @@ const [uploadedFileName, setUploadedFileName] = useState("");
 
       if (!user) return;
 
-  const { data: profile } = await supabase
+      const { data: profile } = await supabase
         .from("profiles")
         .select("name, email")
         .eq("id", user.id)
@@ -40,7 +40,7 @@ const [uploadedFileName, setUploadedFileName] = useState("");
 
       setUserName(profile?.name || user.email?.split("@")[0] || "User");
 
-  const { data, error } = await supabase
+      const { data, error } = await supabase
         .from("csv_uploads")
         .select("*")
         .eq("user_id", user.id)
@@ -50,7 +50,7 @@ const [uploadedFileName, setUploadedFileName] = useState("");
 
       setHistory(data || []);
 
-  const dates = (data || []).map((item) =>
+      const dates = (data || []).map((item) =>
         formatDateString(item.created_at)
       );
 
@@ -62,95 +62,179 @@ const [uploadedFileName, setUploadedFileName] = useState("");
     }
   };
 
- const handleFileUpload = async (event) => {
-  const files = Array.from(event.target.files);
+  const handleFileUpload = async (event) => {
+    const files = Array.from(event.target.files);
 
-  if (files.length === 0) return;
+    if (files.length === 0) return;
 
-  const invalidFiles = files.filter(
-    (file) => !file.name.toLowerCase().endsWith(".csv")
-  );
-
-  if (invalidFiles.length > 0) {
-    alert("Please upload CSV files only.");
-    event.target.value = "";
-    return;
-  }
-
-  setUploading(true);
-
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) throw new Error("User not logged in.");
-
-    const uploadData = files.map((file) => ({
-      user_id: user.id,
-      file_name: file.name,
-      file_path: file.name,
-      status: "success",
-    }));
-
-    const { error } = await supabase
-      .from("csv_uploads")
-      .insert(uploadData);
-
-    if (error) throw error;
-
-    await loadUserUploadHistory();
-   
-
-    confetti({
-      particleCount: 250,
-      spread: 130,
-      origin: { y: 0.6 },
-    });
-
-    setUploadedFileName(
-      files.length === 1
-        ? files[0].name
-        : `${files.length} CSV files uploaded`
+    const invalidFiles = files.filter(
+      (file) => !file.name.toLowerCase().endsWith(".csv")
     );
 
-    setUploadToast(true);
+    if (invalidFiles.length > 0) {
+      alert("Please upload CSV files only.");
+      event.target.value = "";
+      return;
+    }
 
-    setTimeout(() => {
-      setUploadToast(false);
-    }, 2500);
-  } catch (err) {
-    alert(err.message || "Upload failed.");
-  } finally {
-    setUploading(false);
-    event.target.value = "";
-  }
-};
+    setUploading(true);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) throw new Error("User not logged in.");
+
+      // Step A: Save file to csv_uploads and get back the ID
+      const uploadData = files.map((file) => ({
+        user_id: user.id,
+        file_name: file.name,
+        file_path: file.name,
+        status: "success",
+      }));
+
+      const { data: insertedFiles, error: uploadError } = await supabase
+        .from("csv_uploads")
+        .insert(uploadData)
+        .select();
+
+      if (uploadError) throw uploadError;
+
+      // Step B: Parse each CSV file and save rows to sales_leads
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const csvUploadId = insertedFiles[i].id;
+
+        console.log(`📁 Processing file ${i + 1}:`, file.name);
+        console.log("📋 CSV Upload ID:", csvUploadId);
+
+        await new Promise((resolve) => {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async (results) => {
+              console.log("STEP 1 - Papa parsed rows:", results.data.length);
+              console.log("STEP 2 - Headers:", Object.keys(results.data[0] || {}));
+              console.log("STEP 3 - First row:", results.data[0]);
+
+              // Extract location and business line FROM THE FILENAME
+              const fileName = file.name.toLowerCase();
+
+              let location = "Other / Unassigned";
+              if (fileName.includes("albany")) {
+                location = "Albany";
+              } else if (fileName.includes("rochester")) {
+                location = "Rochester";
+              } else if (fileName.includes("buffalo")) {
+                location = "Buffalo";
+              } else if (fileName.includes("nyc") || fileName.includes("new york")) {
+                location = "NYC Metro";
+              }
+
+              let businessLine = "General Pipeline";
+              if (fileName.includes("fence") || fileName.includes("fencing")) {
+                businessLine = "Fencing";
+              } else if (fileName.includes("tree") || fileName.includes("branch")) {
+                businessLine = "Tree Service";
+              } else if (fileName.includes("landscaping")) {
+                businessLine = "Landscaping";
+              }
+
+              const leadRows = results.data.map((row) => ({
+                user_id: user.id,
+                csv_upload_id: csvUploadId,
+                name: row["Opportunity name"] || row["Primary Contact name"] || row["Name"] || row["name"] || "",
+                phone: row["Phone number"] || row["Phone"] || row["phone"] || "",
+                location: location, // from filename
+                business_line: businessLine, // from filename
+                stage: row["Stage"] || row["stage"] || "",
+                lead_date: row["Created on"] || row["Date"] || row["date"] || "",
+              }));
+
+              console.log("STEP 4 - Lead rows built:", leadRows.length);
+              console.log("STEP 5 - First lead row:", leadRows[0]);
+
+              if (leadRows.length > 0) {
+                const { data, error: leadError } = await supabase
+                  .from("sales_leads")
+                  .insert(leadRows)
+                  .select();
+
+                console.log("STEP 6 - Insert result:", data);
+                console.log("STEP 7 - Insert error:", leadError);
+
+                if (leadError) {
+                  console.error("❌ Error inserting leads:", leadError);
+                } else {
+                  console.log(`✅ Successfully inserted ${leadRows.length} leads`);
+                }
+              } else {
+                console.warn("⚠️ No rows to insert for file:", file.name);
+              }
+
+              resolve();
+            },
+            error: (error) => {
+              console.error("❌ Papa Parse error:", error);
+              resolve();
+            },
+          });
+        });
+      }
+
+      await loadUserUploadHistory();
+
+      confetti({
+        particleCount: 250,
+        spread: 130,
+        origin: { y: 0.6 },
+      });
+
+      setUploadedFileName(
+        files.length === 1
+          ? files[0].name
+          : `${files.length} CSV files uploaded`
+      );
+
+      setUploadToast(true);
+
+      setTimeout(() => {
+        setUploadToast(false);
+      }, 2500);
+    } catch (err) {
+      console.error("❌ Upload error:", err);
+      alert(err.message || "Upload failed.");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  };
+
   const deleteUpload = async (id) => {
-  const confirmDelete = window.confirm(
-    "Are you sure you want to delete this upload?"
-  );
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this upload?"
+    );
 
-  if (!confirmDelete) return;
+    if (!confirmDelete) return;
 
-  try {
-    const { error } = await supabase
-      .from("csv_uploads")
-      .delete()
-      .eq("id", id);
+    try {
+      const { error } = await supabase
+        .from("csv_uploads")
+        .delete()
+        .eq("id", id);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    await loadUserUploadHistory();
-  } catch (err) {
-    alert(err.message);
-  }
-};
+      await loadUserUploadHistory();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
 
- useEffect(() => {
-  loadUserUploadHistory();
-
-}, []);
+  useEffect(() => {
+    loadUserUploadHistory();
+  }, []);
 
   const today = formatDateString(new Date());
   const uploadedToday = markedDates.includes(today);
@@ -164,54 +248,45 @@ const [uploadedFileName, setUploadedFileName] = useState("");
   return (
     <div className="min-h-screen bg-[#021b16] text-white">
       {uploadToast && (
-  <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] animate-slideDown">
-    <div className="flex items-center gap-4 rounded-2xl bg-white text-black px-6 py-4 shadow-2xl border border-emerald-200">
-      <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white text-2xl font-black">
-        ✓
-      </div>
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] animate-slideDown">
+          <div className="flex items-center gap-4 rounded-2xl bg-white text-black px-6 py-4 shadow-2xl border border-emerald-200">
+            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white text-2xl font-black">
+              ✓
+            </div>
 
-      <div>
-        <h3 className="font-black text-lg">
-          Upload Successful
-        </h3>
+            <div>
+              <h3 className="font-black text-lg">
+                Upload Successful
+              </h3>
 
-        <p className="text-sm text-gray-500">
-          {uploadedFileName}
-        </p>
-      </div>
-    </div>
-  </div>
-)}
-    <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.20),transparent_32%),
-    radial-gradient(circle_at_bottom_left,rgba(5,150,105,0.14),transparent_35%)] pointer-events-none" />
+              <p className="text-sm text-gray-500">
+                {uploadedFileName}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.20),transparent_32%),
+      radial-gradient(circle_at_bottom_left,rgba(5,150,105,0.14),transparent_35%)] pointer-events-none" />
 
-      {/* Sidebar */}
       <SalesSidebar />
 
-      {/* Main */}
       <main className="relative z-10 lg:ml-72 min-h-screen">
-        {/* Navbar */}
-      <SalesNavbar
-  title="Dashboard"
-  subtitle="Upload your CSV and monitor your daily progress."
-  uploadedToday={uploadedToday}
-/>
+        <SalesNavbar
+          title="Dashboard"
+          subtitle="Upload your CSV and monitor your daily progress."
+          uploadedToday={uploadedToday}
+        />
 
         <div className="px-6 py-7 md:px-10">
-          {/* Welcome */}
           <section className="mb-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
             <div>
-              
               <h2 className="text-3xl md:text-4xl font-black mt-2">
                 Welcome Back, {userName} 👋
               </h2>
-              
             </div>
-
-          
           </section>
 
-          {/* Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
             <Card title="Total Uploads" value={totalUploads} icon={<FaFolderOpen />} />
             <Card title="Completed" value={completedUploads} icon="✅" />
@@ -251,14 +326,15 @@ const [uploadedFileName, setUploadedFileName] = useState("");
             </div>
           )}
 
-         <input
-  ref={fileInputRef}
-  type="file"
-  accept=".csv"
-  multiple
-  onChange={handleFileUpload}
-  className="hidden"
-/>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            multiple
+            onChange={handleFileUpload}
+            className="hidden"
+          />
+          
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <section className="dashboard-card">
               <h2 className="text-xl font-bold mb-5">Upload CSV</h2>
@@ -279,7 +355,7 @@ const [uploadedFileName, setUploadedFileName] = useState("");
                   className="bg-gradient-to-r from-emerald-500 to-green-700 px-6 py-3 rounded-xl font-bold
                    disabled:opacity-60 hover:scale-105 transition"
                 >
-                 {uploading ? "Uploading..." : "Browse CSV Files"}
+                  {uploading ? "Uploading..." : "Browse CSV Files"}
                 </button>
               </div>
             </section>
@@ -316,19 +392,19 @@ const [uploadedFileName, setUploadedFileName] = useState("");
                         </p>
                       </div>
 
-                     <div className="flex items-center gap-3">
-  <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-sm font-bold">
-    Completed
-  </span>
+                      <div className="flex items-center gap-3">
+                        <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-sm font-bold">
+                          Completed
+                        </span>
 
-  <button
-    onClick={() => deleteUpload(row.id)}
-    className="w-10 h-10 rounded-full bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition flex items-center justify-center"
-    title="Delete Upload"
-  >
-    <FaTrash />
-  </button>
-</div>
+                        <button
+                          onClick={() => deleteUpload(row.id)}
+                          className="w-10 h-10 rounded-full bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white transition flex items-center justify-center"
+                          title="Delete Upload"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -336,16 +412,12 @@ const [uploadedFileName, setUploadedFileName] = useState("");
             </section>
 
             <CalendarTracker markedDates={markedDates} />
-
-           
           </div>
         </div>
       </main>
     </div>
   );
 }
-
-
 
 function Card({ title, value, icon, danger }) {
   return (
@@ -365,4 +437,3 @@ function Card({ title, value, icon, danger }) {
     </div>
   );
 }
-
