@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 
+<<<<<<< Updated upstream
 export default function CalendarTracker({ markedDates = [] }) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -53,17 +54,36 @@ export default function CalendarTracker({ markedDates = [] }) {
           </button>
         </div>
       </div>
+=======
+export default function CalendarTracker({ markedDates }) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth(); // 0-indexed
+
+  const monthLabel = today.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstWeekday = new Date(year, month, 1).getDay(); // 0 = Sunday
+
+  const dayCells = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const leadingBlanks = Array.from({ length: firstWeekday }, (_, i) => `blank-${i}`);
+
+  return (
+    <div className="rounded-3xl bg-white/8 border border-emerald-400/20 backdrop-blur-xl p-6 shadow-xl">
+      <h3 className="text-xl font-bold text-white mb-5">
+        CSV Upload Tracker
+        <span className="text-white/50 text-sm ml-2">({monthLabel})</span>
+      </h3>
+>>>>>>> Stashed changes
 
       <div className="grid grid-cols-7 gap-3 text-center">
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-          <div
-            key={day}
-            className="text-sm font-bold text-emerald-300/80"
-          >
+          <div key={day} className="text-sm font-bold text-emerald-300/80">
             {day}
           </div>
         ))}
 
+<<<<<<< Updated upstream
         {Array.from({ length: firstDay }).map((_, index) => (
           <div key={`empty-${index}`} />
         ))}
@@ -74,6 +94,16 @@ export default function CalendarTracker({ markedDates = [] }) {
             "0"
           )}-${String(day).padStart(2, "0")}`;
 
+=======
+        {leadingBlanks.map((key) => (
+          <div key={key} />
+        ))}
+
+        {dayCells.map((day) => {
+          const paddedDay = day < 10 ? `0${day}` : day;
+          const paddedMonth = month + 1 < 10 ? `0${month + 1}` : month + 1;
+          const currentString = `${year}-${paddedMonth}-${paddedDay}`;
+>>>>>>> Stashed changes
           const isMarked = markedDates.includes(currentString);
 
           return (
