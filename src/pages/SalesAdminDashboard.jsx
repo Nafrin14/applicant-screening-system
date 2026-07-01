@@ -18,6 +18,29 @@ const getDateRange = (preset) => {
   }
 };
 
+// ─── HELPER: Normalize stage for consistent display ──────────────────────
+function normalizeStage(stage) {
+  if (!stage) return 'New Leads';
+  
+  const s = stage.toLowerCase().trim();
+  
+  if (s.includes('book') || s.includes('appointment') || s.includes('scheduled')) {
+    return 'Appointment Booked';
+  }
+  if (s.includes('pending') || s.includes('waiting') || s.includes('follow')) {
+    return 'Pending Service Completion';
+  }
+  if (s.includes('new') || s.includes('lead')) {
+    return 'New Leads';
+  }
+  if (s.includes('closed') || s.includes('won') || s.includes('lost')) {
+    return 'Closed';
+  }
+  
+  // Return as-is with proper capitalization
+  return stage.charAt(0).toUpperCase() + stage.slice(1).toLowerCase();
+}
+
 export default function SalesAdminDashboard() {
   // ── Database State ─────────────────────────────────────────────────────────
   const [salesUsers,       setSalesUsers]       = useState([]);
@@ -253,13 +276,12 @@ export default function SalesAdminDashboard() {
   const clearCsvFilters = () => { setCsvFilterName('');setCsvDatePreset('');setCsvCustomStart('');setCsvCustomEnd('');setCsvFilterStatus('');setSelectedCsvIds([]); };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 4. PDF DOWNLOAD — FIXED: Includes Salesperson Column
+  // 4. PDF DOWNLOAD — FIXED: Includes Salesperson Column & Stage Normalization
   // ─────────────────────────────────────────────────────────────────────────
   
   const handleDownloadAIPdf = async () => {
     setPdfGenerating(true);
     try {
-      // ─── FIX 1: Add salesperson to query ──────────────────────────────
       let query = supabase
         .from('sales_leads')
         .select(`
@@ -306,7 +328,7 @@ export default function SalesAdminDashboard() {
     }
   };
 
-  // Generate PDF from leads data - FIXED: Includes Salesperson Column
+  // Generate PDF from leads data - FIXED: Includes Salesperson Column & Stage Normalization
   const generateLeadsPdf = (leads) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) { showToast('Allow pop-ups to download the PDF.'); return; }
@@ -321,14 +343,16 @@ export default function SalesAdminDashboard() {
       const matchKey = phoneDigits.slice(-10) || `${lead.name}|${lead.location}|${lead.salesperson}`;
       
       if (!uniqueLeadsMap.has(matchKey)) {
-        // ─── FIX 2: Add salesperson to the dedupe object ──────────────
+        // ─── FIX: Normalize stage to a consistent display value ──────────
+        const normalizedStage = normalizeStage(lead.stage);
+        
         uniqueLeadsMap.set(matchKey, {
           name: lead.name || 'Unknown Lead',
           phone: lead.phone || '—',
           location: lead.location || 'Other / Unassigned',
           business_line: lead.business_line || 'General Pipeline',
           salesperson: lead.salesperson || 'Unassigned',
-          stage: lead.stage || 'New Leads',
+          stage: normalizedStage,
           date: lead.lead_date || (lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—')
         });
       }
@@ -368,13 +392,12 @@ export default function SalesAdminDashboard() {
       if (locLeads.length === 0) return;
 
       const totalLeads = locLeads.length;
-      const bookedLeads = locLeads.filter(l => l.stage.toLowerCase().includes('book')).length;
-      const newLeads = locLeads.filter(l => l.stage.toLowerCase().includes('new')).length;
-      const pendingLeads = locLeads.filter(l => l.stage.toLowerCase().includes('pending')).length;
+      const bookedLeads = locLeads.filter(l => l.stage.includes('Appointment Booked')).length;
+      const newLeads = locLeads.filter(l => l.stage.includes('New Leads')).length;
+      const pendingLeads = locLeads.filter(l => l.stage.includes('Pending')).length;
 
       const location = groupKey.split(' — ')[0];
 
-      // ─── FIX 3 & 4: Add Salesperson column to the table ──────────────
       const rows = locLeads.map((lead, i) => `
         <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'}">
           <td style="padding: 10px 14px; font-weight: 500; color: #1e293b; border-bottom: 1px solid #e2e8f0;">${lead.name}</td>
@@ -383,7 +406,7 @@ export default function SalesAdminDashboard() {
           <td style="padding: 10px 14px; color: #475569; border-bottom: 1px solid #e2e8f0;">${lead.business_line}</td>
           <td style="padding: 10px 14px; color: #475569; font-weight: 600; border-bottom: 1px solid #e2e8f0;">${lead.salesperson}</td>
           <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">
-            <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; ${lead.stage.toLowerCase().includes('book') ? 'background-color: #dbeafe; color: #1e40af;' : lead.stage.toLowerCase().includes('pending') ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #dcfce7; color: #166534;'}">
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; ${lead.stage.includes('Appointment Booked') ? 'background-color: #dbeafe; color: #1e40af;' : lead.stage.includes('Pending') ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #dcfce7; color: #166534;'}">
               ${lead.stage}
             </span>
           </td>
@@ -400,7 +423,6 @@ export default function SalesAdminDashboard() {
       };
       const headerColor = locationColors[location] || 'background: linear-gradient(135deg, #475569, #1e293b);';
 
-      // ─── FIX 3: Add Salesperson column header ────────────────────────
       tablesHtml += `
         <div style="margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
           <div style="${headerColor} padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
@@ -438,9 +460,9 @@ export default function SalesAdminDashboard() {
     }
 
     const totalLeads = processedLeads.length;
-    const totalBooked = processedLeads.filter(l => l.stage.toLowerCase().includes('book')).length;
-    const totalNew = processedLeads.filter(l => l.stage.toLowerCase().includes('new')).length;
-    const totalPending = processedLeads.filter(l => l.stage.toLowerCase().includes('pending')).length;
+    const totalBooked = processedLeads.filter(l => l.stage.includes('Appointment Booked')).length;
+    const totalNew = processedLeads.filter(l => l.stage.includes('New Leads')).length;
+    const totalPending = processedLeads.filter(l => l.stage.includes('Pending')).length;
 
     const html = `
       <!DOCTYPE html>
