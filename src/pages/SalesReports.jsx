@@ -4,6 +4,7 @@ import SalesSidebar from "../components/SalesSidebar";
 import SalesNavbar from "../components/SalesNavbar";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import {
   FaFileAlt,
   FaCheckCircle,
@@ -16,7 +17,7 @@ import {
 
 export default function SalesReports() {
   const [uploads, setUploads] = useState([]);
-  const [filter, setFilter] = useState("today");
+ const [filter, setFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,11 @@ export default function SalesReports() {
     let start = new Date();
     let end = new Date();
 
+if (filter === "all") {
+  start = new Date("2000-01-01");
+  end = new Date();
+  end.setHours(23, 59, 59, 999);
+}
     if (filter === "today") {
       start.setHours(0, 0, 0, 0);
       end.setHours(23, 59, 59, 999);
@@ -62,16 +68,20 @@ export default function SalesReports() {
       } = await supabase.auth.getUser();
 
       if (!user) return;
+      console.log("USER ID:", user.id);
+
 
       const { start, end } = getDateRange();
+      console.log("START:", start);
+console.log("END:", end);
 
-      const { data, error } = await supabase
-        .from("csv_uploads")
-        .select("*")
-        .eq("user_id", user.id)
-        .gte("created_at", start.toISOString())
-        .lte("created_at", end.toISOString())
-        .order("created_at", { ascending: false });
+     const { data, error } = await supabase
+  .from("csv_uploads")
+  .select("*")
+  .order("created_at", { ascending: false });
+
+console.log("ERROR:", error);
+console.log("REPORT DATA:", data);
 
       if (error) throw error;
 
@@ -131,6 +141,32 @@ body: uploads.map((item) => [
 
     doc.save("csv-report.pdf");
   };
+  const downloadExcel = () => {
+  const reportData = uploads.map((item, index) => ({
+    No: index + 1,
+    "File Name": item.file_name,
+    "Uploaded Date": new Date(item.created_at).toLocaleString(),
+    Status: item.status || "success",
+  }));
+
+  const summaryData = [
+    { Summary: "Total Uploads", Value: totalUploads },
+    { Summary: "Completed", Value: completedUploads },
+    { Summary: "Failed Uploads", Value: failedUploads },
+    { Summary: "Missing", Value: missingUploads },
+    { Summary: "Success Rate", Value: `${successRate}%` },
+  ];
+
+  const workbook = XLSX.utils.book_new();
+
+  const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+  const reportSheet = XLSX.utils.json_to_sheet(reportData);
+
+  XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
+  XLSX.utils.book_append_sheet(workbook, reportSheet, "Upload Details");
+
+  XLSX.writeFile(workbook, "csv-upload-report.xlsx");
+};
 
   const printReport = () => {
     window.print();
@@ -149,16 +185,57 @@ body: uploads.map((item) => [
 
         <div className="px-6 py-7 md:px-10">
          <section className="dashboard-card mb-6">
-  <div className="flex flex-col xl:flex-row xl:items-end gap-5">
-   <div className="flex flex-wrap gap-3 xl:flex-nowrap">
-      <FilterButton label="Today" value="today" filter={filter} setFilter={setFilter} />
-      <FilterButton label="Yesterday" value="yesterday" filter={filter} setFilter={setFilter} />
-      <FilterButton label="This Week" value="week" filter={filter} setFilter={setFilter} />
-      <FilterButton label="This Month" value="month" filter={filter} setFilter={setFilter} />
-      <FilterButton label="Custom Range" value="custom" filter={filter} setFilter={setFilter} />
-    </div>
+<div className="flex flex-col gap-5">
+<div className="flex flex-wrap gap-3">
 
-    <div className="flex flex-wrap items-end gap-4 xl:ml-auto">
+  <FilterButton
+    label="All"
+    value="all"
+    filter={filter}
+    setFilter={setFilter}
+  />
+
+  <FilterButton
+    label="Today"
+    value="today"
+    filter={filter}
+    setFilter={setFilter}
+  />
+
+  <FilterButton
+    label="Yesterday"
+    value="yesterday"
+    filter={filter}
+    setFilter={setFilter}
+  />
+
+  <FilterButton
+    label="This Week"
+    value="week"
+    filter={filter}
+    setFilter={setFilter}
+  />
+
+  <FilterButton
+    label="This Month"
+    value="month"
+    filter={filter}
+    setFilter={setFilter}
+  />
+
+  <FilterButton
+    label="Custom Range"
+    value="custom"
+    filter={filter}
+    setFilter={setFilter}
+  />
+
+</div>
+</div> 
+   
+
+
+<div className="flex flex-wrap lg:flex-nowrap items-end gap-4">
       <div>
         <label className="block text-sm text-white/60 mb-2">
           From Date
@@ -191,8 +268,11 @@ body: uploads.map((item) => [
       >
         Generate Report
       </button>
-    </div>
-  </div>
+      </div>
+
+    
+  
+  
 </section>
          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mb-6">
             <ReportCard title="Total Uploads" value={totalUploads} icon={<FaFileAlt />} />
@@ -282,11 +362,12 @@ body: uploads.map((item) => [
       📄 Download PDF
     </button>
 
-    <button
-      className="w-full bg-green-600 hover:bg-green-700 rounded-xl py-3 font-bold"
-    >
-      📊 Download Excel
-    </button>
+   <button
+  onClick={downloadExcel}
+  className="w-full bg-green-600 hover:bg-green-700 rounded-xl py-3 font-bold"
+>
+  📊 Download Excel
+</button>
 
     <button
       onClick={printReport}
@@ -305,7 +386,7 @@ body: uploads.map((item) => [
 </div>
         </div>
       </main>
-    </div>
+   </div>
   );
 }
 
@@ -313,10 +394,10 @@ function FilterButton({ label, value, filter, setFilter }) {
   return (
     <button
       onClick={() => setFilter(value)}
-      className={`px-5 py-3 rounded-xl font-bold transition ${
+      className={`h-11 min-w-[130px] px-5 rounded-xl text-sm font-bold transition whitespace-nowrap ${
         filter === value
           ? "bg-emerald-500 text-white"
-          : "bg-black/25 border border-white/10 text-white/70"
+          : "bg-black/25 border border-white/10 text-white/70 hover:bg-white/10"
       }`}
     >
       {label}
