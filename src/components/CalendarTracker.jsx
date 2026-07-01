@@ -1,58 +1,24 @@
-import React, { useState } from "react";
+import React from "react";
 
-export default function CalendarTracker({ markedDates = [] }) {
-  const [currentDate, setCurrentDate] = useState(new Date());
+export default function CalendarTracker({ markedDates }) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth(); // 0-indexed
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-
-  const monthLabel = currentDate.toLocaleString("default", {
-    month: "long",
-    year: "numeric",
-  });
+  const monthLabel = today.toLocaleDateString("en-US", { month: "long", year: "numeric" });
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDay = new Date(year, month, 1).getDay();
+  const firstWeekday = new Date(year, month, 1).getDay(); // 0 = Sunday
 
-  const days = Array.from(
-    { length: daysInMonth },
-    (_, i) => i + 1
-  );
-
-  const goPrevMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1));
-  };
-
-  const goNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1));
-  };
+  const dayCells = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  const leadingBlanks = Array.from({ length: firstWeekday }, (_, i) => `blank-${i}`);
 
   return (
     <div className="rounded-3xl bg-white/8 border border-emerald-400/20 backdrop-blur-xl p-6 shadow-xl">
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-xl font-bold text-white">
-          CSV Upload Tracker
-          <span className="text-white/50 text-sm ml-2">
-            ({monthLabel})
-          </span>
-        </h3>
-
-        <div className="flex gap-2">
-          <button
-            onClick={goPrevMonth}
-            className="px-3 py-1 rounded-lg bg-black/30 text-white"
-          >
-            ◀
-          </button>
-
-          <button
-            onClick={goNextMonth}
-            className="px-3 py-1 rounded-lg bg-black/30 text-white"
-          >
-            ▶
-          </button>
-        </div>
-      </div>
+      <h3 className="text-xl font-bold text-white mb-5">
+        CSV Upload Tracker
+        <span className="text-white/50 text-sm ml-2">({monthLabel})</span>
+      </h3>
 
       <div className="grid grid-cols-7 gap-3 text-center">
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
@@ -61,15 +27,14 @@ export default function CalendarTracker({ markedDates = [] }) {
           </div>
         ))}
 
-        {Array.from({ length: firstDay }).map((_, index) => (
-          <div key={`empty-${index}`} />
+        {leadingBlanks.map((key) => (
+          <div key={key} />
         ))}
 
-        {days.map((day) => {
-          const currentString = `${year}-${String(month + 1).padStart(
-            2,
-            "0"
-          )}-${String(day).padStart(2, "0")}`;
+        {dayCells.map((day) => {
+          const paddedDay = day < 10 ? `0${day}` : day;
+          const paddedMonth = month + 1 < 10 ? `0${month + 1}` : month + 1;
+          const currentString = `${year}-${paddedMonth}-${paddedDay}`;
           const isMarked = markedDates.includes(currentString);
 
           return (
