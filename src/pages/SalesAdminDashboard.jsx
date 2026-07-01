@@ -120,8 +120,6 @@ export default function SalesAdminDashboard() {
   };
 
   // ─── FIXED: Save User Form ────────────────────────────────────────────────
-  // Problem: auth.admin.updateUserById doesn't work from browser
-  // Fix: Use resetPasswordForEmail for password reset
   const handleSaveUserForm = async (e) => {
     e.preventDefault();
     if (!validateEmail(formEmail)) { 
@@ -138,7 +136,6 @@ export default function SalesAdminDashboard() {
         
         console.log("📝 Updating user:", targetUserId, { name: formName, email: formEmail });
         
-        // Only update name and email — this works from frontend
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ name: formName, email: formEmail })
@@ -146,7 +143,6 @@ export default function SalesAdminDashboard() {
         
         if (updateError) throw updateError;
 
-        // For password reset — send a reset email instead
         if (formResetPassword.trim().length > 0) {
           if (formResetPassword.trim().length < 6) { 
             alert('Password must be at least 6 characters.'); 
@@ -161,7 +157,6 @@ export default function SalesAdminDashboard() {
           showToast(`User details saved for: ${formEmail}`);
         }
       } else {
-        // Create new user
         console.log("➕ Creating new user:", { email: formEmail, name: formName });
         
         const { error: authError } = await supabase.auth.signUp({
@@ -188,15 +183,12 @@ export default function SalesAdminDashboard() {
   };
 
   // ─── FIXED: Delete User ──────────────────────────────────────────────────
-  // Problem: Only soft-deletes profile, user can still log in
-  // Fix: Add is_active check on login (see login flow)
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Delete this user?')) return;
     
     try {
       console.log("🗑️ Deleting user:", id);
       
-      // First check if user exists
       const { data: user, error: checkError } = await supabase
         .from('profiles')
         .select('id, email, name')
@@ -211,7 +203,6 @@ export default function SalesAdminDashboard() {
       
       console.log("Found user to delete:", user);
       
-      // Soft delete - set is_active to false
       const { error } = await supabase
         .from('profiles')
         .update({ is_active: false })
@@ -262,12 +253,13 @@ export default function SalesAdminDashboard() {
   const clearCsvFilters = () => { setCsvFilterName('');setCsvDatePreset('');setCsvCustomStart('');setCsvCustomEnd('');setCsvFilterStatus('');setSelectedCsvIds([]); };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 4. PDF DOWNLOAD — Grouped by Location
+  // 4. PDF DOWNLOAD — FIXED: Includes Salesperson Column
   // ─────────────────────────────────────────────────────────────────────────
   
   const handleDownloadAIPdf = async () => {
     setPdfGenerating(true);
     try {
+      // ─── FIX 1: Add salesperson to query ──────────────────────────────
       let query = supabase
         .from('sales_leads')
         .select(`
@@ -275,6 +267,7 @@ export default function SalesAdminDashboard() {
           phone,
           location,
           business_line,
+          salesperson,
           stage,
           lead_date,
           created_at,
@@ -313,7 +306,7 @@ export default function SalesAdminDashboard() {
     }
   };
 
-  // Generate PDF from leads data - Grouped by Location
+  // Generate PDF from leads data - FIXED: Includes Salesperson Column
   const generateLeadsPdf = (leads) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) { showToast('Allow pop-ups to download the PDF.'); return; }
@@ -325,14 +318,16 @@ export default function SalesAdminDashboard() {
     const uniqueLeadsMap = new Map();
     leads.forEach(lead => {
       const phoneDigits = (lead.phone || '').replace(/\D/g, '');
-      const matchKey = phoneDigits.slice(-10) || `${lead.name}|${lead.location}`;
+      const matchKey = phoneDigits.slice(-10) || `${lead.name}|${lead.location}|${lead.salesperson}`;
       
       if (!uniqueLeadsMap.has(matchKey)) {
+        // ─── FIX 2: Add salesperson to the dedupe object ──────────────
         uniqueLeadsMap.set(matchKey, {
           name: lead.name || 'Unknown Lead',
           phone: lead.phone || '—',
           location: lead.location || 'Other / Unassigned',
           business_line: lead.business_line || 'General Pipeline',
+          salesperson: lead.salesperson || 'Unassigned',
           stage: lead.stage || 'New Leads',
           date: lead.lead_date || (lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—')
         });
@@ -341,32 +336,35 @@ export default function SalesAdminDashboard() {
 
     const processedLeads = Array.from(uniqueLeadsMap.values());
 
-    // 2. GROUP LEADS BY LOCATION
+    // 2. GROUP LEADS BY LOCATION + SALESPERSON
     const locationGroups = {};
     processedLeads.forEach(lead => {
-      const loc = lead.location || 'Other / Unassigned';
-      if (!locationGroups[loc]) {
-        locationGroups[loc] = [];
+      const groupKey = `${lead.location} — ${lead.salesperson}`;
+      if (!locationGroups[groupKey]) {
+        locationGroups[groupKey] = [];
       }
-      locationGroups[loc].push(lead);
+      locationGroups[groupKey].push(lead);
     });
 
-    // Sort locations
-    const locationOrder = ['Albany', 'Buffalo', 'Rochester', 'NYC Metro'];
-    const sortedLocations = Object.keys(locationGroups).sort((a, b) => {
-      const indexA = locationOrder.indexOf(a);
-      const indexB = locationOrder.indexOf(b);
+    // Sort groups
+    const locationOrder = ['Albany', 'Buffalo', 'Rochester', 'Syracuse', 'NYC Metro'];
+    const sortedGroups = Object.keys(locationGroups).sort((a, b) => {
+      const locA = a.split(' — ')[0];
+      const locB = b.split(' — ')[0];
+      const indexA = locationOrder.indexOf(locA);
+      const indexB = locationOrder.indexOf(locB);
       if (indexA === -1 && indexB === -1) return a.localeCompare(b);
       if (indexA === -1) return 1;
       if (indexB === -1) return -1;
+      if (indexA === indexB) return a.localeCompare(b);
       return indexA - indexB;
     });
 
     // 3. Generate HTML for each location group
     let tablesHtml = '';
 
-    sortedLocations.forEach(location => {
-      const locLeads = locationGroups[location];
+    sortedGroups.forEach(groupKey => {
+      const locLeads = locationGroups[groupKey];
       if (locLeads.length === 0) return;
 
       const totalLeads = locLeads.length;
@@ -374,11 +372,16 @@ export default function SalesAdminDashboard() {
       const newLeads = locLeads.filter(l => l.stage.toLowerCase().includes('new')).length;
       const pendingLeads = locLeads.filter(l => l.stage.toLowerCase().includes('pending')).length;
 
+      const location = groupKey.split(' — ')[0];
+
+      // ─── FIX 3 & 4: Add Salesperson column to the table ──────────────
       const rows = locLeads.map((lead, i) => `
         <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'}">
           <td style="padding: 10px 14px; font-weight: 500; color: #1e293b; border-bottom: 1px solid #e2e8f0;">${lead.name}</td>
           <td style="padding: 10px 14px; color: #475569; font-family: monospace; border-bottom: 1px solid #e2e8f0;">${lead.phone}</td>
+          <td style="padding: 10px 14px; color: #475569; border-bottom: 1px solid #e2e8f0;">${lead.location}</td>
           <td style="padding: 10px 14px; color: #475569; border-bottom: 1px solid #e2e8f0;">${lead.business_line}</td>
+          <td style="padding: 10px 14px; color: #475569; font-weight: 600; border-bottom: 1px solid #e2e8f0;">${lead.salesperson}</td>
           <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">
             <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; ${lead.stage.toLowerCase().includes('book') ? 'background-color: #dbeafe; color: #1e40af;' : lead.stage.toLowerCase().includes('pending') ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #dcfce7; color: #166534;'}">
               ${lead.stage}
@@ -392,14 +395,16 @@ export default function SalesAdminDashboard() {
         'Albany': 'background: linear-gradient(135deg, #11998e, #38ef7d);',
         'Buffalo': 'background: linear-gradient(135deg, #f7971e, #ffd200);',
         'Rochester': 'background: linear-gradient(135deg, #1e3c72, #2a5298);',
+        'Syracuse': 'background: linear-gradient(135deg, #8e2de2, #4a00e0);',
         'NYC Metro': 'background: linear-gradient(135deg, #e44d26, #f39c12);',
       };
       const headerColor = locationColors[location] || 'background: linear-gradient(135deg, #475569, #1e293b);';
 
+      // ─── FIX 3: Add Salesperson column header ────────────────────────
       tablesHtml += `
         <div style="margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
           <div style="${headerColor} padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
-            <h2 style="color: #ffffff; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">📍 ${location.toUpperCase()} REGION</h2>
+            <h2 style="color: #ffffff; font-size: 14px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">📍 ${groupKey}</h2>
             <span style="color: #ffffff; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px;">
               Leads: ${totalLeads} | Booked: ${bookedLeads} | New: ${newLeads} | Pending: ${pendingLeads}
             </span>
@@ -409,7 +414,9 @@ export default function SalesAdminDashboard() {
               <tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
                 <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Name</th>
                 <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Phone</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Location</th>
                 <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Business Line</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Salesperson</th>
                 <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Stage</th>
                 <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Date</th>
               </tr>
@@ -926,7 +933,7 @@ export default function SalesAdminDashboard() {
                   <span className="text-2xl">📥</span>
                   <div>
                     <h3 className="text-white font-black text-sm">Download Lead Summary Report</h3>
-                    <p className="text-emerald-300/70 text-xs mt-0.5">Simple table format — Name · Phone · Location · Business Line · Stage · Date</p>
+                    <p className="text-emerald-300/70 text-xs mt-0.5">Simple table format — Name · Phone · Location · Business Line · Salesperson · Stage · Date</p>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
