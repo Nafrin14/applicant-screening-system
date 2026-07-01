@@ -647,10 +647,10 @@ export default function SalesAdminDashboard() {
   const uniqueStages = ['Appointment Booked','New Leads','Pending Service Completion','General'];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans">
+   <div className="flex-1 flex flex-col overflow-x-hidden ml-72 h-screen overflow-y-auto">
 
       {/* SIDEBAR */}
-      <aside className="w-72 bg-emerald-950 text-white flex flex-col justify-between shrink-0 shadow-2xl border-r border-emerald-900">
+      <aside className="w-72 h-screen fixed top-0 left-0 bg-emerald-950 text-white flex flex-col justify-between shrink-0 shadow-2xl border-r border-emerald-900 z-20">
         <div>
           <div className="p-6 border-b border-emerald-900/60">
             <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
