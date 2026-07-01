@@ -53,6 +53,9 @@ export default function SalesAdminDashboard() {
   const [loading,      setLoading]      = useState(false);
   const [notification, setNotification] = useState('');
 
+  // ── Responsive: Mobile Menu State ────────────────────────────────────────
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // ── User Form ──────────────────────────────────────────────────────────────
   const [isEditing,         setIsEditing]         = useState(false);
   const [targetUserId,      setTargetUserId]      = useState(null);
@@ -343,7 +346,6 @@ export default function SalesAdminDashboard() {
       const matchKey = phoneDigits.slice(-10) || `${lead.name}|${lead.location}|${lead.salesperson}`;
       
       if (!uniqueLeadsMap.has(matchKey)) {
-        // ─── FIX: Normalize stage to a consistent display value ──────────
         const normalizedStage = normalizeStage(lead.stage);
         
         uniqueLeadsMap.set(matchKey, {
@@ -647,10 +649,24 @@ export default function SalesAdminDashboard() {
   const uniqueStages = ['Appointment Booked','New Leads','Pending Service Completion','General'];
 
   return (
-   <div className="flex-1 flex flex-col overflow-x-hidden ml-72 h-screen overflow-y-auto">
+    <div className="flex bg-slate-50 text-slate-800 font-sans">
 
-      {/* SIDEBAR */}
-      <aside className="w-72 h-screen fixed top-0 left-0 bg-emerald-950 text-white flex flex-col justify-between shrink-0 shadow-2xl border-r border-emerald-900 z-20">
+      {/* ─── MOBILE OVERLAY ─────────────────────────────────────────────── */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-10 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* ─── SIDEBAR ────────────────────────────────────────────────────── */}
+      <aside className={`
+        w-72 h-screen fixed top-0 left-0 bg-emerald-950 text-white flex flex-col justify-between
+        shrink-0 shadow-2xl border-r border-emerald-900 z-20
+        transition-transform duration-300
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}>
         <div>
           <div className="p-6 border-b border-emerald-900/60">
             <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
@@ -660,9 +676,24 @@ export default function SalesAdminDashboard() {
             <p className="text-xs text-emerald-300/70 font-medium mt-1">Admin Dashboard Workspace</p>
           </div>
           <nav className="p-4 space-y-1.5">
-            {[['overview','📊 Performance Overview'],['users','👥 Manage All Users'],['csv-vault','📄 View Salesperson Records'],['ai-report','Final Audit Report']].map(([key,label])=>(
-              <button key={key} onClick={()=>setActiveTab(key)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab===key?'bg-white text-emerald-950 shadow-md':'text-emerald-100 hover:bg-emerald-900/50'}`}>
+            {[
+              ['overview','📊 Performance Overview'],
+              ['users','👥 Manage All Users'],
+              ['csv-vault','📄 View Salesperson Records'],
+              ['ai-report','Final Audit Report']
+            ].map(([key,label]) => (
+              <button 
+                key={key} 
+                onClick={() => {
+                  setActiveTab(key);
+                  setMobileMenuOpen(false); // ← Close drawer on mobile
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                  activeTab===key
+                    ? 'bg-white text-emerald-950 shadow-md'
+                    : 'text-emerald-100 hover:bg-emerald-900/50'
+                }`}
+              >
                 {label}
               </button>
             ))}
@@ -670,7 +701,8 @@ export default function SalesAdminDashboard() {
         </div>
         <div className="p-4 border-t border-emerald-900/60">
           <button onClick={handleLogout}
-            className="w-full bg-transparent hover:bg-red-500/10 text-red-300 border border-red-500/20 font-bold text-xs py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">
+            className="w-full bg-transparent hover:bg-red-500/10 text-red-300 border border-red-500/20 font-bold text-xs py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
             </svg>
@@ -679,22 +711,40 @@ export default function SalesAdminDashboard() {
         </div>
       </aside>
 
-      {/* MAIN */}
-      <div className="flex-1 flex flex-col overflow-x-hidden">
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center shadow-sm">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              {activeTab==='user-form'?(isEditing?'Edit User':'Create User'):activeTab==='ai-report'?'Final Audit Report':activeTab==='overview'?'Performance Overview':activeTab==='users'?'Manage Users':'Records '}
-            </h2>
-            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Database Sync: Live</p>
+      {/* ─── MAIN CONTENT ────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-x-hidden lg:ml-72 h-screen overflow-y-auto">
+        <header className="bg-white border-b border-slate-200 px-4 lg:px-8 py-4 lg:py-5 flex justify-between items-center shadow-sm sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            {/* ─── HAMBURGER BUTTON ────────────────────────────────────── */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
+              aria-label="Toggle menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+            </button>
+            
+            <div>
+              <h2 className="text-lg lg:text-2xl font-black text-slate-900 tracking-tight">
+                {activeTab==='user-form' ? (isEditing ? 'Edit User' : 'Create User')
+                  : activeTab==='ai-report' ? 'Final Audit Report'
+                  : activeTab==='overview' ? 'Performance Overview'
+                  : activeTab==='users' ? 'Manage Users'
+                  : 'Records'}
+              </h2>
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Database Sync: Live</p>
+            </div>
           </div>
           <button onClick={fetchDashboardData} disabled={loading}
-            className="text-xs bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition-all border border-slate-200 disabled:opacity-60">
-            {loading?'⏳ Refreshing…':'🔄 Refresh Records'}
+            className="text-xs bg-slate-100 text-slate-700 px-3 lg:px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition-all border border-slate-200 disabled:opacity-60"
+          >
+            {loading ? '⏳ Refreshing…' : '🔄 Refresh Records'}
           </button>
         </header>
 
-        <main className="p-8 max-w-7xl w-full mx-auto space-y-8 flex-1">
+        <main className="p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-6 lg:space-y-8 flex-1">
 
           {/* ── TAB 1: OVERVIEW ─────────────────────────────────────────── */}
           {activeTab==='overview' && (
@@ -706,19 +756,20 @@ export default function SalesAdminDashboard() {
                   {label:"Today's Uploads",    value:todayFiles.length,      color:'text-blue-700'},
                   {label:'Missing Today',      value:unupdatedUsers.length,  color:unupdatedUsers.length>0?'text-red-600':'text-emerald-600'},
                 ].map(s=>(
-                  <div key={s.label} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm text-center">
-                    <div className={`text-3xl font-black ${s.color}`}>{s.value}</div>
-                    <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">{s.label}</div>
+                  <div key={s.label} className="bg-white rounded-2xl p-4 lg:p-5 border border-slate-200 shadow-sm text-center">
+                    <div className={`text-2xl lg:text-3xl font-black ${s.color}`}>{s.value}</div>
+                    <div className="text-[10px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">{s.label}</div>
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                 <div className="lg:col-span-2 space-y-5">
                   <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex gap-3 items-end flex-wrap">
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Filter Users</label>
                       <select value={overviewUserFilter} onChange={e=>setOverviewUserFilter(e.target.value)}
-                        className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                        className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"
+                      >
                         <option value="">All Users</option>
                         <option value="active">Uploaded Today</option>
                         <option value="missing">Missing Upload</option>
@@ -726,12 +777,12 @@ export default function SalesAdminDashboard() {
                     </div>
                     {overviewUserFilter && <button onClick={()=>setOverviewUserFilter('')} className="text-xs text-slate-400 hover:text-slate-600 underline mb-0.5">Clear</button>}
                   </div>
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
                     <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                       <h3 className="font-bold text-sm text-slate-800">Salesperson Activity Today</h3>
                       <span className="text-xs text-slate-400">{overviewUsers.length} shown</span>
                     </div>
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full text-left border-collapse text-xs min-w-[500px]">
                       <thead>
                         <tr className="text-slate-400 text-[11px] font-bold uppercase tracking-widest bg-slate-50/50 border-b border-slate-100">
                           <th className="p-4">Name</th><th className="p-4">Email</th>
@@ -759,7 +810,7 @@ export default function SalesAdminDashboard() {
                       </tbody>
                     </table>
                   </div>
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="bg-white p-4 lg:p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <h4 className="font-bold text-sm text-slate-800 uppercase tracking-wider mb-3">Quick Actions</h4>
                     <div className="flex flex-wrap gap-3">
                       <button onClick={handleOpenCreateMode} className="bg-emerald-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-950">+ Add New User</button>
@@ -778,12 +829,12 @@ export default function SalesAdminDashboard() {
           {/* ── TAB 2: MANAGE USERS ─────────────────────────────────────── */}
           {activeTab==='users' && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-wrap justify-between items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">System User Directory ({salesUsers.length} active)</h3>
                 <button onClick={handleOpenCreateMode} className="bg-emerald-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-950">+ Add New User</button>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
                   <thead>
                     <tr className="text-slate-400 text-[11px] font-bold uppercase tracking-widest bg-slate-50 border-b border-slate-200/60">
                       <th className="p-4">Full Name</th><th className="p-4">Email</th>
@@ -818,7 +869,7 @@ export default function SalesAdminDashboard() {
 
           {/* ── TAB 3: USER FORM ────────────────────────────────────────── */}
           {activeTab==='user-form' && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm max-w-2xl">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm w-full max-w-2xl mx-auto">
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">{isEditing?'Modify User Account':'Create New User Account'}</h3>
               <form onSubmit={handleSaveUserForm} className="space-y-4">
                 <div>
@@ -842,7 +893,7 @@ export default function SalesAdminDashboard() {
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-900 focus:outline-none"/>
                   <p className="text-[10px] text-slate-400 mt-1">Password reset email will be sent to the user</p>
                 </div>}
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <button type="submit" className="bg-emerald-900 text-white font-bold text-xs px-5 py-3 rounded-xl hover:bg-emerald-950">{isEditing?'Save Changes':'Create User'}</button>
                   <button type="button" onClick={()=>setActiveTab('users')} className="bg-slate-100 text-slate-600 font-bold text-xs px-4 py-3 rounded-xl hover:bg-slate-200">Cancel</button>
                 </div>
@@ -856,18 +907,20 @@ export default function SalesAdminDashboard() {
               <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filter CSV Files</h4>
                 <div className="flex flex-wrap gap-3 items-end">
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Salesperson</label>
                     <select value={csvFilterName} onChange={e=>{setCsvFilterName(e.target.value);setSelectedCsvIds([]);}}
-                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"
+                    >
                       <option value="">All Salespeople</option>
                       {uniqueCsvNames.map(n=><option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Date Range</label>
                     <select value={csvDatePreset} onChange={e=>{setCsvDatePreset(e.target.value);setCsvCustomStart('');setCsvCustomEnd('');setSelectedCsvIds([]);}}
-                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"
+                    >
                       <option value="">All Dates</option>
                       <option value="today">Today</option>
                       <option value="yesterday">Yesterday</option>
@@ -877,25 +930,26 @@ export default function SalesAdminDashboard() {
                     </select>
                   </div>
                   {csvDatePreset==='custom' && <>
-                    <div>
+                    <div className="w-full sm:w-auto">
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">From</label>
-                      <input type="date" value={csvCustomStart} onChange={e=>{setCsvCustomStart(e.target.value);setSelectedCsvIds([]);}} className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"/>
+                      <input type="date" value={csvCustomStart} onChange={e=>{setCsvCustomStart(e.target.value);setSelectedCsvIds([]);}} className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"/>
                     </div>
-                    <div>
+                    <div className="w-full sm:w-auto">
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">To</label>
-                      <input type="date" value={csvCustomEnd} onChange={e=>{setCsvCustomEnd(e.target.value);setSelectedCsvIds([]);}} className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"/>
+                      <input type="date" value={csvCustomEnd} onChange={e=>{setCsvCustomEnd(e.target.value);setSelectedCsvIds([]);}} className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"/>
                     </div>
                   </>}
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Upload Status</label>
                     <select value={csvFilterStatus} onChange={e=>{setCsvFilterStatus(e.target.value);setSelectedCsvIds([]);}}
-                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"
+                    >
                       <option value="">All Statuses</option>
                       <option value="success">Success</option>
                       <option value="failed">Failed</option>
                     </select>
                   </div>
-                  <div className="flex gap-2 items-center ml-auto">
+                  <div className="flex flex-wrap gap-2 items-center ml-auto">
                     {(csvFilterName||csvDatePreset||csvFilterStatus) && <button onClick={clearCsvFilters} className="text-xs text-slate-400 hover:text-slate-600 underline">Clear all</button>}
                     {selectedCsvIds.length>0 && <button onClick={handleBulkDeleteCsvs} className="bg-red-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-red-700">🗑 Delete {selectedCsvIds.length}</button>}
                   </div>
@@ -909,14 +963,14 @@ export default function SalesAdminDashboard() {
                   </div>
                 )}
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+                <div className="p-5 bg-slate-50 border-b border-slate-100 flex flex-wrap justify-between items-center gap-2">
                   <div>
                     <h3 className="font-bold text-sm text-slate-800">Salesperson File Upload Index</h3>
                     <p className="text-xs text-slate-400 mt-0.5">{filteredCsvFiles.length} file{filteredCsvFiles.length!==1?'s':''} shown{selectedCsvIds.length>0&&` · ${selectedCsvIds.length} selected`}</p>
                   </div>
                 </div>
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[600px]">
                   <thead>
                     <tr className="text-slate-400 text-[11px] font-bold uppercase tracking-widest bg-slate-50/50 border-b border-slate-100">
                       <th className="p-4 w-10"><input type="checkbox" checked={filteredCsvFiles.length>0&&selectedCsvIds.length===filteredCsvFiles.length} onChange={handleSelectAllCsvs} className="rounded border-slate-300 cursor-pointer"/></th>
@@ -958,12 +1012,13 @@ export default function SalesAdminDashboard() {
                     <p className="text-emerald-300/70 text-xs mt-0.5">Simple table format — Name · Phone · Location · Business Line · Salesperson · Stage · Date</p>
                   </div>
                 </div>
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-4 lg:p-6 space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Salesperson</label>
                       <select value={pdfFilterUser} onChange={e=>setPdfFilterUser(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+                      >
                         <option value="">All Salespeople</option>
                         {salesUsers.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
@@ -971,17 +1026,20 @@ export default function SalesAdminDashboard() {
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">From Date</label>
                       <input type="date" value={pdfFilterStart} onChange={e=>setPdfFilterStart(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"/>
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+                      />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">To Date</label>
                       <input type="date" value={pdfFilterEnd} onChange={e=>setPdfFilterEnd(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"/>
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+                      />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Stage</label>
                       <select value={pdfFilterStage} onChange={e=>setPdfFilterStage(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+                      >
                         <option value="">All Stages</option>
                         {uniqueStages.map(s=><option key={s} value={s}>{s}</option>)}
                       </select>
@@ -992,20 +1050,23 @@ export default function SalesAdminDashboard() {
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-center">Quick Presets:</span>
                     {[['Today','today'],['Yesterday','yesterday'],['Last 7 Days','last7'],['Last Month','lastMonth']].map(([label,preset])=>(
                       <button key={preset} onClick={()=>{ const r=getDateRange(preset); setPdfFilterStart(r.start); setPdfFilterEnd(r.end); }}
-                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 transition-all">
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 transition-all"
+                      >
                         {label}
                       </button>
                     ))}
                     {(pdfFilterStart||pdfFilterEnd||pdfFilterUser||pdfFilterStage) && (
                       <button onClick={()=>{setPdfFilterUser('');setPdfFilterStart('');setPdfFilterEnd('');setPdfFilterStage('');}}
-                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all"
+                      >
                         ✕ Clear Filters
                       </button>
                     )}
                   </div>
 
                   <button onClick={handleDownloadAIPdf} disabled={pdfGenerating}
-                    className="w-full sm:w-auto bg-emerald-900 text-white font-black text-sm px-8 py-3.5 rounded-xl hover:bg-emerald-950 disabled:opacity-60 transition-all flex items-center gap-2">
+                    className="w-full sm:w-auto bg-emerald-900 text-white font-black text-sm px-6 lg:px-8 py-3.5 rounded-xl hover:bg-emerald-950 disabled:opacity-60 transition-all flex items-center justify-center gap-2"
+                  >
                     {pdfGenerating ? '⏳ Processing Leads…' : '📥 Download Lead Report (PDF)'}
                   </button>
                 </div>
@@ -1025,7 +1086,7 @@ export default function SalesAdminDashboard() {
 
               {reportData && !aiGenerating && (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     {[
                       {label:'Total Leads',value:reportData.totalLeads,color:'text-emerald-700',bg:'bg-emerald-50 border-emerald-200'},
                       {label:'New Leads',value:reportData.newLeads,color:'text-slate-900',bg:'bg-slate-50 border-slate-200'},
@@ -1055,7 +1116,7 @@ export default function SalesAdminDashboard() {
 
       {/* Toast */}
       {notification && (
-        <div className="fixed bottom-6 right-6 bg-slate-900 text-white text-xs px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-2.5 z-50">
+        <div className="fixed bottom-4 right-4 lg:bottom-6 lg:right-6 bg-slate-900 text-white text-xs px-4 py-3 lg:px-5 lg:py-3.5 rounded-2xl shadow-2xl flex items-center gap-2.5 z-50 max-w-[90vw] lg:max-w-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"/>
           <p className="font-bold tracking-wide">{notification}</p>
         </div>
