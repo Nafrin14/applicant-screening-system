@@ -55,7 +55,7 @@ const loadProfile = async () => {
 };
 const loadStats = async () => {
   const { data, error } = await supabase
-    .from("uploads")
+   .from("csv_uploads")
     .select("*");
 
   if (error) {

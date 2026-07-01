@@ -15,8 +15,15 @@ import { supabase }
 from "../supabase";
 
 import Sidebar from "../components/Sidebar";
-import { FaEye, FaUserCheck, FaUserTimes, FaCalendarAlt, FaTrashAlt,FaClock }
- from "react-icons/fa";
+import {
+  FaEye,
+  FaUserCheck,
+  FaUserTimes,
+  FaCalendarAlt,
+  FaTrashAlt,
+  FaClock,
+  FaWhatsapp,
+} from "react-icons/fa";
 
 
 
@@ -293,7 +300,56 @@ const bulkUpdateStatus = async (status) => {
     "Candidates.xlsx"
   );
 };
+const shareSelectedResumes = async () => {
+  const selected = applicants
+    .filter((a) => selectedApplicants.includes(a.id))
+    .sort((a, b) => (b.ai_score || 0) - (a.ai_score || 0));
 
+  if (selected.length === 0) {
+    alert("Please select at least one candidate.");
+    return;
+  }
+
+ const message = selected
+  .map(
+    (candidate, index) =>
+      `${index + 1}. ${candidate.name}\n` +
+      `Contact: ${candidate.phone || "N/A"}\n` +
+      `Job: ${candidate.role || "N/A"}`
+  )
+  .join("\n\n");
+
+  try {
+    const response = await fetch("http://localhost:5000/api/share-whatsapp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    body: JSON.stringify({
+  contactName: "Buffalo Sales Estimator Resumes",
+  candidates: selected.map((candidate, index) => ({
+    rank: index + 1,
+    name: candidate.name,
+    phone: candidate.phone,
+    role: candidate.role,
+    resume_url: candidate.resume_url,
+  })),
+}),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error || "WhatsApp automation failed.");
+      return;
+    }
+
+    alert("WhatsApp automation started successfully.");
+  } catch (error) {
+    console.log(error);
+    alert("Backend is not running.");
+  }
+};
   
 
   return (
@@ -420,7 +476,13 @@ const bulkUpdateStatus = async (status) => {
 >
   <FaClock size={14} />
 </button>
-
+<button
+  onClick={shareSelectedResumes}
+  className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg"
+  title="Share Resumes"
+>
+  <FaWhatsapp size={16} />
+</button>
     <button
   onClick={bulkDelete}
   className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg"
