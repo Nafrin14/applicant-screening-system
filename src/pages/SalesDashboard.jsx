@@ -13,6 +13,95 @@ import {
   FaTrash,
 } from "react-icons/fa";
 
+// ─── ACCOUNT MAPPING ──────────────────────────────────────────────────────
+// Map account names to region + salesperson
+const ACCOUNT_MAPPING = {
+  // ROCHESTER — Habil
+  "all pro landscaping":        { region: "Rochester", salesperson: "Habil" },
+  "bills tress":                { region: "Rochester", salesperson: "Habil" },
+  "branch specialist rochester":{ region: "Rochester", salesperson: "Habil" },
+  "kd fence and desks":         { region: "Rochester", salesperson: "Habil" },
+  "kd landscaping rochester":   { region: "Rochester", salesperson: "Habil" },
+  "kd tree service rochester":  { region: "Rochester", salesperson: "Habil" },
+  "marbel landscaping rochester":{ region: "Rochester", salesperson: "Habil" },
+
+  // ALBANY — Rahul
+  "kd tree albany":             { region: "Albany", salesperson: "Rahul" },
+  "kd fence albany":            { region: "Albany", salesperson: "Rahul" },
+  "kd landscaping albany":      { region: "Albany", salesperson: "Rahul" },
+
+  // SYRACUSE — Aqsa
+  "kd tree syracuse":           { region: "Syracuse", salesperson: "Aqsa" },
+  "kd fence syracuse":          { region: "Syracuse", salesperson: "Aqsa" },
+  "kd landscaping syracuse":    { region: "Syracuse", salesperson: "Aqsa" },
+  "snowiest city tree service": { region: "Syracuse", salesperson: "Aqsa" },
+  "syracuse tree service":      { region: "Syracuse", salesperson: "Aqsa" },
+
+  // BUFFALO — Anusha
+  "soil & seed landscaping":    { region: "Buffalo", salesperson: "Anusha" },
+  "all pro fence":              { region: "Buffalo", salesperson: "Anusha" },
+  "redefine landscaping buffalo":{ region: "Buffalo", salesperson: "Anusha" },
+  "branch specialists buffalo": { region: "Buffalo", salesperson: "Anusha" },
+
+  // BUFFALO — Raj
+  "kd tree buffalo":            { region: "Buffalo", salesperson: "Raj" },
+  "kd fence buffalo":           { region: "Buffalo", salesperson: "Raj" },
+  "kd pool builders":           { region: "Buffalo", salesperson: "Raj" },
+
+  // BUFFALO — Chirag
+  "kd landscaping and snow plowing": { region: "Buffalo", salesperson: "Chirag" },
+
+  // ERIE — Vidhya
+  "kd landscaping erie":        { region: "Erie", salesperson: "Vidhya" },
+
+  // BELMONT/MOORE — Shakeel
+  "kd tree belmont":            { region: "Belmont", salesperson: "Shakeel" },
+  "kd tree service moore":      { region: "Moore", salesperson: "Shakeel" },
+};
+
+// Fallback region-only lookup if account name match fails
+const ACCOUNT_OWNERS = {
+  Albany:    "Rahul",
+  Rochester: "Habil",
+  Syracuse:  "Aqsa",
+  Buffalo:   "Anusha",
+};
+
+// ─── HELPER: Match filename to account ──────────────────────────────────
+function lookupAccount(fileName) {
+  const cleanName = fileName.toLowerCase().replace(/\.csv$/, '');
+  
+  // Try exact substring match against known account names
+  for (const [key, value] of Object.entries(ACCOUNT_MAPPING)) {
+    if (cleanName.includes(key)) {
+      return { accountName: key, ...value };
+    }
+  }
+  
+  // If no match, try to detect by city name
+  let region = "Other / Unassigned";
+  let salesperson = "Unassigned";
+  
+  if (cleanName.includes("albany")) {
+    region = "Albany";
+    salesperson = ACCOUNT_OWNERS["Albany"];
+  } else if (cleanName.includes("rochester")) {
+    region = "Rochester";
+    salesperson = ACCOUNT_OWNERS["Rochester"];
+  } else if (cleanName.includes("syracuse")) {
+    region = "Syracuse";
+    salesperson = ACCOUNT_OWNERS["Syracuse"];
+  } else if (cleanName.includes("buffalo")) {
+    region = "Buffalo";
+    salesperson = ACCOUNT_OWNERS["Buffalo"];
+  } else if (cleanName.includes("nyc") || cleanName.includes("new york")) {
+    region = "NYC Metro";
+    salesperson = "Unassigned";
+  }
+  
+  return { accountName: cleanName, region, salesperson };
+}
+
 export default function SalesDashboard() {
   const fileInputRef = useRef(null);
  
@@ -118,36 +207,40 @@ export default function SalesDashboard() {
               console.log("STEP 2 - Headers:", Object.keys(results.data[0] || {}));
               console.log("STEP 3 - First row:", results.data[0]);
 
-              // Extract location and business line FROM THE FILENAME
+              // ─── FIX: Use lookupAccount to get region and salesperson ───
               const fileName = file.name.toLowerCase();
+              const match = lookupAccount(fileName);
+              
+              const location = match?.region || "Other / Unassigned";
+              const salesperson = match?.salesperson || "Unassigned";
 
-              let location = "Other / Unassigned";
-              if (fileName.includes("albany")) {
-                location = "Albany";
-              } else if (fileName.includes("rochester")) {
-                location = "Rochester";
-              } else if (fileName.includes("buffalo")) {
-                location = "Buffalo";
-              } else if (fileName.includes("nyc") || fileName.includes("new york")) {
-                location = "NYC Metro";
-              }
+              console.log("STEP 3.5 - Matched account:", match);
 
+              // Determine business line from filename
               let businessLine = "General Pipeline";
               if (fileName.includes("fence") || fileName.includes("fencing")) {
                 businessLine = "Fencing";
               } else if (fileName.includes("tree") || fileName.includes("branch")) {
                 businessLine = "Tree Service";
-              } else if (fileName.includes("landscaping")) {
+              } else if (fileName.includes("landscaping") || fileName.includes("landscap")) {
                 businessLine = "Landscaping";
+              } else if (fileName.includes("pool")) {
+                businessLine = "Pool Building";
+              } else if (fileName.includes("power wash") || fileName.includes("powerwash")) {
+                businessLine = "Power Washing";
+              } else if (fileName.includes("snow") || fileName.includes("plow")) {
+                businessLine = "Snow Removal";
               }
 
+              // ─── FIX: Add salesperson to leadRows ──────────────────────
               const leadRows = results.data.map((row) => ({
                 user_id: user.id,
                 csv_upload_id: csvUploadId,
                 name: row["Opportunity name"] || row["Primary Contact name"] || row["Name"] || row["name"] || "",
                 phone: row["Phone number"] || row["Phone"] || row["phone"] || "",
-                location: location, // from filename
-                business_line: businessLine, // from filename
+                location: location,
+                business_line: businessLine,
+                salesperson: salesperson, // ✅ NEW: Store salesperson
                 stage: row["Stage"] || row["stage"] || "",
                 lead_date: row["Created on"] || row["Date"] || row["date"] || "",
               }));
