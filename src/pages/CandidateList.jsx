@@ -15,8 +15,15 @@ import { supabase }
 from "../supabase";
 
 import Sidebar from "../components/Sidebar";
-import { FaEye, FaUserCheck, FaUserTimes, FaCalendarAlt, FaTrashAlt,FaClock }
- from "react-icons/fa";
+import {
+  FaEye,
+  FaUserCheck,
+  FaUserTimes,
+  FaCalendarAlt,
+  FaTrashAlt,
+  FaClock,
+  FaWhatsapp,
+} from "react-icons/fa";
 
 
 
@@ -37,6 +44,7 @@ function CandidateList() {
 
 const [selectedApplicants, setSelectedApplicants] = useState([]);
 const [statusFilter, setStatusFilter] = useState("All");
+const [selectedDate, setSelectedDate] = useState("");
 
   useEffect(() => {
     fetchApplicants();
@@ -50,12 +58,8 @@ await supabase
   .from("applicants")
   .select("*")
   .eq("source", "Manual")
-  .order(
-    "ai_score",
-    {
-      ascending: false,
-    }
-  );
+ .order("created_at", { ascending: false })
+.order("ai_score", { ascending: false });
 
   if (error) {
 
@@ -68,7 +72,6 @@ await supabase
   }
 };
 const filteredApplicants = applicants.filter((applicant) => {
-
   const matchesSearch =
     applicant.name
       ?.toLowerCase()
@@ -79,11 +82,60 @@ const filteredApplicants = applicants.filter((applicant) => {
       ? true
       : applicant.status === statusFilter;
 
-  return matchesSearch && matchesStatus;
+  const matchesDate =
+    !selectedDate ||
+    new Date(applicant.created_at)
+      .toISOString()
+      .slice(0, 10) === selectedDate;
 
+  return (
+    matchesSearch &&
+    matchesStatus &&
+    matchesDate
+  );
 });
 
-    
+    const getDateLabel = (date) => {
+  if (!date) return "No Date";
+
+  const d = new Date(date);
+
+  if (isNaN(d.getTime())) {
+    return "No Date";
+  }
+
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  if (d.toDateString() === today.toDateString()) {
+    return "Today";
+  }
+
+  if (d.toDateString() === yesterday.toDateString()) {
+    return "Yesterday";
+  }
+
+  return d.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const groupedApplicants = filteredApplicants.reduce((groups, applicant) => {
+ const label = getDateLabel(
+  applicant.created_at || applicant.createdAt || applicant.uploaded_at
+);
+
+  if (!groups[label]) {
+    groups[label] = [];
+  }
+
+  groups[label].push(applicant);
+
+  return groups;
+}, {});
   
 
   /* DELETE */
@@ -248,7 +300,56 @@ const bulkUpdateStatus = async (status) => {
     "Candidates.xlsx"
   );
 };
+const shareSelectedResumes = async () => {
+  const selected = applicants
+    .filter((a) => selectedApplicants.includes(a.id))
+    .sort((a, b) => (b.ai_score || 0) - (a.ai_score || 0));
 
+  if (selected.length === 0) {
+    alert("Please select at least one candidate.");
+    return;
+  }
+
+ const message = selected
+  .map(
+    (candidate, index) =>
+      `${index + 1}. ${candidate.name}\n` +
+      `Contact: ${candidate.phone || "N/A"}\n` +
+      `Job: ${candidate.role || "N/A"}`
+  )
+  .join("\n\n");
+
+  try {
+    const response = await fetch("http://localhost:5000/api/share-whatsapp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    body: JSON.stringify({
+  contactName: "Buffalo Sales Estimator Resumes",
+  candidates: selected.map((candidate, index) => ({
+    rank: index + 1,
+    name: candidate.name,
+    phone: candidate.phone,
+    role: candidate.role,
+    resume_url: candidate.resume_url,
+  })),
+}),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      alert(result.error || "WhatsApp automation failed.");
+      return;
+    }
+
+    alert("WhatsApp automation started successfully.");
+  } catch (error) {
+    console.log(error);
+    alert("Backend is not running.");
+  }
+};
   
 
   return (
@@ -375,7 +476,13 @@ const bulkUpdateStatus = async (status) => {
 >
   <FaClock size={14} />
 </button>
-
+<button
+  onClick={shareSelectedResumes}
+  className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg"
+  title="Share Resumes"
+>
+  <FaWhatsapp size={16} />
+</button>
     <button
   onClick={bulkDelete}
   className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg"
@@ -392,6 +499,7 @@ const bulkUpdateStatus = async (status) => {
 
   <select
     value={statusFilter}
+    
     onChange={(e) => setStatusFilter(e.target.value)}
     className="bg-slate-100 border border-gray-200 px-4 py-3 rounded-2xl outline-none w-full md:w-auto"
   >
@@ -403,6 +511,19 @@ const bulkUpdateStatus = async (status) => {
       Interview Scheduled
     </option>
   </select>
+  <input
+  type="date"
+  value={selectedDate}
+  onChange={(e) => setSelectedDate(e.target.value)}
+  className="bg-slate-100 border border-gray-200 px-4 py-3 rounded-2xl outline-none w-full md:w-auto"
+/>
+
+<button
+  onClick={() => setSelectedDate("")}
+  className="bg-gray-200 hover:bg-gray-300 px-4 py-3 rounded-2xl"
+>
+  Clear
+</button>
 
   <input
     type="text"
@@ -467,8 +588,18 @@ const bulkUpdateStatus = async (status) => {
 
               <tbody>
 
-                {filteredApplicants.map(
-  (applicant, index) => (
+                {Object.entries(groupedApplicants).map(([date, list]) => (
+  <React.Fragment key={date}>
+    <tr>
+      <td
+        colSpan="7"
+        className="bg-slate-100 py-3 px-4 text-center text-sm font-bold text-slate-600"
+      >
+        ───── {date} ─────
+      </td>
+    </tr>
+
+    {list.map((applicant, index) => (
                   <tr
   key={applicant.id}
   className={`border-b border-gray-100 transition ${
@@ -705,7 +836,9 @@ const bulkUpdateStatus = async (status) => {
 </td>
                   </tr>
 
-                ))}
+                    ))}
+  </React.Fragment>
+))}
 
               </tbody>
 

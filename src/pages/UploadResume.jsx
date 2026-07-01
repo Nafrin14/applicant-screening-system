@@ -6,8 +6,9 @@ import Sidebar from "../components/Sidebar";
 
 
 import * as pdfjsLib from "pdfjs-dist";
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min?url";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
   
 import {
   FaCloudUploadAlt,
@@ -199,19 +200,25 @@ const email =
         /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
       )?.[0] || "Not Found";
 
-   /* PHONE */
+   console.log(fileText);
 
-const phoneMatches = fileText.match(
-  /(?:\+?\d[\d\s().-]{7,20}\d)/g
-);
+/* PHONE */
 
 let phone = "--";
 
-if (phoneMatches) {
-  phone = phoneMatches.find((num) => {
-    const digits = num.replace(/\D/g, "");
-    return digits.length >= 9 && digits.length <= 15;
-  }) || "--";
+const phoneMatches =
+  fileText.match(/(?:\+?\d[\d\s()-]{8,25})/g) || [];
+
+for (const num of phoneMatches) {
+  const digits = num.replace(/\D/g, "");
+
+  if (digits.length >= 9 && digits.length <= 15) {
+    phone = num.match(
+      /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}|(?:\+?\d[\d\s()-]{8,20})/
+    )[0];
+
+    break;
+  }
 }
 
 const experienceMatch =
@@ -296,6 +303,7 @@ const {
               why_suitable:aiResponse?.whySuitable || "",
               recommended_role:aiResponse?.recommendedRole || "",
               resume_url: publicUrl,
+              created_at: new Date().toISOString(),
             },
           ]);
 

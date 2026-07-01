@@ -111,17 +111,17 @@ console.log("Delete Error:", error);
 });
 
   return (
-   <div className="min-h-screen bg-[#021b16] text-white">
+ <div className="min-h-screen w-screen bg-[#021b16] text-white overflow-x-hidden">
   <SalesSidebar />
 
-  <main className="lg:ml-72 min-h-screen">
+<main className="min-h-screen w-screen lg:ml-72 lg:w-[calc(100vw-18rem)]">
     <SalesNavbar
   title="Upload History"
   subtitle="View all CSV files uploaded by your account."
 />
 
-    <div className="p-6 md:p-10">
-      <div className="max-w-[1200px] mx-auto">
+  <div className="px-3 py-6 md:p-10">
+     <div className="w-full">
        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
 
@@ -169,10 +169,10 @@ console.log("Delete Error:", error);
             />
 
           </div>
-          <div className="flex flex-wrap gap-3 mt-5">
+         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
   <button
     onClick={() => setFilter("all")}
-    className={`px-5 py-2 rounded-xl ${
+   className={`w-full h-11 rounded-xl text-sm font-medium ${
       filter === "all"
         ? "bg-emerald-500 text-white"
         : "bg-black/25 border border-white/10 text-white/60"
@@ -183,7 +183,7 @@ console.log("Delete Error:", error);
 
   <button
     onClick={() => setFilter("today")}
-    className={`px-5 py-2 rounded-xl ${
+   className={`w-full h-11 rounded-xl text-sm font-medium ${
       filter === "today"
         ? "bg-emerald-500 text-white"
         : "bg-black/25 border border-white/10 text-white/60"
@@ -194,7 +194,7 @@ console.log("Delete Error:", error);
 
   <button
     onClick={() => setFilter("week")}
-    className={`px-5 py-2 rounded-xl ${
+   className={`w-full h-11 rounded-xl text-sm font-medium ${
       filter === "week"
         ? "bg-emerald-500 text-white"
         : "bg-black/25 border border-white/10 text-white/60"
@@ -205,7 +205,7 @@ console.log("Delete Error:", error);
 
   <button
     onClick={() => setFilter("month")}
-    className={`px-5 py-2 rounded-xl ${
+   className={`w-full h-11 rounded-xl text-sm font-medium ${
       filter === "month"
         ? "bg-emerald-500 text-white"
         : "bg-black/25 border border-white/10 text-white/60"

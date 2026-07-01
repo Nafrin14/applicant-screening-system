@@ -71,9 +71,10 @@ export default function SalesNavbar({
   };
 
   return (
-    <header className="sticky top-0 z-20 h-24 bg-[#021b16]/80 backdrop-blur-xl border-b border-emerald-400/20 px-6 md:px-10 flex items-center justify-between">
-      <div>
-        <h1 className="text-3xl font-black text-white">
+  <header className="sticky top-0 z-20 min-h-24 w-full bg-[#021b16]/80 backdrop-blur-xl border-b
+   border-emerald-400/20 pl-16 pr-4 md:px-10 flex items-center justify-between gap-3">
+     <div className="min-w-0">
+       <h1 className="text-2xl md:text-3xl font-black text-white truncate">
           {title}
         </h1>
 
