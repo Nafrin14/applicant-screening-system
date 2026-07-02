@@ -173,7 +173,7 @@ body: uploads.map((item) => [
   };
 
   return (
-    <div className="min-h-screen bg-[#021b16] text-white">
+    <div className="min-h-screen bg-white text-slate-900">
       <SalesSidebar />
 
       <main className="relative z-10 lg:ml-72 min-h-screen">
@@ -184,7 +184,7 @@ body: uploads.map((item) => [
         />
 
         <div className="px-6 py-7 md:px-10">
-         <section className="dashboard-card mb-6">
+        <section className="dashboard-card mb-8">
 <div className="flex flex-col gap-5">
 <div className="flex flex-wrap gap-3">
 
@@ -235,9 +235,9 @@ body: uploads.map((item) => [
    
 
 
-<div className="flex flex-wrap lg:flex-nowrap items-end gap-4">
+<div className="flex flex-wrap lg:flex-nowrap items-end gap-5 mt-2">
       <div>
-        <label className="block text-sm text-white/60 mb-2">
+        <label className="block text-sm font-medium text-slate-600 mb-2">
           From Date
         </label>
 
@@ -245,12 +245,12 @@ body: uploads.map((item) => [
           type="date"
           value={fromDate}
           onChange={(e) => setFromDate(e.target.value)}
-          className="bg-[#0a2721] border border-white/10 rounded-xl px-4 py-3 text-white outline-none"
+          className="h-14 bg-white border border-gray-300 rounded-xl px-4 text-slate-700 outline-none focus:border-emerald-500 shadow-sm"
         />
       </div>
 
       <div>
-        <label className="block text-sm text-white/60 mb-2">
+       <label className="block text-sm font-medium text-slate-600 mb-2">
           To Date
         </label>
 
@@ -258,13 +258,13 @@ body: uploads.map((item) => [
           type="date"
           value={toDate}
           onChange={(e) => setToDate(e.target.value)}
-          className="bg-[#0a2721] border border-white/10 rounded-xl px-4 py-3 text-white outline-none"
+          className="h-14 bg-white border border-gray-300 rounded-xl px-4 text-slate-700 outline-none focus:border-emerald-500 shadow-sm"
         />
       </div>
 
       <button
         onClick={loadReports}
-        className="bg-emerald-500 hover:bg-emerald-600 rounded-xl px-8 py-3 font-bold text-white"
+        className="h-14 px-8 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-lg hover:shadow-xl transition-all"
       >
         Generate Report
       </button>
@@ -288,21 +288,21 @@ body: uploads.map((item) => [
           </div>
 
          <div className="grid xl:grid-cols-4 gap-6">
-            <section className="dashboard-card xl:col-span-3">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
+           <section className="dashboard-card xl:col-span-3 min-h-[420px]">
+           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 pb-5 border-b border-gray-200">
               <h2 className="text-xl font-bold">Upload Details</h2>
 
               <div className="flex gap-3">
                 <button
                   onClick={downloadPDF}
-                  className="rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 px-4 py-2 font-bold flex items-center gap-2"
+                 className="rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 px-4 py-2 font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
                 >
                   <FaDownload /> PDF
                 </button>
 
                 <button
                   onClick={printReport}
-                  className="rounded-xl bg-blue-500/15 border border-blue-400/30 text-blue-300 px-4 py-2 font-bold flex items-center gap-2"
+                 className="rounded-xl bg-blue-500 text-white hover:bg-blue-600 px-4 py-2 font-bold flex items-center gap-2 shadow-md hover:shadow-lg transition-all"
                 >
                   <FaPrint /> Print
                 </button>
@@ -310,20 +310,20 @@ body: uploads.map((item) => [
             </div>
 
             {loading ? (
-              <p className="text-white/60">Loading...</p>
+              <p className="text-slate-600">Loading...</p>
             ) : uploads.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-5xl mb-3">📄</div>
-                <p className="text-white/50">No upload records found.</p>
+                <p className="text-slate-500">No upload records found.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                  <thead className="text-white/50 border-b border-white/10">
+                  <thead className="bg-slate-50 text-slate-700">
                     <tr>
-                      <th className="py-3">File Name</th>
-                      <th className="py-3">Uploaded Date</th>
-                      <th className="py-3">Status</th>
+                     <th className="py-4 px-4 font-semibold">File Name</th>
+                     <th className="py-4 px-4 font-semibold">Uploaded Date</th>
+                      <th className="py-4 px-4 font-semibold">Status</th>
                     </tr>
                   </thead>
 
@@ -331,14 +331,14 @@ body: uploads.map((item) => [
                     {uploads.map((item) => (
                       <tr
                         key={item.id}
-                        className="border-b border-white/10 hover:bg-white/5"
+                      className="border-b border-gray-100 hover:bg-slate-50 transition"
                       >
-                        <td className="py-4 font-bold">📄 {item.file_name}</td>
-                        <td className="py-4 text-white/60">
+                       <td className="py-4 px-4 font-bold">📄 {item.file_name}</td>
+                       <td className="py-4 px-4 text-slate-500">
                           {new Date(item.created_at).toLocaleString()}
                         </td>
-                        <td className="py-4">
-                          <span className="px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-sm font-bold">
+                        <td className="py-4 px-4">
+                          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-sm font-bold">
                             Completed
                           </span>
                         </td>
@@ -395,9 +395,9 @@ function FilterButton({ label, value, filter, setFilter }) {
     <button
       onClick={() => setFilter(value)}
       className={`h-11 min-w-[130px] px-5 rounded-xl text-sm font-bold transition whitespace-nowrap ${
-        filter === value
-          ? "bg-emerald-500 text-white"
-          : "bg-black/25 border border-white/10 text-white/70 hover:bg-white/10"
+       filter === value
+  ? "bg-emerald-500 text-white shadow-lg"
+  : "bg-white border border-gray-300 text-slate-700 hover:bg-emerald-50"
       }`}
     >
       {label}
@@ -407,17 +407,32 @@ function FilterButton({ label, value, filter, setFilter }) {
 
 function ReportCard({ title, value, icon, danger }) {
   return (
-    <div className="dashboard-card">
-      <div className="flex items-center justify-between">
-        <p className="text-white/55 font-semibold">{title}</p>
-        <span className={danger ? "text-red-300 text-2xl" : "text-emerald-300 text-2xl"}>
-          {icon}
-        </span>
-      </div>
+   <div className="dashboard-card min-h-[150px]">
+     <div className="flex items-start justify-between">
+        <div>
+         <p className="text-slate-500 text-xs font-semibold uppercase tracking-wide">
+            {title}
+          </p>
 
-      <h2 className={danger ? "mt-5 text-3xl font-black text-red-300" : "mt-5 text-3xl font-black text-emerald-300"}>
-        {value}
-      </h2>
+          <h2
+           className={`mt-2 text-4xl font-extrabold ${
+              danger ? "text-red-500" : "text-emerald-600"
+            }`}
+          >
+            {value}
+          </h2>
+        </div>
+
+        <div
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${
+            danger
+              ? "bg-red-100 text-red-500"
+              : "bg-emerald-100 text-emerald-600"
+          }`}
+        >
+          {icon}
+        </div>
+      </div>
     </div>
   );
 }

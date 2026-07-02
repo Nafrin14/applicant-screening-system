@@ -28,11 +28,11 @@ export default function CalendarTracker({ markedDates = [] }) {
   };
 
   return (
-    <div className="rounded-3xl bg-white/8 border border-emerald-400/20 backdrop-blur-xl p-6 shadow-xl">
+  <div className="h-full rounded-3xl bg-white border border-gray-200 p-6 shadow-lg">
       <div className="flex items-center justify-between mb-5">
-        <h3 className="text-xl font-bold text-white">
+       <h3 className="text-xl font-bold text-slate-900">
           CSV Upload Tracker
-          <span className="text-white/50 text-sm ml-2">
+         <span className="text-slate-500 text-sm ml-2">
             ({monthLabel})
           </span>
         </h3>
@@ -40,14 +40,14 @@ export default function CalendarTracker({ markedDates = [] }) {
         <div className="flex gap-2">
           <button
             onClick={goPrevMonth}
-            className="px-3 py-1 rounded-lg bg-black/30 text-white"
+           className="px-3 py-1 rounded-lg bg-gray-100 border border-gray-300 text-slate-700 hover:bg-gray-200"
           >
             ◀
           </button>
 
           <button
             onClick={goNextMonth}
-            className="px-3 py-1 rounded-lg bg-black/30 text-white"
+           className="px-3 py-1 rounded-lg bg-gray-100 border border-gray-300 text-slate-700 hover:bg-gray-200"
           >
             ▶
           </button>
@@ -58,7 +58,7 @@ export default function CalendarTracker({ markedDates = [] }) {
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
           <div
             key={day}
-            className="text-sm font-bold text-emerald-300/80"
+           className="text-sm font-bold text-emerald-600"
           >
             {day}
           </div>
@@ -80,9 +80,9 @@ export default function CalendarTracker({ markedDates = [] }) {
             <div
               key={day}
               className={`rounded-xl py-3 text-sm font-bold transition ${
-                isMarked
-                  ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/25"
-                  : "bg-black/25 text-white/70 border border-white/10"
+               isMarked
+  ? "bg-emerald-600 text-white shadow-md"
+  : "bg-gray-100 text-slate-700 border border-gray-200 hover:bg-gray-200"
               }`}
             >
               {day}

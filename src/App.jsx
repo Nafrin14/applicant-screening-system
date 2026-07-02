@@ -28,6 +28,7 @@ import UploadHistory from "./pages/UploadHistory";
 import SalesReports from "./pages/SalesReports";
 import Notifications from "./pages/Notifications";
 import SalesProfile from "./pages/SalesProfile";
+import ComingSoon from "./pages/ComingSoon";
 // Components Layout wrappers
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -42,6 +43,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/coming-soon" element={<ComingSoon />} />
         <Route path="/apply/:id" element={<ApplyPage />} />
         
         <Route path="/test" element={<h1>Test Page Working</h1>} />

@@ -71,36 +71,36 @@ export default function SalesNavbar({
   };
 
   return (
-  <header className="sticky top-0 z-20 min-h-24 w-full bg-[#021b16]/80 backdrop-blur-xl border-b
+  <header className="sticky top-0 z-20 min-h-24 w-full bg-white backdrop-blur-xl border-b
    border-emerald-400/20 pl-16 pr-4 md:px-10 flex items-center justify-between gap-3">
      <div className="min-w-0">
-       <h1 className="text-2xl md:text-3xl font-black text-white truncate">
+       <h1 className="text-2xl md:text-3xl font-black text-slate-900 truncate">
           {title}
         </h1>
 
         {subtitle && (
-          <p className="text-white/45 text-sm mt-1">
+          <p className="text-slate-900/45 text-sm mt-1">
             {subtitle}
           </p>
         )}
       </div>
 
       <div className="flex items-center gap-5">
-        <div className="hidden lg:flex flex-col rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2">
-          <div className="flex items-center gap-2 text-white">
+       <div className="hidden lg:flex flex-col rounded-xl border border-gray-200 bg-white px-5 py-2 shadow-md">
+         <div className="flex items-center gap-2 text-slate-900 font-bold">
             <span>{currentDateTime.toLocaleDateString("en-GB")}</span>
             <span>|</span>
             <span>{currentDateTime.toLocaleTimeString()}</span>
           </div>
 
-          <p className="text-xs text-emerald-300 mt-1">
+         <p className="text-xs text-emerald-600 font-semibold mt-1">
             Last Login: {lastLogin}
           </p>
         </div>
 
         <div className="relative">
           <button
-            className="relative text-xl text-white/70 hover:text-white"
+           className="relative text-xl text-slate-700 hover:text-emerald-600"
             onClick={() => setShowNotifications(!showNotifications)}
           >
            <FaBell className={!uploadedToday ? "bell-shake" : ""} />
@@ -154,7 +154,7 @@ export default function SalesNavbar({
             )}
           </div>
 
-          <span className="hidden md:block font-semibold text-white">
+          <span className="hidden md:block font-semibold text-slate-900">
             {userName}
           </span>
         </div>

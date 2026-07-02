@@ -362,7 +362,7 @@ overflow-hidden">
       Don&apos;t have an account?{" "}
       <button
         type="button"
-        onClick={() => navigate("/signup")}
+       onClick={() => navigate("/coming-soon")}
         className="text-yellow-400 font-bold hover:underline"
       >
         Contact Admin

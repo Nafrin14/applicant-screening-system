@@ -337,14 +337,15 @@ function Jobs() {
                     : "flex flex-col gap-4"
                 }
               >
-                {viewMode === "list" && (
-                  <div className="flex items-center justify-between px-6 py-4 bg-slate-50/80 rounded-[20px] text-xs uppercase tracking-wider font-bold text-slate-500 border border-slate-100/80 shadow-sm mb-2">
-                    <div className="w-1/3 pl-4">Category</div>
-                    <div className="w-1/6 text-center">Applicants</div>
-                    <div className="w-1/6 text-center">Status</div>
-                    <div className="w-1/3 text-right pr-4">Actions</div>
-                  </div>
-                )}
+                
+                 {viewMode === "list" && (
+  <div className="hidden md:flex items-center justify-between px-6 py-4 bg-slate-50/80 rounded-[20px] text-xs uppercase tracking-wider font-bold text-slate-500 border border-slate-100/80 shadow-sm mb-2">
+    <div className="w-1/3 pl-4">Category</div>
+    <div className="w-1/6 text-center">Applicants</div>
+    <div className="w-1/6 text-center">Status</div>
+    <div className="w-1/3 text-right pr-4">Actions</div>
+  </div>
+)}
                 {sortedJobs.map((job, index) => (
                   <div
                     key={job.id}
@@ -352,7 +353,7 @@ function Jobs() {
                     className={`relative bg-white border border-slate-100 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] cursor-pointer hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-indigo-100 transition-all duration-300 group ${
                       viewMode === "grid"
                         ? "rounded-[28px] p-6 hover:-translate-y-1 flex flex-col"
-                        : "rounded-[24px] px-6 py-5 flex items-center justify-between gap-4"
+                       : "rounded-[24px] px-6 py-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
                     }`}
                   >
                     <button
@@ -400,7 +401,7 @@ function Jobs() {
                       </>
                     ) : (
                       <>
-                        <div className="w-1/3 flex items-center gap-4">
+                       <div className="w-full md:w-1/3 flex items-center gap-4">
                           <div
                             className={`rounded-2xl flex items-center justify-center shadow-sm border border-white/50 w-12 h-12 text-xl shrink-0 ${
                               index % 4 === 0
@@ -419,7 +420,7 @@ function Jobs() {
                           </h2>
                         </div>
 
-                        <div className="w-1/6 flex justify-center">
+                       <div className="w-full md:w-1/6 flex justify-start md:justify-center mt-3 md:mt-0">
                           <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl shadow-sm">
                             <FaUsers className="text-slate-400 text-xs" />
                             <span className="font-bold text-slate-700 text-sm">
@@ -428,7 +429,7 @@ function Jobs() {
                           </div>
                         </div>
 
-                        <div className="w-1/6 flex justify-center">
+                       <div className="w-full md:w-1/6 flex justify-start md:justify-center mt-3 md:mt-0">
                           {getApplicantsCount(job.id) > 0 ? (
                             <span className="bg-emerald-50 text-emerald-600 border border-emerald-100/50 shadow-sm px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -441,10 +442,12 @@ function Jobs() {
                           )}
                         </div>
 
-                        <div className="w-1/3 flex items-center justify-end">
-                          <span className="inline-flex items-center gap-2 text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transition-all px-6 py-3 rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-1">
-                            View Applicants
-                          </span>
+                       <div className="w-full md:w-1/3 flex justify-start md:justify-end mt-4 md:mt-0">
+                         <button
+  className="w-full md:w-auto inline-flex justify-center items-center gap-2 text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-3 rounded-2xl shadow-lg transition-all"
+>
+  View Applicants
+</button>
                         </div>
                       </>
                     )}

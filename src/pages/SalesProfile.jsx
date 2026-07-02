@@ -192,7 +192,7 @@ const uploadProfileImage = async (file) => {
   alert("Profile image updated successfully.");
 };
   return (
-    <div className="min-h-screen bg-[#021b16] text-white">
+    <div className="min-h-screen bg-white text-slate-900">
       <SalesSidebar />
 
       <main className="relative z-10 lg:ml-72 min-h-screen">
@@ -242,27 +242,27 @@ const uploadProfileImage = async (file) => {
   {profile.name || "User"}
 </h2>
 
-          <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-sm">
+          <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold text-sm">
            {profile.role || "User"}
           </span>
 
         </div>
 
-        <p className="text-white/60 mt-3">
+        <p className="text-slate-600 mt-3">
          📧 {profile.email}
         </p>
 
-        <p className="text-white/60 mt-2">
+        <p className="text-slate-600 mt-2">
          📞 {profile.phone || "No phone added"}
         </p>
 
         <div className="flex flex-wrap gap-6 mt-6">
 
-          <p className="text-white/60">
+          <p className="text-slate-600">
            📅 Joined : {formatJoinedDate(profile.created_at)}
           </p>
 
-          <p className="text-white/60">
+          <p className="text-slate-600">
            🕒 Last Login : {formatLastLogin(profile.last_login)}
           </p>
 
@@ -286,28 +286,28 @@ const uploadProfileImage = async (file) => {
 
       <div className="flex justify-between">
         <span>Total Uploads</span>
-        <span className="font-bold text-emerald-300">
+        <span className="font-bold text-emerald-600">
          {stats.totalUploads}
         </span>
       </div>
 
       <div className="flex justify-between">
         <span>Total Reports</span>
-        <span className="font-bold text-emerald-300">
+        <span className="font-bold text-emerald-600">
          {stats.totalReports}
         </span>
       </div>
 
       <div className="flex justify-between">
         <span>Success Rate</span>
-        <span className="font-bold text-emerald-300">
+        <span className="font-bold text-emerald-600">
          {stats.successRate}%
         </span>
       </div>
 
       <div className="flex justify-between">
         <span>Member Since</span>
-        <span className="font-bold text-emerald-300">
+        <span className="font-bold text-emerald-600">
           {formatJoinedDate(profile.created_at)}
         </span>
       </div>
@@ -331,7 +331,7 @@ const uploadProfileImage = async (file) => {
 
       <div>
 
-        <label className="block mb-2 text-white/70">
+        <label className="block mb-2 text-slate-600 font-medium">
           Full Name
         </label>
 
@@ -344,7 +344,7 @@ onChange={(e) =>
     name: e.target.value,
   })
 }
-          className="w-full bg-[#0a2721] border border-white/10 rounded-xl px-4 py-3 outline-none"
+          className="w-full h-12 bg-white border border-gray-300 rounded-xl px-4 text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 shadow-sm"
         />
 
       </div>
@@ -359,7 +359,8 @@ onChange={(e) =>
           type="email"
          value={profile.email}
 readOnly
-          className="w-full bg-[#0a2721] border border-white/10 rounded-xl px-4 py-3 outline-none"
+         className="w-full h-12 bg-white border border-gray-300 rounded-xl px-4 text-slate-900
+          placeholder:text-slate-400 outline-none focus:border-emerald-500 shadow-sm"
         />
 
       </div>
@@ -379,7 +380,8 @@ onChange={(e) =>
     phone: e.target.value,
   })
 }
-          className="w-full bg-[#0a2721] border border-white/10 rounded-xl px-4 py-3 outline-none"
+         className="w-full h-12 bg-white border border-gray-300 rounded-xl px-4 text-slate-900
+          placeholder:text-slate-400 outline-none focus:border-emerald-500 shadow-sm"
         />
 
       </div>
@@ -393,7 +395,8 @@ onChange={(e) =>
         <input
           type="password"
           placeholder="********"
-          className="w-full bg-[#0a2721] border border-white/10 rounded-xl px-4 py-3 outline-none"
+         className="w-full h-12 bg-white border border-gray-300 rounded-xl px-4 text-slate-900
+          placeholder:text-slate-400 outline-none focus:border-emerald-500 shadow-sm"
         />
 
       </div>
@@ -404,12 +407,12 @@ onChange={(e) =>
 
      <button
   onClick={saveProfile}
-  className="bg-emerald-500 hover:bg-emerald-600 px-8 py-3 rounded-xl font-bold"
+  className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-md hover:shadow-lg transition-all px-8 py-3 rounded-xl font-bold"
 >
   Save Changes
 </button>
 
-      <button className="border border-white/10 px-8 py-3 rounded-xl">
+      <button className="bg-white border border-gray-300 text-slate-700 hover:bg-gray-50 px-8 py-3 rounded-xl transition-all">
         Cancel
       </button>
 
@@ -439,7 +442,7 @@ onChange={(e) =>
   )}
 </div>
 
-     <label className="bg-emerald-500 px-6 py-3 rounded-xl font-bold cursor-pointer">
+     <label className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold cursor-pointer shadow-md hover:shadow-lg transition-all">
   Upload Image
 
   <input
@@ -462,7 +465,7 @@ onChange={(e) =>
   />
 </label>
 
-      <p className="text-white/50 text-sm mt-4 text-center">
+      <p className="text-slate-500 text-sm mt-4 text-center">
         JPG, PNG up to 2MB
       </p>
 

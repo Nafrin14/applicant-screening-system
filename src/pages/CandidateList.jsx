@@ -326,7 +326,7 @@ const shareSelectedResumes = async () => {
         "Content-Type": "application/json",
       },
     body: JSON.stringify({
-  contactName: "Buffalo Sales Estimator Resumes",
+  contactName: "Sarath",
   candidates: selected.map((candidate, index) => ({
     rank: index + 1,
     name: candidate.name,
