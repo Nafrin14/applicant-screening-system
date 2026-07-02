@@ -21,9 +21,9 @@ const getDateRange = (preset) => {
 // ─── HELPER: Normalize stage for consistent display ──────────────────────
 function normalizeStage(stage) {
   if (!stage) return 'New Leads';
-  
+
   const s = stage.toLowerCase().trim();
-  
+
   if (s.includes('book') || s.includes('appointment') || s.includes('scheduled')) {
     return 'Appointment Booked';
   }
@@ -36,7 +36,7 @@ function normalizeStage(stage) {
   if (s.includes('closed') || s.includes('won') || s.includes('lost')) {
     return 'Closed';
   }
-  
+
   // Return as-is with proper capitalization
   return stage.charAt(0).toUpperCase() + stage.slice(1).toLowerCase();
 }
@@ -49,7 +49,8 @@ export default function SalesAdminDashboard() {
   const [unupdatedUsers,   setUnupdatedUsers]   = useState([]);
 
   // ── Navigation & UI ────────────────────────────────────────────────────────
-  const [activeTab,    setActiveTab]    = useState('overview');
+  // ─── FIX: default tab opens on CSV Vault (View Salesperson Records) ───────
+  const [activeTab,    setActiveTab]    = useState('csv-vault');
   const [loading,      setLoading]      = useState(false);
   const [notification, setNotification] = useState('');
 
@@ -117,15 +118,15 @@ export default function SalesAdminDashboard() {
   useEffect(()=>{ fetchDashboardData(); },[]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 2. USER CRUD - FIXED VERSION
+  // 2. USER CRUD
   // ─────────────────────────────────────────────────────────────────────────
-  
+
   const handleOpenCreateMode = () => {
-    setIsEditing(false); 
+    setIsEditing(false);
     setTargetUserId(null);
-    setFormName(''); 
-    setFormEmail(''); 
-    setFormPassword(''); 
+    setFormName('');
+    setFormEmail('');
+    setFormPassword('');
     setFormResetPassword('');
     setActiveTab('user-form');
   };
@@ -136,43 +137,42 @@ export default function SalesAdminDashboard() {
       alert('Invalid user data');
       return;
     }
-    setIsEditing(true); 
+    setIsEditing(true);
     setTargetUserId(user.id);
-    setFormName(user.name || ''); 
+    setFormName(user.name || '');
     setFormEmail(user.email || '');
-    setFormPassword(''); 
+    setFormPassword('');
     setFormResetPassword('');
     setActiveTab('user-form');
   };
 
-  // ─── FIXED: Save User Form ────────────────────────────────────────────────
   const handleSaveUserForm = async (e) => {
     e.preventDefault();
-    if (!validateEmail(formEmail)) { 
-      alert('Please enter a valid email address.'); 
-      return; 
+    if (!validateEmail(formEmail)) {
+      alert('Please enter a valid email address.');
+      return;
     }
-    
+
     try {
       if (isEditing) {
         if (!targetUserId) {
           alert('No user selected for editing');
           return;
         }
-        
+
         console.log("📝 Updating user:", targetUserId, { name: formName, email: formEmail });
-        
+
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ name: formName, email: formEmail })
           .eq('id', targetUserId);
-        
+
         if (updateError) throw updateError;
 
         if (formResetPassword.trim().length > 0) {
-          if (formResetPassword.trim().length < 6) { 
-            alert('Password must be at least 6 characters.'); 
-            return; 
+          if (formResetPassword.trim().length < 6) {
+            alert('Password must be at least 6 characters.');
+            return;
           }
           const { error: resetError } = await supabase.auth.resetPasswordForEmail(formEmail, {
             redirectTo: window.location.origin + '/reset-password',
@@ -184,66 +184,65 @@ export default function SalesAdminDashboard() {
         }
       } else {
         console.log("➕ Creating new user:", { email: formEmail, name: formName });
-        
+
         const { error: authError } = await supabase.auth.signUp({
           email: formEmail,
           password: formPassword || 'PasswordSecure123!',
           options: {
-            data: { 
-              full_name: formName, 
-              role: 'user' 
+            data: {
+              full_name: formName,
+              role: 'user'
             }
           }
         });
-        
+
         if (authError) throw authError;
         showToast(`New user created: ${formEmail}`);
       }
-      
-      setActiveTab('users'); 
+
+      setActiveTab('users');
       await fetchDashboardData();
-    } catch(err) { 
+    } catch(err) {
       console.error("❌ Save user error:", err);
-      alert(err.message || 'Failed to save user. Please check console for details.'); 
+      alert(err.message || 'Failed to save user. Please check console for details.');
     }
   };
 
-  // ─── FIXED: Delete User ──────────────────────────────────────────────────
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Delete this user?')) return;
-    
+
     try {
       console.log("🗑️ Deleting user:", id);
-      
+
       const { data: user, error: checkError } = await supabase
         .from('profiles')
         .select('id, email, name')
         .eq('id', id)
         .single();
-      
+
       if (checkError) {
         console.error("❌ User not found:", checkError);
         alert('User not found in database.');
         return;
       }
-      
+
       console.log("Found user to delete:", user);
-      
+
       const { error } = await supabase
         .from('profiles')
         .update({ is_active: false })
         .eq('id', id);
-      
+
       if (error) {
         console.error("❌ Delete error:", error);
         throw error;
       }
-      
+
       showToast(`User ${user.name || user.email || 'deleted'} successfully.`);
       await fetchDashboardData();
-    } catch(err) { 
+    } catch(err) {
       console.error("❌ Delete error:", err);
-      alert('Error deleting user: ' + err.message); 
+      alert('Error deleting user: ' + err.message);
     }
   };
 
@@ -279,9 +278,9 @@ export default function SalesAdminDashboard() {
   const clearCsvFilters = () => { setCsvFilterName('');setCsvDatePreset('');setCsvCustomStart('');setCsvCustomEnd('');setCsvFilterStatus('');setSelectedCsvIds([]); };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 4. PDF DOWNLOAD — FIXED: Includes Salesperson Column & Stage Normalization
+  // 4. PDF DOWNLOAD
   // ─────────────────────────────────────────────────────────────────────────
-  
+
   const handleDownloadAIPdf = async () => {
     setPdfGenerating(true);
     try {
@@ -331,7 +330,8 @@ export default function SalesAdminDashboard() {
     }
   };
 
-  // Generate PDF from leads data - FIXED: Includes Salesperson Column & Stage Normalization
+  // Generate PDF from leads data
+  // ─── FIX: forces background colors to print, and fixes column widths ─────
   const generateLeadsPdf = (leads) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) { showToast('Allow pop-ups to download the PDF.'); return; }
@@ -344,10 +344,10 @@ export default function SalesAdminDashboard() {
     leads.forEach(lead => {
       const phoneDigits = (lead.phone || '').replace(/\D/g, '');
       const matchKey = phoneDigits.slice(-10) || `${lead.name}|${lead.location}|${lead.salesperson}`;
-      
+
       if (!uniqueLeadsMap.has(matchKey)) {
         const normalizedStage = normalizeStage(lead.stage);
-        
+
         uniqueLeadsMap.set(matchKey, {
           name: lead.name || 'Unknown Lead',
           phone: lead.phone || '—',
@@ -412,7 +412,7 @@ export default function SalesAdminDashboard() {
               ${lead.stage}
             </span>
           </td>
-          <td style="padding: 10px 14px; color: #64748b; border-bottom: 1px solid #e2e8f0;">${lead.date}</td>
+          <td style="padding: 10px 14px; color: #64748b; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${lead.date}</td>
         </tr>
       `).join('');
 
@@ -433,16 +433,16 @@ export default function SalesAdminDashboard() {
               Leads: ${totalLeads} | Booked: ${bookedLeads} | New: ${newLeads} | Pending: ${pendingLeads}
             </span>
           </div>
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <table>
             <thead>
               <tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Name</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Phone</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Location</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Business Line</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Salesperson</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Stage</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Date</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 16%;">Name</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 15%;">Phone</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 12%;">Location</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 14%;">Business Line</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 13%;">Salesperson</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 18%;">Stage</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 12%;">Date</th>
               </tr>
             </thead>
             <tbody>
@@ -472,13 +472,41 @@ export default function SalesAdminDashboard() {
       <head>
         <title>Sales Lead Report — ${today}</title>
         <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { 
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; 
-            background: #ffffff; 
-            color: #1e293b; 
-            padding: 30px 40px; 
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          @page {
+            size: A4 landscape;
+            margin: 12mm;
+          }
+          body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            color: #1e293b;
+            padding: 30px 40px;
             font-size: 13px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 13px;
+          }
+          thead {
+            display: table-header-group;
+          }
+          tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          th, td {
+            overflow-wrap: break-word;
+            word-break: break-word;
           }
           .header {
             display: flex;
@@ -597,7 +625,7 @@ export default function SalesAdminDashboard() {
 
       const printWindow = window.open('', '_blank');
       if (!printWindow) return;
-      
+
       const today = new Date().toLocaleDateString('en-GB');
       const rowsHtml = !uploads || uploads.length === 0
         ? `<tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8">No data found for selected filters.</td></tr>`
@@ -612,13 +640,13 @@ export default function SalesAdminDashboard() {
           </tr>`).join('');
 
       const html = `<!DOCTYPE html><html><head><title>Upload Report — ${today}</title>
-      <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;padding:28px 32px;font-size:13px;color:#1e293b}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #064e3b}.title{font-size:22px;font-weight:900;color:#064e3b}.meta{font-size:11px;color:#64748b;margin-top:4px}.badge{background:#064e3b;color:#fff;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse}thead tr{background:#1a3d2e}thead th{padding:11px 14px;color:#fff;font-size:11px;font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:.05em}.footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px}@media print{body{padding:16px 20px}}</style>
+      <style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}@page{size:A4 landscape;margin:12mm;}body{font-family:'Segoe UI',Arial,sans-serif;padding:28px 32px;font-size:13px;color:#1e293b}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #064e3b}.title{font-size:22px;font-weight:900;color:#064e3b}.meta{font-size:11px;color:#64748b;margin-top:4px}.badge{background:#064e3b;color:#fff;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse;table-layout:fixed}thead tr{background:#1a3d2e}thead th{padding:11px 14px;color:#fff;font-size:11px;font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:.05em}.footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px}@media print{body{padding:16px 20px}}</style>
       </head><body>
       <div class="header"><div><div class="title">Upload Activity Report</div><div class="meta">KD Marketing Sales Console · Generated: ${new Date().toLocaleString()}</div></div><div class="badge">${today}</div></div>
       <table><thead><tr><th>Salesperson</th><th>File Name</th><th>Status</th><th>Upload Date</th></tr></thead><tbody>${rowsHtml}</tbody></table>
       <div class="footer">Upload Activity Report · ${today} · Total: ${uploads?.length || 0} files</div>
       <script>setTimeout(()=>window.print(),600);<\/script></body></html>`;
-      
+
       printWindow.document.write(html);
       printWindow.document.close();
       showToast('Fallback PDF generated from upload records.');
@@ -632,12 +660,12 @@ export default function SalesAdminDashboard() {
   // 5. TOAST & LOGOUT HELPERS
   // ─────────────────────────────────────────────────────────────────────────
   const showToast = (msg) => { setNotification(msg); setTimeout(()=>setNotification(''),4500); };
-  
+
   const handleLogout = async () => {
-    if (window.confirm('Log out?')) { 
-      await supabase.auth.signOut(); 
-      localStorage.removeItem('isLoggedIn'); 
-      window.location.href='/login'; 
+    if (window.confirm('Log out?')) {
+      await supabase.auth.signOut();
+      localStorage.removeItem('isLoggedIn');
+      window.location.href='/login';
     }
   };
 
@@ -671,7 +699,7 @@ export default function SalesAdminDashboard() {
           <div className="p-6 border-b border-emerald-900/60">
             <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
               <span className="w-3 h-3 bg-white rounded-full inline-block animate-pulse"></span>
-             KD Marketing Sales 
+             KD Marketing Sales
             </h1>
             <p className="text-xs text-emerald-300/70 font-medium mt-1">Admin Dashboard Workspace</p>
           </div>
@@ -680,13 +708,13 @@ export default function SalesAdminDashboard() {
               ['overview','📊 Performance Overview'],
               ['users','👥 Manage All Users'],
               ['csv-vault','📄 View Salesperson Records'],
-              ['ai-report','Final Audit Report']
+              ['ai-report','🎯 Final Audit Report']
             ].map(([key,label]) => (
-              <button 
-                key={key} 
+              <button
+                key={key}
                 onClick={() => {
                   setActiveTab(key);
-                  setMobileMenuOpen(false); // ← Close drawer on mobile
+                  setMobileMenuOpen(false);
                 }}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
                   activeTab===key
@@ -715,7 +743,6 @@ export default function SalesAdminDashboard() {
       <div className="flex-1 flex flex-col overflow-x-hidden lg:ml-72 h-screen overflow-y-auto">
         <header className="bg-white border-b border-slate-200 px-4 lg:px-8 py-4 lg:py-5 flex justify-between items-center shadow-sm sticky top-0 z-10">
           <div className="flex items-center gap-3">
-            {/* ─── HAMBURGER BUTTON ────────────────────────────────────── */}
             <button
               onClick={() => setMobileMenuOpen(true)}
               className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
@@ -725,7 +752,7 @@ export default function SalesAdminDashboard() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
               </svg>
             </button>
-            
+
             <div>
               <h2 className="text-lg lg:text-2xl font-black text-slate-900 tracking-tight">
                 {activeTab==='user-form' ? (isEditing ? 'Edit User' : 'Create User')
