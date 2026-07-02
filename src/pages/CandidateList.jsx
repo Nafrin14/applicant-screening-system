@@ -320,24 +320,28 @@ const shareSelectedResumes = async () => {
   .join("\n\n");
 
   try {
-    const response = await fetch("http://localhost:5000/api/share-whatsapp", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+    console.log(import.meta.env.VITE_API_URL);
+    const response = await fetch(
+  `${import.meta.env.VITE_API_URL}/api/share-whatsapp`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
-  contactName: "Sarath",
-  candidates: selected.map((candidate, index) => ({
-    rank: index + 1,
-    name: candidate.name,
-    phone: candidate.phone,
-    role: candidate.role,
-    resume_url: candidate.resume_url,
-  })),
-}),
-    });
+      contactName: "Sarath",
+      candidates: selected.map((candidate, index) => ({
+        rank: index + 1,
+        name: candidate.name,
+        phone: candidate.phone,
+        role: candidate.role,
+        resume_url: candidate.resume_url,
+      })),
+    }),
+  }
+);
 
-    const result = await response.json();
+const result = await response.json();
 
     if (!response.ok) {
       alert(result.error || "WhatsApp automation failed.");
