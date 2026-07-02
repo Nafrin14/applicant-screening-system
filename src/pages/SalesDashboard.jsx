@@ -102,6 +102,24 @@ function lookupAccount(fileName) {
   return { accountName: cleanName, region, salesperson };
 }
 
+// ─── HELPER: Robust field lookup ────────────────────────────────────────
+// Matches headers regardless of case, spacing, or variations
+function getField(row, candidates) {
+  // Normalize row keys to lowercase trimmed
+  const normalizedRow = {};
+  Object.keys(row).forEach(k => {
+    normalizedRow[k.trim().toLowerCase()] = row[k];
+  });
+  
+  for (const c of candidates) {
+    const val = normalizedRow[c.trim().toLowerCase()];
+    if (val !== undefined && val !== null && String(val).trim() !== "") {
+      return String(val).trim();
+    }
+  }
+  return "";
+}
+
 export default function SalesDashboard() {
   const fileInputRef = useRef(null);
  
@@ -232,18 +250,62 @@ export default function SalesDashboard() {
                 businessLine = "Snow Removal";
               }
 
-              // ─── FIX: Add salesperson to leadRows ──────────────────────
+              // ─── FIX: Use robust getField() for all CSV column lookups ──
               const leadRows = results.data.map((row) => ({
                 user_id: user.id,
                 csv_upload_id: csvUploadId,
-                name: row["Opportunity name"] || row["Primary Contact name"] || row["Name"] || row["name"] || "",
-                phone: row["Phone number"] || row["Phone"] || row["phone"] || "",
+                name: getField(row, [
+                  "Opportunity name",
+                  "Primary Contact name",
+                  "Name",
+                  "Contact Name",
+                  "Full Name",
+                  "Customer Name",
+                  "Lead Name"
+                ]),
+                phone: getField(row, [
+                  "Phone number",
+                  "Phone",
+                  "Mobile",
+                  "Contact Number",
+                  "Phone Number",
+                  "Cell Phone",
+                  "Mobile Phone"
+                ]),
                 location: location,
                 business_line: businessLine,
-                salesperson: salesperson, // ✅ NEW: Store salesperson
-                stage: row["Stage"] || row["stage"] || "",
-                lead_date: row["Created on"] || row["Date"] || row["date"] || "",
+                salesperson: salesperson,
+                stage: getField(row, [
+                  "Stage",
+                  "Deal Stage",
+                  "Opportunity Stage",
+                  "Pipeline Stage",
+                  "Lead Status",
+                  "Status",
+                  "Sales Stage"
+                ]),
+                lead_date: getField(row, [
+                  "Created on",
+                  "Date",
+                  "Created Date",
+                  "Lead Date",
+                  "Create Date",
+                  "Creation Date",
+                  "Date Created"
+                ]),
               }));
+
+              // ─── FIX: Warn if Stage is missing ──────────────────────────
+              const emptyStageCount = leadRows.filter(r => !r.stage).length;
+              if (emptyStageCount > 0) {
+                console.warn(`⚠️ ${emptyStageCount}/${leadRows.length} rows in "${file.name}" have no Stage value — check CSV header naming.`);
+              }
+
+              // ─── FIX: Warn if Name is missing ───────────────────────────
+              const emptyNameCount = leadRows.filter(r => !r.name).length;
+              if (emptyNameCount > 0) {
+                console.warn(`⚠️ ${emptyNameCount}/${leadRows.length} rows in "${file.name}" have no Name value — check CSV header naming.`);
+              }
 
               console.log("STEP 4 - Lead rows built:", leadRows.length);
               console.log("STEP 5 - First lead row:", leadRows[0]);

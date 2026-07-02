@@ -18,6 +18,29 @@ const getDateRange = (preset) => {
   }
 };
 
+// ─── HELPER: Normalize stage for consistent display ──────────────────────
+function normalizeStage(stage) {
+  if (!stage) return 'New Leads';
+
+  const s = stage.toLowerCase().trim();
+
+  if (s.includes('book') || s.includes('appointment') || s.includes('scheduled')) {
+    return 'Appointment Booked';
+  }
+  if (s.includes('pending') || s.includes('waiting') || s.includes('follow')) {
+    return 'Pending Service Completion';
+  }
+  if (s.includes('new') || s.includes('lead')) {
+    return 'New Leads';
+  }
+  if (s.includes('closed') || s.includes('won') || s.includes('lost')) {
+    return 'Closed';
+  }
+
+  // Return as-is with proper capitalization
+  return stage.charAt(0).toUpperCase() + stage.slice(1).toLowerCase();
+}
+
 export default function SalesAdminDashboard() {
   // ── Database State ─────────────────────────────────────────────────────────
   const [salesUsers,       setSalesUsers]       = useState([]);
@@ -26,9 +49,13 @@ export default function SalesAdminDashboard() {
   const [unupdatedUsers,   setUnupdatedUsers]   = useState([]);
 
   // ── Navigation & UI ────────────────────────────────────────────────────────
-  const [activeTab,    setActiveTab]    = useState('overview');
+  // ─── FIX: default tab opens on CSV Vault (View Salesperson Records) ───────
+  const [activeTab,    setActiveTab]    = useState('csv-vault');
   const [loading,      setLoading]      = useState(false);
   const [notification, setNotification] = useState('');
+
+  // ── Responsive: Mobile Menu State ────────────────────────────────────────
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ── User Form ──────────────────────────────────────────────────────────────
   const [isEditing,         setIsEditing]         = useState(false);
@@ -91,15 +118,15 @@ export default function SalesAdminDashboard() {
   useEffect(()=>{ fetchDashboardData(); },[]);
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 2. USER CRUD - FIXED VERSION
+  // 2. USER CRUD
   // ─────────────────────────────────────────────────────────────────────────
-  
+
   const handleOpenCreateMode = () => {
-    setIsEditing(false); 
+    setIsEditing(false);
     setTargetUserId(null);
-    setFormName(''); 
-    setFormEmail(''); 
-    setFormPassword(''); 
+    setFormName('');
+    setFormEmail('');
+    setFormPassword('');
     setFormResetPassword('');
     setActiveTab('user-form');
   };
@@ -110,43 +137,42 @@ export default function SalesAdminDashboard() {
       alert('Invalid user data');
       return;
     }
-    setIsEditing(true); 
+    setIsEditing(true);
     setTargetUserId(user.id);
-    setFormName(user.name || ''); 
+    setFormName(user.name || '');
     setFormEmail(user.email || '');
-    setFormPassword(''); 
+    setFormPassword('');
     setFormResetPassword('');
     setActiveTab('user-form');
   };
 
-  // ─── FIXED: Save User Form ────────────────────────────────────────────────
   const handleSaveUserForm = async (e) => {
     e.preventDefault();
-    if (!validateEmail(formEmail)) { 
-      alert('Please enter a valid email address.'); 
-      return; 
+    if (!validateEmail(formEmail)) {
+      alert('Please enter a valid email address.');
+      return;
     }
-    
+
     try {
       if (isEditing) {
         if (!targetUserId) {
           alert('No user selected for editing');
           return;
         }
-        
+
         console.log("📝 Updating user:", targetUserId, { name: formName, email: formEmail });
-        
+
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ name: formName, email: formEmail })
           .eq('id', targetUserId);
-        
+
         if (updateError) throw updateError;
 
         if (formResetPassword.trim().length > 0) {
-          if (formResetPassword.trim().length < 6) { 
-            alert('Password must be at least 6 characters.'); 
-            return; 
+          if (formResetPassword.trim().length < 6) {
+            alert('Password must be at least 6 characters.');
+            return;
           }
           const { error: resetError } = await supabase.auth.resetPasswordForEmail(formEmail, {
             redirectTo: window.location.origin + '/reset-password',
@@ -158,66 +184,65 @@ export default function SalesAdminDashboard() {
         }
       } else {
         console.log("➕ Creating new user:", { email: formEmail, name: formName });
-        
+
         const { error: authError } = await supabase.auth.signUp({
           email: formEmail,
           password: formPassword || 'PasswordSecure123!',
           options: {
-            data: { 
-              full_name: formName, 
-              role: 'user' 
+            data: {
+              full_name: formName,
+              role: 'user'
             }
           }
         });
-        
+
         if (authError) throw authError;
         showToast(`New user created: ${formEmail}`);
       }
-      
-      setActiveTab('users'); 
+
+      setActiveTab('users');
       await fetchDashboardData();
-    } catch(err) { 
+    } catch(err) {
       console.error("❌ Save user error:", err);
-      alert(err.message || 'Failed to save user. Please check console for details.'); 
+      alert(err.message || 'Failed to save user. Please check console for details.');
     }
   };
 
-  // ─── FIXED: Delete User ──────────────────────────────────────────────────
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Delete this user?')) return;
-    
+
     try {
       console.log("🗑️ Deleting user:", id);
-      
+
       const { data: user, error: checkError } = await supabase
         .from('profiles')
         .select('id, email, name')
         .eq('id', id)
         .single();
-      
+
       if (checkError) {
         console.error("❌ User not found:", checkError);
         alert('User not found in database.');
         return;
       }
-      
+
       console.log("Found user to delete:", user);
-      
+
       const { error } = await supabase
         .from('profiles')
         .update({ is_active: false })
         .eq('id', id);
-      
+
       if (error) {
         console.error("❌ Delete error:", error);
         throw error;
       }
-      
+
       showToast(`User ${user.name || user.email || 'deleted'} successfully.`);
       await fetchDashboardData();
-    } catch(err) { 
+    } catch(err) {
       console.error("❌ Delete error:", err);
-      alert('Error deleting user: ' + err.message); 
+      alert('Error deleting user: ' + err.message);
     }
   };
 
@@ -253,13 +278,12 @@ export default function SalesAdminDashboard() {
   const clearCsvFilters = () => { setCsvFilterName('');setCsvDatePreset('');setCsvCustomStart('');setCsvCustomEnd('');setCsvFilterStatus('');setSelectedCsvIds([]); };
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 4. PDF DOWNLOAD — FIXED: Includes Salesperson Column
+  // 4. PDF DOWNLOAD
   // ─────────────────────────────────────────────────────────────────────────
-  
+
   const handleDownloadAIPdf = async () => {
     setPdfGenerating(true);
     try {
-      // ─── FIX 1: Add salesperson to query ──────────────────────────────
       let query = supabase
         .from('sales_leads')
         .select(`
@@ -306,7 +330,8 @@ export default function SalesAdminDashboard() {
     }
   };
 
-  // Generate PDF from leads data - FIXED: Includes Salesperson Column
+  // Generate PDF from leads data
+  // ─── FIX: forces background colors to print, and fixes column widths ─────
   const generateLeadsPdf = (leads) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) { showToast('Allow pop-ups to download the PDF.'); return; }
@@ -319,16 +344,17 @@ export default function SalesAdminDashboard() {
     leads.forEach(lead => {
       const phoneDigits = (lead.phone || '').replace(/\D/g, '');
       const matchKey = phoneDigits.slice(-10) || `${lead.name}|${lead.location}|${lead.salesperson}`;
-      
+
       if (!uniqueLeadsMap.has(matchKey)) {
-        // ─── FIX 2: Add salesperson to the dedupe object ──────────────
+        const normalizedStage = normalizeStage(lead.stage);
+
         uniqueLeadsMap.set(matchKey, {
           name: lead.name || 'Unknown Lead',
           phone: lead.phone || '—',
           location: lead.location || 'Other / Unassigned',
           business_line: lead.business_line || 'General Pipeline',
           salesperson: lead.salesperson || 'Unassigned',
-          stage: lead.stage || 'New Leads',
+          stage: normalizedStage,
           date: lead.lead_date || (lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—')
         });
       }
@@ -368,13 +394,12 @@ export default function SalesAdminDashboard() {
       if (locLeads.length === 0) return;
 
       const totalLeads = locLeads.length;
-      const bookedLeads = locLeads.filter(l => l.stage.toLowerCase().includes('book')).length;
-      const newLeads = locLeads.filter(l => l.stage.toLowerCase().includes('new')).length;
-      const pendingLeads = locLeads.filter(l => l.stage.toLowerCase().includes('pending')).length;
+      const bookedLeads = locLeads.filter(l => l.stage.includes('Appointment Booked')).length;
+      const newLeads = locLeads.filter(l => l.stage.includes('New Leads')).length;
+      const pendingLeads = locLeads.filter(l => l.stage.includes('Pending')).length;
 
       const location = groupKey.split(' — ')[0];
 
-      // ─── FIX 3 & 4: Add Salesperson column to the table ──────────────
       const rows = locLeads.map((lead, i) => `
         <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'}">
           <td style="padding: 10px 14px; font-weight: 500; color: #1e293b; border-bottom: 1px solid #e2e8f0;">${lead.name}</td>
@@ -383,11 +408,11 @@ export default function SalesAdminDashboard() {
           <td style="padding: 10px 14px; color: #475569; border-bottom: 1px solid #e2e8f0;">${lead.business_line}</td>
           <td style="padding: 10px 14px; color: #475569; font-weight: 600; border-bottom: 1px solid #e2e8f0;">${lead.salesperson}</td>
           <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">
-            <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; ${lead.stage.toLowerCase().includes('book') ? 'background-color: #dbeafe; color: #1e40af;' : lead.stage.toLowerCase().includes('pending') ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #dcfce7; color: #166534;'}">
+            <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; ${lead.stage.includes('Appointment Booked') ? 'background-color: #dbeafe; color: #1e40af;' : lead.stage.includes('Pending') ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #dcfce7; color: #166534;'}">
               ${lead.stage}
             </span>
           </td>
-          <td style="padding: 10px 14px; color: #64748b; border-bottom: 1px solid #e2e8f0;">${lead.date}</td>
+          <td style="padding: 10px 14px; color: #64748b; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${lead.date}</td>
         </tr>
       `).join('');
 
@@ -400,7 +425,6 @@ export default function SalesAdminDashboard() {
       };
       const headerColor = locationColors[location] || 'background: linear-gradient(135deg, #475569, #1e293b);';
 
-      // ─── FIX 3: Add Salesperson column header ────────────────────────
       tablesHtml += `
         <div style="margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
           <div style="${headerColor} padding: 12px 20px; display: flex; justify-content: space-between; align-items: center;">
@@ -409,16 +433,16 @@ export default function SalesAdminDashboard() {
               Leads: ${totalLeads} | Booked: ${bookedLeads} | New: ${newLeads} | Pending: ${pendingLeads}
             </span>
           </div>
-          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <table>
             <thead>
               <tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Name</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Phone</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Location</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Business Line</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Salesperson</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Stage</th>
-                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569;">Date</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 16%;">Name</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 15%;">Phone</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 12%;">Location</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 14%;">Business Line</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 13%;">Salesperson</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 18%;">Stage</th>
+                <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 12%;">Date</th>
               </tr>
             </thead>
             <tbody>
@@ -438,9 +462,9 @@ export default function SalesAdminDashboard() {
     }
 
     const totalLeads = processedLeads.length;
-    const totalBooked = processedLeads.filter(l => l.stage.toLowerCase().includes('book')).length;
-    const totalNew = processedLeads.filter(l => l.stage.toLowerCase().includes('new')).length;
-    const totalPending = processedLeads.filter(l => l.stage.toLowerCase().includes('pending')).length;
+    const totalBooked = processedLeads.filter(l => l.stage.includes('Appointment Booked')).length;
+    const totalNew = processedLeads.filter(l => l.stage.includes('New Leads')).length;
+    const totalPending = processedLeads.filter(l => l.stage.includes('Pending')).length;
 
     const html = `
       <!DOCTYPE html>
@@ -448,13 +472,41 @@ export default function SalesAdminDashboard() {
       <head>
         <title>Sales Lead Report — ${today}</title>
         <style>
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { 
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; 
-            background: #ffffff; 
-            color: #1e293b; 
-            padding: 30px 40px; 
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+          @page {
+            size: A4 landscape;
+            margin: 12mm;
+          }
+          body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            color: #1e293b;
+            padding: 30px 40px;
             font-size: 13px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 13px;
+          }
+          thead {
+            display: table-header-group;
+          }
+          tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          th, td {
+            overflow-wrap: break-word;
+            word-break: break-word;
           }
           .header {
             display: flex;
@@ -573,7 +625,7 @@ export default function SalesAdminDashboard() {
 
       const printWindow = window.open('', '_blank');
       if (!printWindow) return;
-      
+
       const today = new Date().toLocaleDateString('en-GB');
       const rowsHtml = !uploads || uploads.length === 0
         ? `<tr><td colspan="4" style="padding:20px;text-align:center;color:#94a3b8">No data found for selected filters.</td></tr>`
@@ -588,13 +640,13 @@ export default function SalesAdminDashboard() {
           </tr>`).join('');
 
       const html = `<!DOCTYPE html><html><head><title>Upload Report — ${today}</title>
-      <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;padding:28px 32px;font-size:13px;color:#1e293b}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #064e3b}.title{font-size:22px;font-weight:900;color:#064e3b}.meta{font-size:11px;color:#64748b;margin-top:4px}.badge{background:#064e3b;color:#fff;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse}thead tr{background:#1a3d2e}thead th{padding:11px 14px;color:#fff;font-size:11px;font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:.05em}.footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px}@media print{body{padding:16px 20px}}</style>
+      <style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}@page{size:A4 landscape;margin:12mm;}body{font-family:'Segoe UI',Arial,sans-serif;padding:28px 32px;font-size:13px;color:#1e293b}.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #064e3b}.title{font-size:22px;font-weight:900;color:#064e3b}.meta{font-size:11px;color:#64748b;margin-top:4px}.badge{background:#064e3b;color:#fff;padding:5px 14px;border-radius:6px;font-size:12px;font-weight:700}table{width:100%;border-collapse:collapse;table-layout:fixed}thead tr{background:#1a3d2e}thead th{padding:11px 14px;color:#fff;font-size:11px;font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:.05em}.footer{margin-top:20px;font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px}@media print{body{padding:16px 20px}}</style>
       </head><body>
       <div class="header"><div><div class="title">Upload Activity Report</div><div class="meta">KD Marketing Sales Console · Generated: ${new Date().toLocaleString()}</div></div><div class="badge">${today}</div></div>
       <table><thead><tr><th>Salesperson</th><th>File Name</th><th>Status</th><th>Upload Date</th></tr></thead><tbody>${rowsHtml}</tbody></table>
       <div class="footer">Upload Activity Report · ${today} · Total: ${uploads?.length || 0} files</div>
       <script>setTimeout(()=>window.print(),600);<\/script></body></html>`;
-      
+
       printWindow.document.write(html);
       printWindow.document.close();
       showToast('Fallback PDF generated from upload records.');
@@ -608,12 +660,12 @@ export default function SalesAdminDashboard() {
   // 5. TOAST & LOGOUT HELPERS
   // ─────────────────────────────────────────────────────────────────────────
   const showToast = (msg) => { setNotification(msg); setTimeout(()=>setNotification(''),4500); };
-  
+
   const handleLogout = async () => {
-    if (window.confirm('Log out?')) { 
-      await supabase.auth.signOut(); 
-      localStorage.removeItem('isLoggedIn'); 
-      window.location.href='/login'; 
+    if (window.confirm('Log out?')) {
+      await supabase.auth.signOut();
+      localStorage.removeItem('isLoggedIn');
+      window.location.href='/login';
     }
   };
 
@@ -625,22 +677,51 @@ export default function SalesAdminDashboard() {
   const uniqueStages = ['Appointment Booked','New Leads','Pending Service Completion','General'];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-800 font-sans">
+    <div className="flex bg-slate-50 text-slate-800 font-sans">
 
-      {/* SIDEBAR */}
-      <aside className="w-72 bg-emerald-950 text-white flex flex-col justify-between shrink-0 shadow-2xl border-r border-emerald-900">
+      {/* ─── MOBILE OVERLAY ─────────────────────────────────────────────── */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-10 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* ─── SIDEBAR ────────────────────────────────────────────────────── */}
+      <aside className={`
+        w-72 h-screen fixed top-0 left-0 bg-emerald-950 text-white flex flex-col justify-between
+        shrink-0 shadow-2xl border-r border-emerald-900 z-20
+        transition-transform duration-300
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}>
         <div>
           <div className="p-6 border-b border-emerald-900/60">
             <h1 className="text-xl font-black tracking-tight text-white flex items-center gap-2">
               <span className="w-3 h-3 bg-white rounded-full inline-block animate-pulse"></span>
-             KD Marketing Sales 
+             KD Marketing Sales
             </h1>
             <p className="text-xs text-emerald-300/70 font-medium mt-1">Admin Dashboard Workspace</p>
           </div>
           <nav className="p-4 space-y-1.5">
-            {[['overview','📊 Performance Overview'],['users','👥 Manage All Users'],['csv-vault','📄 View Salesperson Records'],['ai-report','Final Audit Report']].map(([key,label])=>(
-              <button key={key} onClick={()=>setActiveTab(key)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab===key?'bg-white text-emerald-950 shadow-md':'text-emerald-100 hover:bg-emerald-900/50'}`}>
+            {[
+              ['overview','📊 Performance Overview'],
+              ['users','👥 Manage All Users'],
+              ['csv-vault','📄 View Salesperson Records'],
+              ['ai-report','🎯 Final Audit Report']
+            ].map(([key,label]) => (
+              <button
+                key={key}
+                onClick={() => {
+                  setActiveTab(key);
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                  activeTab===key
+                    ? 'bg-white text-emerald-950 shadow-md'
+                    : 'text-emerald-100 hover:bg-emerald-900/50'
+                }`}
+              >
                 {label}
               </button>
             ))}
@@ -648,7 +729,8 @@ export default function SalesAdminDashboard() {
         </div>
         <div className="p-4 border-t border-emerald-900/60">
           <button onClick={handleLogout}
-            className="w-full bg-transparent hover:bg-red-500/10 text-red-300 border border-red-500/20 font-bold text-xs py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2">
+            className="w-full bg-transparent hover:bg-red-500/10 text-red-300 border border-red-500/20 font-bold text-xs py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+          >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
             </svg>
@@ -657,22 +739,39 @@ export default function SalesAdminDashboard() {
         </div>
       </aside>
 
-      {/* MAIN */}
-      <div className="flex-1 flex flex-col overflow-x-hidden">
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center shadow-sm">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-              {activeTab==='user-form'?(isEditing?'Edit User':'Create User'):activeTab==='ai-report'?'Final Audit Report':activeTab==='overview'?'Performance Overview':activeTab==='users'?'Manage Users':'Records '}
-            </h2>
-            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Database Sync: Live</p>
+      {/* ─── MAIN CONTENT ────────────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col overflow-x-hidden lg:ml-72 h-screen overflow-y-auto">
+        <header className="bg-white border-b border-slate-200 px-4 lg:px-8 py-4 lg:py-5 flex justify-between items-center shadow-sm sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition"
+              aria-label="Toggle menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+              </svg>
+            </button>
+
+            <div>
+              <h2 className="text-lg lg:text-2xl font-black text-slate-900 tracking-tight">
+                {activeTab==='user-form' ? (isEditing ? 'Edit User' : 'Create User')
+                  : activeTab==='ai-report' ? 'Final Audit Report'
+                  : activeTab==='overview' ? 'Performance Overview'
+                  : activeTab==='users' ? 'Manage Users'
+                  : 'Records'}
+              </h2>
+              <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider mt-0.5">Database Sync: Live</p>
+            </div>
           </div>
           <button onClick={fetchDashboardData} disabled={loading}
-            className="text-xs bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl font-bold hover:bg-slate-200 transition-all border border-slate-200 disabled:opacity-60">
-            {loading?'⏳ Refreshing…':'🔄 Refresh Records'}
+            className="text-xs bg-slate-100 text-slate-700 px-3 lg:px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition-all border border-slate-200 disabled:opacity-60"
+          >
+            {loading ? '⏳ Refreshing…' : '🔄 Refresh Records'}
           </button>
         </header>
 
-        <main className="p-8 max-w-7xl w-full mx-auto space-y-8 flex-1">
+        <main className="p-4 lg:p-8 max-w-7xl w-full mx-auto space-y-6 lg:space-y-8 flex-1">
 
           {/* ── TAB 1: OVERVIEW ─────────────────────────────────────────── */}
           {activeTab==='overview' && (
@@ -684,19 +783,20 @@ export default function SalesAdminDashboard() {
                   {label:"Today's Uploads",    value:todayFiles.length,      color:'text-blue-700'},
                   {label:'Missing Today',      value:unupdatedUsers.length,  color:unupdatedUsers.length>0?'text-red-600':'text-emerald-600'},
                 ].map(s=>(
-                  <div key={s.label} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm text-center">
-                    <div className={`text-3xl font-black ${s.color}`}>{s.value}</div>
-                    <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">{s.label}</div>
+                  <div key={s.label} className="bg-white rounded-2xl p-4 lg:p-5 border border-slate-200 shadow-sm text-center">
+                    <div className={`text-2xl lg:text-3xl font-black ${s.color}`}>{s.value}</div>
+                    <div className="text-[10px] lg:text-[11px] text-slate-400 font-bold uppercase tracking-wider mt-1">{s.label}</div>
                   </div>
                 ))}
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                 <div className="lg:col-span-2 space-y-5">
                   <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex gap-3 items-end flex-wrap">
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Filter Users</label>
                       <select value={overviewUserFilter} onChange={e=>setOverviewUserFilter(e.target.value)}
-                        className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                        className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"
+                      >
                         <option value="">All Users</option>
                         <option value="active">Uploaded Today</option>
                         <option value="missing">Missing Upload</option>
@@ -704,12 +804,12 @@ export default function SalesAdminDashboard() {
                     </div>
                     {overviewUserFilter && <button onClick={()=>setOverviewUserFilter('')} className="text-xs text-slate-400 hover:text-slate-600 underline mb-0.5">Clear</button>}
                   </div>
-                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
                     <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
                       <h3 className="font-bold text-sm text-slate-800">Salesperson Activity Today</h3>
                       <span className="text-xs text-slate-400">{overviewUsers.length} shown</span>
                     </div>
-                    <table className="w-full text-left border-collapse text-xs">
+                    <table className="w-full text-left border-collapse text-xs min-w-[500px]">
                       <thead>
                         <tr className="text-slate-400 text-[11px] font-bold uppercase tracking-widest bg-slate-50/50 border-b border-slate-100">
                           <th className="p-4">Name</th><th className="p-4">Email</th>
@@ -737,7 +837,7 @@ export default function SalesAdminDashboard() {
                       </tbody>
                     </table>
                   </div>
-                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="bg-white p-4 lg:p-5 rounded-2xl border border-slate-200 shadow-sm">
                     <h4 className="font-bold text-sm text-slate-800 uppercase tracking-wider mb-3">Quick Actions</h4>
                     <div className="flex flex-wrap gap-3">
                       <button onClick={handleOpenCreateMode} className="bg-emerald-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-950">+ Add New User</button>
@@ -756,12 +856,12 @@ export default function SalesAdminDashboard() {
           {/* ── TAB 2: MANAGE USERS ─────────────────────────────────────── */}
           {activeTab==='users' && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-wrap justify-between items-center gap-2">
                 <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">System User Directory ({salesUsers.length} active)</h3>
                 <button onClick={handleOpenCreateMode} className="bg-emerald-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-950">+ Add New User</button>
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <table className="w-full text-left border-collapse">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
                   <thead>
                     <tr className="text-slate-400 text-[11px] font-bold uppercase tracking-widest bg-slate-50 border-b border-slate-200/60">
                       <th className="p-4">Full Name</th><th className="p-4">Email</th>
@@ -796,7 +896,7 @@ export default function SalesAdminDashboard() {
 
           {/* ── TAB 3: USER FORM ────────────────────────────────────────── */}
           {activeTab==='user-form' && (
-            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm max-w-2xl">
+            <div className="bg-white rounded-2xl p-4 sm:p-6 border border-slate-200 shadow-sm w-full max-w-2xl mx-auto">
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">{isEditing?'Modify User Account':'Create New User Account'}</h3>
               <form onSubmit={handleSaveUserForm} className="space-y-4">
                 <div>
@@ -820,7 +920,7 @@ export default function SalesAdminDashboard() {
                     className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-emerald-900 focus:outline-none"/>
                   <p className="text-[10px] text-slate-400 mt-1">Password reset email will be sent to the user</p>
                 </div>}
-                <div className="flex gap-2 pt-2">
+                <div className="flex flex-wrap gap-2 pt-2">
                   <button type="submit" className="bg-emerald-900 text-white font-bold text-xs px-5 py-3 rounded-xl hover:bg-emerald-950">{isEditing?'Save Changes':'Create User'}</button>
                   <button type="button" onClick={()=>setActiveTab('users')} className="bg-slate-100 text-slate-600 font-bold text-xs px-4 py-3 rounded-xl hover:bg-slate-200">Cancel</button>
                 </div>
@@ -834,18 +934,20 @@ export default function SalesAdminDashboard() {
               <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filter CSV Files</h4>
                 <div className="flex flex-wrap gap-3 items-end">
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Salesperson</label>
                     <select value={csvFilterName} onChange={e=>{setCsvFilterName(e.target.value);setSelectedCsvIds([]);}}
-                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"
+                    >
                       <option value="">All Salespeople</option>
                       {uniqueCsvNames.map(n=><option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Date Range</label>
                     <select value={csvDatePreset} onChange={e=>{setCsvDatePreset(e.target.value);setCsvCustomStart('');setCsvCustomEnd('');setSelectedCsvIds([]);}}
-                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"
+                    >
                       <option value="">All Dates</option>
                       <option value="today">Today</option>
                       <option value="yesterday">Yesterday</option>
@@ -855,25 +957,26 @@ export default function SalesAdminDashboard() {
                     </select>
                   </div>
                   {csvDatePreset==='custom' && <>
-                    <div>
+                    <div className="w-full sm:w-auto">
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">From</label>
-                      <input type="date" value={csvCustomStart} onChange={e=>{setCsvCustomStart(e.target.value);setSelectedCsvIds([]);}} className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"/>
+                      <input type="date" value={csvCustomStart} onChange={e=>{setCsvCustomStart(e.target.value);setSelectedCsvIds([]);}} className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"/>
                     </div>
-                    <div>
+                    <div className="w-full sm:w-auto">
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">To</label>
-                      <input type="date" value={csvCustomEnd} onChange={e=>{setCsvCustomEnd(e.target.value);setSelectedCsvIds([]);}} className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"/>
+                      <input type="date" value={csvCustomEnd} onChange={e=>{setCsvCustomEnd(e.target.value);setSelectedCsvIds([]);}} className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"/>
                     </div>
                   </>}
-                  <div>
+                  <div className="w-full sm:w-auto">
                     <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Upload Status</label>
                     <select value={csvFilterStatus} onChange={e=>{setCsvFilterStatus(e.target.value);setSelectedCsvIds([]);}}
-                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                      className="text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900 w-full sm:w-auto"
+                    >
                       <option value="">All Statuses</option>
                       <option value="success">Success</option>
                       <option value="failed">Failed</option>
                     </select>
                   </div>
-                  <div className="flex gap-2 items-center ml-auto">
+                  <div className="flex flex-wrap gap-2 items-center ml-auto">
                     {(csvFilterName||csvDatePreset||csvFilterStatus) && <button onClick={clearCsvFilters} className="text-xs text-slate-400 hover:text-slate-600 underline">Clear all</button>}
                     {selectedCsvIds.length>0 && <button onClick={handleBulkDeleteCsvs} className="bg-red-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-red-700">🗑 Delete {selectedCsvIds.length}</button>}
                   </div>
@@ -887,14 +990,14 @@ export default function SalesAdminDashboard() {
                   </div>
                 )}
               </div>
-              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-5 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+                <div className="p-5 bg-slate-50 border-b border-slate-100 flex flex-wrap justify-between items-center gap-2">
                   <div>
                     <h3 className="font-bold text-sm text-slate-800">Salesperson File Upload Index</h3>
                     <p className="text-xs text-slate-400 mt-0.5">{filteredCsvFiles.length} file{filteredCsvFiles.length!==1?'s':''} shown{selectedCsvIds.length>0&&` · ${selectedCsvIds.length} selected`}</p>
                   </div>
                 </div>
-                <table className="w-full text-left border-collapse">
+                <table className="w-full text-left border-collapse min-w-[600px]">
                   <thead>
                     <tr className="text-slate-400 text-[11px] font-bold uppercase tracking-widest bg-slate-50/50 border-b border-slate-100">
                       <th className="p-4 w-10"><input type="checkbox" checked={filteredCsvFiles.length>0&&selectedCsvIds.length===filteredCsvFiles.length} onChange={handleSelectAllCsvs} className="rounded border-slate-300 cursor-pointer"/></th>
@@ -936,12 +1039,13 @@ export default function SalesAdminDashboard() {
                     <p className="text-emerald-300/70 text-xs mt-0.5">Simple table format — Name · Phone · Location · Business Line · Salesperson · Stage · Date</p>
                   </div>
                 </div>
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-4 lg:p-6 space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Salesperson</label>
                       <select value={pdfFilterUser} onChange={e=>setPdfFilterUser(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+                      >
                         <option value="">All Salespeople</option>
                         {salesUsers.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
                       </select>
@@ -949,17 +1053,20 @@ export default function SalesAdminDashboard() {
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">From Date</label>
                       <input type="date" value={pdfFilterStart} onChange={e=>setPdfFilterStart(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"/>
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+                      />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">To Date</label>
                       <input type="date" value={pdfFilterEnd} onChange={e=>setPdfFilterEnd(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"/>
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+                      />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Stage</label>
                       <select value={pdfFilterStage} onChange={e=>setPdfFilterStage(e.target.value)}
-                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900">
+                        className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+                      >
                         <option value="">All Stages</option>
                         {uniqueStages.map(s=><option key={s} value={s}>{s}</option>)}
                       </select>
@@ -970,20 +1077,23 @@ export default function SalesAdminDashboard() {
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider self-center">Quick Presets:</span>
                     {[['Today','today'],['Yesterday','yesterday'],['Last 7 Days','last7'],['Last Month','lastMonth']].map(([label,preset])=>(
                       <button key={preset} onClick={()=>{ const r=getDateRange(preset); setPdfFilterStart(r.start); setPdfFilterEnd(r.end); }}
-                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 transition-all">
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 transition-all"
+                      >
                         {label}
                       </button>
                     ))}
                     {(pdfFilterStart||pdfFilterEnd||pdfFilterUser||pdfFilterStage) && (
                       <button onClick={()=>{setPdfFilterUser('');setPdfFilterStart('');setPdfFilterEnd('');setPdfFilterStage('');}}
-                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all">
+                        className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 transition-all"
+                      >
                         ✕ Clear Filters
                       </button>
                     )}
                   </div>
 
                   <button onClick={handleDownloadAIPdf} disabled={pdfGenerating}
-                    className="w-full sm:w-auto bg-emerald-900 text-white font-black text-sm px-8 py-3.5 rounded-xl hover:bg-emerald-950 disabled:opacity-60 transition-all flex items-center gap-2">
+                    className="w-full sm:w-auto bg-emerald-900 text-white font-black text-sm px-6 lg:px-8 py-3.5 rounded-xl hover:bg-emerald-950 disabled:opacity-60 transition-all flex items-center justify-center gap-2"
+                  >
                     {pdfGenerating ? '⏳ Processing Leads…' : '📥 Download Lead Report (PDF)'}
                   </button>
                 </div>
@@ -1003,7 +1113,7 @@ export default function SalesAdminDashboard() {
 
               {reportData && !aiGenerating && (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     {[
                       {label:'Total Leads',value:reportData.totalLeads,color:'text-emerald-700',bg:'bg-emerald-50 border-emerald-200'},
                       {label:'New Leads',value:reportData.newLeads,color:'text-slate-900',bg:'bg-slate-50 border-slate-200'},
@@ -1033,7 +1143,7 @@ export default function SalesAdminDashboard() {
 
       {/* Toast */}
       {notification && (
-        <div className="fixed bottom-6 right-6 bg-slate-900 text-white text-xs px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-2.5 z-50">
+        <div className="fixed bottom-4 right-4 lg:bottom-6 lg:right-6 bg-slate-900 text-white text-xs px-4 py-3 lg:px-5 lg:py-3.5 rounded-2xl shadow-2xl flex items-center gap-2.5 z-50 max-w-[90vw] lg:max-w-sm">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"/>
           <p className="font-bold tracking-wide">{notification}</p>
         </div>
