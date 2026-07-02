@@ -124,13 +124,16 @@ app.post("/api/share-whatsapp", async (req, res) => {
       "send_whatsapp.py"
     );
 
-    const python = spawn(
-      "py",
-      [scriptPath, dataPath],
-      {
-        cwd: path.join(__dirname, "..", "automation"),
-      }
-    );
+   const python = spawn(
+  "python3",
+  [scriptPath, dataPath],
+  {
+    cwd: path.join(__dirname, "..", "automation"),
+  }
+);
+python.on("error", (err) => {
+  console.error("Python spawn error:", err);
+});
 
     python.stdout.on("data", (data) => {
       console.log(data.toString());
