@@ -404,8 +404,8 @@ export default function SalesDashboard() {
  <div className="min-h-screen bg-white text-slate-900">
       {uploadToast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] animate-slideDown">
-          <div className="flex items-center gap-4 rounded-2xl bg-white text-slate-900 px-6 py-4 shadow-2xl border border-emerald-200">
-            <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center text-white text-2xl font-black">
+          <div className="flex items-center gap-4 rounded-2xl bg-white text-slate-900 px-6 py-4 shadow-2xl border border-[#064E3B]">
+            <div className="w-12 h-12 rounded-full bg-[#064E3B] flex items-center justify-center text-white text-2xl font-black">
               ✓
             </div>
 
@@ -471,8 +471,7 @@ export default function SalesDashboard() {
 
               <button
                 onClick={() => fileInputRef.current.click()}
-                className="bg-gradient-to-r from-emerald-500 to-green-700 px-6 py-3 rounded-xl font-bold shadow-lg
-                 shadow-emerald-500/30 hover:scale-105 transition"
+                className="bg-[#064E3B] hover:bg-[#065F46] text-white px-6 py-3 rounded-xl font-bold shadow-lg transition duration-300"
               >
                 Upload CSV
               </button>
@@ -492,9 +491,9 @@ export default function SalesDashboard() {
             <section className="dashboard-card">
               <h2 className="text-xl font-bold mb-5">Upload CSV</h2>
 
-             <div className="border-2 border-dashed border-emerald-400 rounded-3xl min-h-[280px] flex flex-col 
+             <div className="border-2 border-dashed border-[#064E3B] rounded-3xl min-h-[280px] flex flex-col 
 items-center justify-center text-center bg-white px-6 py-12">
-                <FaCloudUploadAlt className="text-6xl text-emerald-500 mb-4" />
+                <FaCloudUploadAlt className="text-6xl text-[#064E3B] mb-4" />
 
                 <h3 className="text-xl font-bold">Upload your CSV file</h3>
 
@@ -505,8 +504,7 @@ items-center justify-center text-center bg-white px-6 py-12">
                 <button
                   onClick={() => fileInputRef.current.click()}
                   disabled={uploading}
-                  className="bg-gradient-to-r from-green-500 via-emerald-500 to-green-700 hover:shadow-xl hover:shadow-green-300/40 px-6 py-3 rounded-xl font-bold
-                   disabled:opacity-60 hover:scale-105 transition"
+                  className="bg-[#064E3B] hover:bg-[#065F46] text-white px-6 py-3 rounded-xl font-bold shadow-lg disabled:opacity-60 transition duration-300"
                 >
                   {uploading ? "Uploading..." : "Browse CSV Files"}
                 </button>
@@ -527,7 +525,7 @@ function Card({ title, value, icon, danger }) {
     <div className="dashboard-card">
       <div className="flex items-center justify-between">
        <p className="text-slate-700 font-semibold">{title}</p>
-        <span className="text-2xl text-emerald-600">{icon}</span>
+        <span className="text-2xl text-[#064E3B]">{icon}</span>
       </div>
 
      <h2
@@ -536,7 +534,7 @@ function Card({ title, value, icon, danger }) {
   } ${
     danger
       ? "text-red-600"
-      : "text-emerald-600"
+      : "text-[#064E3B]"
   }`}
 >
         {value}
