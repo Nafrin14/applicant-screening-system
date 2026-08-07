@@ -19,7 +19,6 @@ import ScheduledInterviews from "./pages/ScheduledInterviews";
 import CSVUpload from "./pages/CSVUpload";
 import UploadResume from "./pages/UploadResume";
 import AIResults from "./pages/AIResults";
-import ApplyPage from "./pages/ApplyPage";
 import ResumeViewer from "./pages/ResumeViewer";
 import Jobs from "./pages/Jobs";
 import JobDetails from "./pages/JobDetails";
@@ -44,7 +43,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
-        <Route path="/apply/:id" element={<ApplyPage />} />
+        
         
         <Route path="/test" element={<h1>Test Page Working</h1>} />
 
