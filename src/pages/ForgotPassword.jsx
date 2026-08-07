@@ -3,7 +3,7 @@ import { supabase } from "../supabase";
 import { useNotification } from "../context/NotificationContext";
 
 function ForgotPassword() {
-  const { notify, confirmDialog } = useNotification();
+  const { notify } = useNotification();
   const [email, setEmail] = useState("");
 
   const handleReset = async () => {

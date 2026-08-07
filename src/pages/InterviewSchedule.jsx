@@ -46,7 +46,7 @@ const location =
 const applicant =
   location.state;
 
-const { notify, confirmDialog } = useNotification();
+const { notify } = useNotification();
 
   console.log(
   "Applicant Data:",

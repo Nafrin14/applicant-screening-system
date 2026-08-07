@@ -30,7 +30,7 @@ import {
 function ScheduledInterviews() {
 const navigate =
       useNavigate();
-const { notify, confirmDialog } = useNotification();
+const { notify } = useNotification();
 const [
     interviews,
     setInterviews,

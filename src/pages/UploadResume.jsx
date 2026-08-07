@@ -19,7 +19,7 @@ import {
 
 function UploadResume() {
 const navigate = useNavigate();
-const { notify, confirmDialog } = useNotification();
+const { notify } = useNotification();
 const [files, setFiles] = useState([]);
 const [role, setRole] = useState("");
 const [jobs, setJobs] = useState([]);

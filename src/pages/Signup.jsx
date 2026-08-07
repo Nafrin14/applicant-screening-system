@@ -5,7 +5,7 @@ import { useNotification } from "../context/NotificationContext";
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { notify, confirmDialog } = useNotification();
+  const { notify } = useNotification();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] =

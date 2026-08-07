@@ -19,7 +19,7 @@ function CSVUpload() {
   const navigate =
     useNavigate();
 
-  const { notify, confirmDialog } = useNotification();
+  const { notify } = useNotification();
 
   const [file, setFile] =
     useState(null);

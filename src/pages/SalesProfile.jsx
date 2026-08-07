@@ -5,7 +5,7 @@ import SalesNavbar from "../components/SalesNavbar";
 import { useNotification } from "../context/NotificationContext";
 
 export default function SalesProfile() {
-  const { notify, confirmDialog } = useNotification();
+  const { notify } = useNotification();
   const [profile, setProfile] = useState({
     name: "",
     email: "",

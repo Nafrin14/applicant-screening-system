@@ -3,7 +3,7 @@ import { supabase } from "../supabase";
 import { useNotification } from "../context/NotificationContext";
 
 function ResetPassword() {
-  const { notify, confirmDialog } = useNotification();
+  const { notify } = useNotification();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(true);

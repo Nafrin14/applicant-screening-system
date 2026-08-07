@@ -10,7 +10,7 @@ import {
 } from "react-icons/fa";
 
 function Settings() {
-const { notify, confirmDialog } = useNotification();
+const { notify } = useNotification();
 const [companyName, setCompanyName] = useState("SmartHire");
 const [hrRole, setHrRole] = useState("HR Manager");
 const [email, setEmail] = useState("");

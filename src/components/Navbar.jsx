@@ -12,7 +12,7 @@ import { useNotification } from "../context/NotificationContext";
 
 function Navbar() {
   const navigate = useNavigate();
-  const { notify, confirmDialog } = useNotification();
+  const { confirmDialog } = useNotification();
   const [profileImage, setProfileImage] = useState("");
   const [hrName, setHrName] = useState("");
   const [companyName, setCompanyName] = useState("");

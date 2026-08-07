@@ -17,7 +17,7 @@ import {
 } from "react-icons/fa";
 
 export default function SalesReports() {
-  const { notify, confirmDialog } = useNotification();
+  const { notify } = useNotification();
   const [uploads, setUploads] = useState([]);
   const [filter, setFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");

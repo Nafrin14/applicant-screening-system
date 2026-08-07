@@ -19,7 +19,7 @@ import {
 function JobDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { notify, confirmDialog } = useNotification();
+  const { notify } = useNotification();
 
   const [job, setJob] = useState(null);
   const [applicants, setApplicants] = useState([]);

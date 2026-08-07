@@ -19,7 +19,7 @@ import {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { notify, confirmDialog } = useNotification();
+  const { notify } = useNotification();
 
   const [activeTab, setActiveTab] = useState("smarthire");
   const [salesRole, setSalesRole] = useState("user");
