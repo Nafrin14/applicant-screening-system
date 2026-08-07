@@ -12,10 +12,14 @@ import {
 import { supabase }
 from "../supabase";
 
+import { useNotification } from "../context/NotificationContext";
+
 function CSVUpload() {
 
   const navigate =
     useNavigate();
+
+  const { notify, confirmDialog } = useNotification();
 
   const [file, setFile] =
     useState(null);
@@ -25,8 +29,9 @@ function CSVUpload() {
 
     if (!file) {
 
-      alert(
-        "Please select CSV file"
+      notify(
+        "Please select CSV file",
+        { type: "error" }
       );
 
       return;
@@ -101,14 +106,16 @@ function CSVUpload() {
             error
           );
 
-          alert(
-            "CSV Upload Failed"
+          notify(
+            "CSV Upload Failed",
+            { type: "error" }
           );
 
         } else {
 
-          alert(
-            "CSV Uploaded Successfully"
+          notify(
+            "CSV Uploaded Successfully",
+            { type: "success" }
           );
 
           navigate(

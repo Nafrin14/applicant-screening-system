@@ -7,6 +7,7 @@ import confetti from "canvas-confetti";
 import SalesSidebar from "../components/SalesSidebar";
 import SalesNavbar from "../components/SalesNavbar";
 import Papa from "papaparse";
+import { useNotification } from "../context/NotificationContext";
 import {
   FaFolderOpen,
   FaCloudUploadAlt,
@@ -121,6 +122,7 @@ function getField(row, candidates) {
 }
 
 export default function SalesDashboard() {
+  const { notify, confirmDialog } = useNotification();
   const fileInputRef = useRef(null);
  
   const [history, setHistory] = useState([]);
@@ -179,7 +181,7 @@ export default function SalesDashboard() {
     );
 
     if (invalidFiles.length > 0) {
-      alert("Please upload CSV files only.");
+      notify("Please upload CSV files only.", { type: "error" });
       event.target.value = "";
       return;
     }
@@ -359,7 +361,7 @@ export default function SalesDashboard() {
       }, 2500);
     } catch (err) {
       console.error("❌ Upload error:", err);
-      alert(err.message || "Upload failed.");
+      notify(err.message || "Upload failed.", { type: "error" });
     } finally {
       setUploading(false);
       event.target.value = "";
@@ -367,8 +369,9 @@ export default function SalesDashboard() {
   };
 
   const deleteUpload = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this upload?"
+    const confirmDelete = await confirmDialog(
+      "Are you sure you want to delete this upload?",
+      { danger: true, confirmLabel: "Delete" }
     );
 
     if (!confirmDelete) return;
@@ -383,7 +386,7 @@ export default function SalesDashboard() {
 
       await loadUserUploadHistory();
     } catch (err) {
-      alert(err.message);
+      notify(err.message, { type: "error" });
     }
   };
 

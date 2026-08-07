@@ -30,9 +30,11 @@ import SalesProfile from "./pages/SalesProfile";
 import ComingSoon from "./pages/ComingSoon";
 // Components Layout wrappers
 import ProtectedRoute from "./components/ProtectedRoute";
+import { NotificationProvider } from "./context/NotificationContext";
 
 function App() {
   return (
+    <NotificationProvider>
     <BrowserRouter>
       <Routes>
         {/* =========================================================
@@ -235,6 +237,7 @@ function App() {
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
+    </NotificationProvider>
   );
 }
 

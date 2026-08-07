@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
+import { useNotification } from "../context/NotificationContext";
 import {
   FaHistory,
   FaCalendarAlt,
@@ -20,6 +21,7 @@ function CandidateChat() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const { notify, confirmDialog } = useNotification();
   const { candidateName, phone } = location.state || {};
   const GHL_TOKEN = import.meta.env.VITE_GHL_TOKEN;
 const LOCATION_ID = import.meta.env.VITE_GHL_LOCATION_ID;
@@ -229,8 +231,9 @@ const createGHLContact = async () => {
 
   const handleDelete = async (id) => {
     if (!id) return;
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this message?"
+    const confirmDelete = await confirmDialog(
+      "Are you sure you want to delete this message?",
+      { danger: true, confirmLabel: "Delete" }
     );
 
     if (!confirmDelete) return;
@@ -241,7 +244,7 @@ const createGHLContact = async () => {
       .eq("id", id);
 
     if (error) {
-      alert("Delete failed");
+      notify("Delete failed", { type: "error" });
       console.log(error);
       return;
     }
@@ -250,8 +253,9 @@ const createGHLContact = async () => {
   };
 
   const handleClearChat = async () => {
-    const confirmClear = window.confirm(
-      "Are you sure you want to clear all messages?"
+    const confirmClear = await confirmDialog(
+      "Are you sure you want to clear all messages?",
+      { danger: true, confirmLabel: "Clear" }
     );
     if (!confirmClear) return;
 
@@ -261,7 +265,7 @@ const createGHLContact = async () => {
       .eq("phone", phone);
 
     if (error) {
-      alert("Clear Chat Failed");
+      notify("Clear Chat Failed", { type: "error" });
       console.log(error);
       return;
     }
@@ -283,7 +287,7 @@ const createGHLContact = async () => {
           .upload(fileName, selectedFile);
 
       if (uploadError) {
-        alert(uploadError.message);
+        notify(uploadError.message, { type: "error" });
         return;
       }
 
@@ -306,7 +310,7 @@ const createGHLContact = async () => {
 
     if (error) {
       console.log(error);
-      alert("Message save failed");
+      notify("Message save failed", { type: "error" });
       return;
     }
 const { data: applicant } = await supabase
@@ -321,7 +325,7 @@ if (!contactId) {
   contactId = await createGHLContact();
 
   if (!contactId) {
-    alert("Failed to create GHL contact");
+    notify("Failed to create GHL contact", { type: "error" });
     return;
   }
 
@@ -339,7 +343,7 @@ if (!contactId) {
 
   const handleExportChat = () => {
     if (messages.length === 0) {
-      alert("No messages to export.");
+      notify("No messages to export.", { type: "error" });
       return;
     }
 
@@ -623,7 +627,7 @@ if (!contactId) {
                           <button
                             onClick={() => {
                               navigator.clipboard.writeText(msg.text || "");
-                              alert("Message Copied!");
+                              notify("Message Copied!", { type: "success" });
                             }}
                             className="text-gray-400 hover:text-blue-500 p-1 text-xs"
                             title="Copy message"

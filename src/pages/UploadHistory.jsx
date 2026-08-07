@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import SalesSidebar from "../components/SalesSidebar";
 import SalesNavbar from "../components/SalesNavbar";
+import { useNotification } from "../context/NotificationContext";
 import {
   FaSearch,
   FaFileCsv,
@@ -12,6 +13,7 @@ import {
 } from "react-icons/fa";
 
 export default function UploadHistory() {
+  const { notify, confirmDialog } = useNotification();
   const [uploads, setUploads] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -29,8 +31,9 @@ export default function UploadHistory() {
   ).length;
 
   const deleteUpload = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this upload?"
+    const confirmDelete = await confirmDialog(
+      "Are you sure you want to delete this upload?",
+      { danger: true, confirmLabel: "Delete" }
     );
 
     if (!confirmDelete) return;
@@ -41,7 +44,7 @@ export default function UploadHistory() {
       .eq("id", id);
 
     if (error) {
-      alert(error.message);
+      notify(error.message, { type: "error" });
       return;
     }
 

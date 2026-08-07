@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { supabase } from "../supabase";
+import { useNotification } from "../context/NotificationContext";
 
 import {
   FaPlus,
@@ -28,6 +29,7 @@ import {
 
 function Jobs() {
   const navigate = useNavigate();
+  const { notify, confirmDialog } = useNotification();
   const [sortBy, setSortBy] = useState(
     localStorage.getItem("jobsSortBy") || "newest"
   );
@@ -114,7 +116,7 @@ function Jobs() {
     e.preventDefault();
 
     if (!form.title.trim()) {
-      alert("Please enter job category name");
+      notify("Please enter job category name", { type: "error" });
       return;
     }
 
@@ -127,7 +129,7 @@ function Jobs() {
       ]);
 
     if (error) {
-      alert(error.message);
+      notify(error.message, { type: "error" });
       return;
     }
 
@@ -139,7 +141,11 @@ function Jobs() {
   async function handleDeleteJob(e, jobId) {
     e.stopPropagation();
 
-    if (!window.confirm("Delete this job category?")) return;
+    const confirmed = await confirmDialog("Delete this job category?", {
+      danger: true,
+      confirmLabel: "Delete",
+    });
+    if (!confirmed) return;
 
     const { error } = await supabase
       .from("job_posts")
@@ -147,7 +153,7 @@ function Jobs() {
       .eq("id", jobId);
 
     if (error) {
-      alert(error.message);
+      notify(error.message, { type: "error" });
       return;
     }
 

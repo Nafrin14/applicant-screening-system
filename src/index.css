@@ -109,6 +109,49 @@
 .animate-slideDown {
   animation: slideDown 2.5s ease forwards;
 }
+@keyframes toastIn {
+  0% {
+    opacity: 0;
+    transform: translateX(24px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-toast-in {
+  animation: toastIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes toastShrink {
+  0% {
+    width: 100%;
+  }
+  100% {
+    width: 0%;
+  }
+}
+
+.animate-toast-shrink {
+  animation: toastShrink linear forwards;
+}
+
+@keyframes glassPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.94) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-glass-pop {
+  animation: glassPop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 html,
 body,
 #root {

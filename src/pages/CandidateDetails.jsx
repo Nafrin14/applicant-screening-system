@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
+import { useNotification } from "../context/NotificationContext";
 import {
   FaChevronLeft,
   FaEnvelope,
@@ -39,6 +40,7 @@ function CandidateDetails() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [copiedText, setCopiedText] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const { notify } = useNotification();
 
   // Extract ID from state or query parameter
   const queryParams = new URLSearchParams(location.search);
@@ -177,7 +179,7 @@ function CandidateDetails() {
         .eq("id", applicant.id);
 
       if (error) {
-        alert("Status update failed: " + error.message);
+        notify("Status update failed: " + error.message, { type: "error" });
       } else {
         setApplicant({ ...applicant, status: newStatus });
       }

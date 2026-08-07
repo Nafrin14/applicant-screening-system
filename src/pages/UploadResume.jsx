@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import { screenResume } from "../services/aiService";
 import Sidebar from "../components/Sidebar";
+import { useNotification } from "../context/NotificationContext";
 
 
 import * as pdfjsLib from "pdfjs-dist";
@@ -18,6 +19,7 @@ import {
 
 function UploadResume() {
 const navigate = useNavigate();
+const { notify, confirmDialog } = useNotification();
 const [files, setFiles] = useState([]);
 const [role, setRole] = useState("");
 const [jobs, setJobs] = useState([]);
@@ -134,12 +136,12 @@ const pageText = textContent.items
 const addCandidate = async () => {
 if (files.length === 0) {
 
-  alert("Please select resumes");
+  notify("Please select resumes", { type: "error" });
 
   return;
 }
 if (!selectedJobId) {
-  alert("Please select a Job Position");
+  notify("Please select a Job Position", { type: "error" });
   return;
 }
     try {
@@ -262,7 +264,7 @@ const {
           uploadError
         );
 
-        alert(uploadError.message);
+        notify(uploadError.message, { type: "error" });
 
         setLoading(false);
 
@@ -313,11 +315,11 @@ const {
           error
         );
 
-        alert(error.message);
+        notify(error.message, { type: "error" });
       } else {
 
-        alert(
-  "All resumes uploaded successfully!"
+        notify(
+  "All resumes uploaded successfully!", { type: "success" }
 );
         setFiles([]);
         setRole("");
@@ -331,10 +333,11 @@ const {
         err
       );
 
-      alert(
+      notify(
         err?.message ||
         JSON.stringify(err) ||
-        "Upload failed"
+        "Upload failed",
+        { type: "error" }
       );
 
       setLoading(false);

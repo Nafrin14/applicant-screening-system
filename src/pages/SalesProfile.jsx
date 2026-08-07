@@ -2,8 +2,10 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import SalesSidebar from "../components/SalesSidebar";
 import SalesNavbar from "../components/SalesNavbar";
+import { useNotification } from "../context/NotificationContext";
 
 export default function SalesProfile() {
+  const { notify, confirmDialog } = useNotification();
   const [profile, setProfile] = useState({
     name: "",
     email: "",
@@ -138,11 +140,11 @@ export default function SalesProfile() {
       .eq("id", user.id);
 
     if (error) {
-      alert(error.message);
+      notify(error.message, { type: "error" });
       return;
     }
 
-    alert("Profile updated successfully.");
+    notify("Profile updated successfully.", { type: "success" });
   };
 
   const uploadProfileImage = async (file) => {
@@ -162,7 +164,7 @@ export default function SalesProfile() {
       .upload(fileName, file);
 
     if (uploadError) {
-      alert(uploadError.message);
+      notify(uploadError.message, { type: "error" });
       return;
     }
 
@@ -180,7 +182,7 @@ export default function SalesProfile() {
       .eq("id", user.id);
 
     if (error) {
-      alert(error.message);
+      notify(error.message, { type: "error" });
       return;
     }
 
@@ -189,7 +191,7 @@ export default function SalesProfile() {
       profile_image: imageUrl,
     });
 
-    alert("Profile image updated successfully.");
+    notify("Profile image updated successfully.", { type: "success" });
   };
 
   return (
@@ -399,7 +401,7 @@ export default function SalesProfile() {
                       if (!file) return;
 
                       if (file.size > 2 * 1024 * 1024) {
-                        alert("Image size must be less than 2MB.");
+                        notify("Image size must be less than 2MB.", { type: "error" });
                         return;
                       }
 

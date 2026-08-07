@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "../supabase";
+import { useNotification } from "../context/NotificationContext";
 
 function ResetPassword() {
+  const { notify, confirmDialog } = useNotification();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(true);
@@ -14,7 +16,7 @@ function ResetPassword() {
       console.log("SESSION ERROR:", error);
 
       if (!data.session) {
-        alert("Invalid or expired reset link");
+        notify("Invalid or expired reset link", { type: "error" });
       }
 
       setLoading(false);
@@ -25,12 +27,12 @@ function ResetPassword() {
 
   const handleResetPassword = async () => {
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      notify("Passwords do not match", { type: "error" });
       return;
     }
 
     if (password.length < 8) {
-      alert("Password must be at least 8 characters");
+      notify("Password must be at least 8 characters", { type: "error" });
       return;
     }
 
@@ -39,9 +41,9 @@ function ResetPassword() {
     });
 
     if (error) {
-      alert(error.message);
+      notify(error.message, { type: "error" });
     } else {
-      alert("Password updated successfully");
+      notify("Password updated successfully", { type: "success" });
       window.location.href = "/login";
     }
   };

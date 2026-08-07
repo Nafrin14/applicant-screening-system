@@ -17,6 +17,7 @@ import throttle from "lodash/throttle";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
+import { useNotification } from "../context/NotificationContext";
 
 // ==========================================
 // HELPER FUNCTIONS (Moved outside component)
@@ -231,7 +232,8 @@ const ChatSidebarPanel = ({
 
 function Conversations() {
   const navigate = useNavigate();
-  
+  const { notify, confirmDialog } = useNotification();
+
   // State Variables
   const [candidates, setCandidates] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -666,7 +668,7 @@ loadLastMessages(candidates);
         .from("chat-files")
         .upload(fileName, selectedFile);
       if (uploadError) {
-        alert(uploadError.message);
+        notify(uploadError.message, { type: "error" });
         return;
       }
       const { data } = supabase.storage.from("chat-files").getPublicUrl(fileName);
@@ -695,7 +697,7 @@ loadLastMessages(candidates);
     if (!contactId) {
       contactId = await createGHLContact();
       if (!contactId) {
-        alert("Failed to create GHL contact");
+        notify("Failed to create GHL contact", { type: "error" });
         return;
       }
       await supabase
@@ -747,7 +749,7 @@ loadLastMessages(candidates);
       setIsRecording(true);
     } catch (error) {
       console.log(error);
-      alert("Microphone permission denied");
+      notify("Microphone permission denied", { type: "error" });
     }
   };
 
@@ -781,7 +783,7 @@ loadLastMessages(candidates);
       if (!contactId) {
         contactId = await createGHLContact();
         if (!contactId) {
-          alert("Failed to create GHL contact");
+          notify("Failed to create GHL contact", { type: "error" });
           return;
         }
 
@@ -803,7 +805,7 @@ loadLastMessages(candidates);
 
   const handleForward = async () => {
     if (!forwardMessage || !selectedForwardCandidate) {
-      alert("Select a candidate");
+      notify("Select a candidate", { type: "error" });
       return;
     }
     const { error } = await supabase.from("chat_messages").insert([
@@ -821,7 +823,7 @@ loadLastMessages(candidates);
       console.log(error);
       return;
     }
-    alert("Message Forwarded");
+    notify("Message Forwarded", { type: "success" });
     setShowForwardModal(false);
     setForwardMessage(null);
     setSelectedForwardCandidate(null);
@@ -865,11 +867,11 @@ loadLastMessages(candidates);
 const handleDeleteCandidate = async (candidate) => {
   if (!candidate) return;
 
-  if (
-    !window.confirm(
-      `Delete ${candidate.name} and all chat messages?`
-    )
-  ) {
+  const confirmed = await confirmDialog(
+    `Delete ${candidate.name} and all chat messages?`,
+    { danger: true, confirmLabel: "Delete" }
+  );
+  if (!confirmed) {
     return;
   }
 
@@ -893,19 +895,18 @@ const handleDeleteCandidate = async (candidate) => {
 };
   const handleClearChat = async () => {
     if (!selectedCandidate) return;
-    if (
-      !window.confirm(
-        `Are you sure you want to clear all messages for ${selectedCandidate.name}?`
-      )
-    )
-      return;
+    const confirmed = await confirmDialog(
+      `Are you sure you want to clear all messages for ${selectedCandidate.name}?`,
+      { danger: true, confirmLabel: "Clear" }
+    );
+    if (!confirmed) return;
     const { error } = await supabase
       .from("chat_messages")
       .delete()
       .eq("phone", selectedCandidate.phone);
     if (error) {
       console.log(error);
-      alert(`Error clearing chat: ${error.message}`);
+      notify(`Error clearing chat: ${error.message}`, { type: "error" });
       return;
     }
     setMessages([]);
@@ -914,7 +915,7 @@ const handleDeleteCandidate = async (candidate) => {
 
   const handleExportChat = () => {
     if (!selectedCandidate || messages.length === 0) {
-      alert("No messages to export.");
+      notify("No messages to export.", { type: "error" });
       return;
     }
     const chatText = messages

@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { supabase } from "../supabase";
+import { useNotification } from "../context/NotificationContext";
 
 function ForgotPassword() {
+  const { notify, confirmDialog } = useNotification();
   const [email, setEmail] = useState("");
 
   const handleReset = async () => {
@@ -10,9 +12,9 @@ function ForgotPassword() {
     });
 
     if (error) {
-      alert(error.message);
+      notify(error.message, { type: "error" });
     } else {
-      alert("Password reset email sent");
+      notify("Password reset email sent", { type: "success" });
     }
   };
 

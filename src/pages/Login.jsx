@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import bgImage from "../assets/new_premium_bg.png";
+import { useNotification } from "../context/NotificationContext";
 
 import {
   FaEnvelope,
@@ -18,6 +19,7 @@ import {
 
 export default function Login() {
   const navigate = useNavigate();
+  const { notify, confirmDialog } = useNotification();
 
   const [activeTab, setActiveTab] = useState("smarthire");
   const [salesRole, setSalesRole] = useState("user");
@@ -27,7 +29,7 @@ export default function Login() {
 
  const handleLogin = async () => {
     if (!email || !password) {
-      alert("Enter email & password");
+      notify("Enter email & password", { type: "error" });
       return;
     }
 
@@ -38,7 +40,7 @@ export default function Login() {
     });
 
     if (authError) {
-      alert(authError.message);
+      notify(authError.message, { type: "error" });
       return;
     }
 
@@ -69,7 +71,7 @@ console.log("UPDATE ERROR:", error);
 
       // 3. Prevent login if the administrator has marked this user account as disabled/deactivated
       if (profile.is_active === false) {
-        alert("Your account has been deactivated by the system administrator.");
+        notify("Your account has been deactivated by the system administrator.", { type: "error" });
         await supabase.auth.signOut();
         return;
       }
@@ -77,7 +79,7 @@ console.log("UPDATE ERROR:", error);
       // 4. SMART HIRE RULE: Only let admin user access SmartHire
       if (activeTab === "smarthire") {
         if (profile.role !== "admin") {
-          alert("Access Denied: Only administrators can access the SmartHire Platform.");
+          notify("Access Denied: Only administrators can access the SmartHire Platform.", { type: "error" });
           await supabase.auth.signOut();
           return;
         }
@@ -94,14 +96,14 @@ if (activeTab === "sales") {
 
   // Admin button select pannitu user account login panna
   if (salesRole === "admin" && profile.role !== "admin") {
-    alert("This account is not an Admin account.");
+    notify("This account is not an Admin account.", { type: "error" });
     await supabase.auth.signOut();
     return;
   }
 
   // User button select pannitu admin account login panna
   if (salesRole === "user" && profile.role !== "user") {
-    alert("This account is not a User account.");
+    notify("This account is not a User account.", { type: "error" });
     await supabase.auth.signOut();
     return;
   }
@@ -114,7 +116,7 @@ if (activeTab === "sales") {
 }
 
     } catch (err) {
-      alert(err.message || "An authentication verification error occurred.");
+      notify(err.message || "An authentication verification error occurred.", { type: "error" });
       await supabase.auth.signOut();
     }
  }

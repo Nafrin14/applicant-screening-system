@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
+import { useNotification } from "../context/NotificationContext";
 
 import {
   FaArrowLeft,
@@ -18,6 +19,7 @@ import {
 function JobDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { notify, confirmDialog } = useNotification();
 
   const [job, setJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
@@ -202,7 +204,7 @@ function JobDetails() {
     if (app.resume_url) {
       window.open(app.resume_url, "_blank");
     } else {
-      alert("No CV file available for this applicant.");
+      notify("No CV file available for this applicant.", { type: "error" });
     }
   }}
   className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold"
