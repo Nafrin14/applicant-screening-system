@@ -11,6 +11,7 @@ import {
 
 import { supabase } from "../supabase";
 import Sidebar from "../components/Sidebar";
+import { useNotification } from "../context/NotificationContext";
 
 
 
@@ -44,6 +45,8 @@ const location =
 
 const applicant =
   location.state;
+
+const { notify } = useNotification();
 
   console.log(
   "Applicant Data:",
@@ -235,8 +238,9 @@ const scheduleInterview =
       !interviewTime
     ) {
 
-      alert(
-        "Please fill all fields"
+      notify(
+        "Please fill all fields",
+        { type: "error" }
       );
 
       return;
@@ -281,8 +285,9 @@ const {
         error.message
       );
 
-      alert(
-        error.message
+      notify(
+        error.message,
+        { type: "error" }
       );
 
     } else {
@@ -317,8 +322,9 @@ console.log("Using Existing Contact ID:", contactId);
 await sendSMS(contactId);
   console.log(data);
 
-  alert(
-    "Interview Scheduled Successfully"
+  notify(
+    "Interview Scheduled Successfully",
+    { type: "success" }
   );
 
   setCandidateName("");

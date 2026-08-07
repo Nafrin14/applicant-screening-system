@@ -15,6 +15,7 @@ import { supabase }
 from "../supabase";
 
 import Sidebar from "../components/Sidebar";
+import { useNotification } from "../context/NotificationContext";
 import {
   FaEye,
   FaUserCheck,
@@ -45,6 +46,7 @@ function CandidateList() {
 const [selectedApplicants, setSelectedApplicants] = useState([]);
 const [statusFilter, setStatusFilter] = useState("All");
 const [selectedDate, setSelectedDate] = useState("");
+const { notify, confirmDialog } = useNotification();
 
   useEffect(() => {
     fetchApplicants();
@@ -142,8 +144,9 @@ const groupedApplicants = filteredApplicants.reduce((groups, applicant) => {
 
   const handleDelete =
     async (id) => {
-      const confirmDelete = window.confirm(
-  "Are you sure you want to delete this candidate?"
+      const confirmDelete = await confirmDialog(
+  "Are you sure you want to delete this candidate?",
+  { danger: true, confirmLabel: "Delete" }
 );
 
 if (!confirmDelete) return;
@@ -157,16 +160,18 @@ if (!confirmDelete) return;
     if (error) {
 
       console.log(error);
+      notify("Failed to delete candidate", { type: "error" });
 
     } else {
-      alert("Candidate deleted successfully");
+      notify("Candidate deleted successfully", { type: "success" });
 
       fetchApplicants();
 
     }
   };
-const bulkDelete = async () => {const confirmDelete = window.confirm(
-  `Delete ${selectedApplicants.length} selected candidates?`
+const bulkDelete = async () => {const confirmDelete = await confirmDialog(
+  `Delete ${selectedApplicants.length} selected candidates?`,
+  { danger: true, confirmLabel: "Delete" }
 );
 
 if (!confirmDelete) return;
@@ -179,9 +184,11 @@ if (!confirmDelete) return;
   if (error) {
 
     console.log(error);
+    notify("Failed to delete selected candidates", { type: "error" });
 
   } else {
 
+    notify(`${selectedApplicants.length} candidates deleted successfully`, { type: "success" });
     setSelectedApplicants([]);
     fetchApplicants();
 
@@ -225,9 +232,11 @@ const bulkUpdateStatus = async (status) => {
   if (error) {
 
     console.log(error);
+    notify("Failed to update selected candidates", { type: "error" });
 
-  } else { alert(
-  `${selectedApplicants.length} candidates ${status.toLowerCase()} successfully`
+  } else { notify(
+  `${selectedApplicants.length} candidates ${status.toLowerCase()} successfully`,
+  { type: "success" }
 );
 
     setSelectedApplicants([]);
@@ -306,7 +315,7 @@ const shareSelectedResumes = async () => {
     .sort((a, b) => (b.ai_score || 0) - (a.ai_score || 0));
 
   if (selected.length === 0) {
-    alert("Please select at least one candidate.");
+    notify("Please select at least one candidate.", { type: "error" });
     return;
   }
 
@@ -344,14 +353,14 @@ const shareSelectedResumes = async () => {
 const result = await response.json();
 
     if (!response.ok) {
-      alert(result.error || "WhatsApp automation failed.");
+      notify(result.error || "WhatsApp automation failed.", { type: "error" });
       return;
     }
 
-    alert("WhatsApp automation started successfully.");
+    notify("WhatsApp automation started successfully.", { type: "success" });
   } catch (error) {
     console.log(error);
-    alert("Backend is not running.");
+    notify("Backend is not running.", { type: "error" });
   }
 };
   

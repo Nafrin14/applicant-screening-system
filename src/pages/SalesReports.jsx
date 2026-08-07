@@ -5,6 +5,7 @@ import SalesNavbar from "../components/SalesNavbar";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { useNotification } from "../context/NotificationContext";
 import {
   FaFileAlt,
   FaCheckCircle,
@@ -16,6 +17,7 @@ import {
 } from "react-icons/fa";
 
 export default function SalesReports() {
+  const { notify } = useNotification();
   const [uploads, setUploads] = useState([]);
   const [filter, setFilter] = useState("all");
   const [fromDate, setFromDate] = useState("");
@@ -98,7 +100,7 @@ export default function SalesReports() {
 
       setUploads(data || []);
     } catch (err) {
-      alert(err.message || "Failed to load reports.");
+      notify(err.message || "Failed to load reports.", { type: "error" });
     } finally {
       setLoading(false);
     }

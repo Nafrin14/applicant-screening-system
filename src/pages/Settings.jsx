@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import { supabase } from "../supabaseClient";
+import { useNotification } from "../context/NotificationContext";
 
 import {
   FaShieldAlt,
@@ -9,6 +10,7 @@ import {
 } from "react-icons/fa";
 
 function Settings() {
+const { notify } = useNotification();
 const [companyName, setCompanyName] = useState("SmartHire");
 const [hrRole, setHrRole] = useState("HR Manager");
 const [email, setEmail] = useState("");
@@ -38,7 +40,7 @@ const { data, error } = await supabase
   };
 
 const handleSave = async () => {
-    alert("Button Clicked");
+    notify("Button Clicked");
     console.log("Saving...", companyName, hrRole);
 
 const { data, error } = await supabase
@@ -55,21 +57,21 @@ const { data, error } = await supabase
     console.log("ERROR:", error);
 
     if (error) {
-      alert("Update Failed");
+      notify("Update Failed", { type: "error" });
       console.log(error);
     } else {
-      alert("Settings Updated Successfully");
+      notify("Settings Updated Successfully", { type: "success" });
       fetchSettings();
     }
   };
 const handlePasswordUpdate = async () => {
   if (newPassword !== confirmPassword) {
-    alert("Passwords do not match");
+    notify("Passwords do not match", { type: "error" });
     return;
   }
 
   if (newPassword.length < 8) {
-    alert("Password must be at least 8 characters");
+    notify("Password must be at least 8 characters", { type: "error" });
     return;
   }
 
@@ -78,9 +80,9 @@ const { error } = await supabase.auth.updateUser({
   });
 
   if (error) {
-    alert(error.message);
+    notify(error.message, { type: "error" });
   } else {
-    alert("Password Updated Successfully");
+    notify("Password Updated Successfully", { type: "success" });
     setNewPassword("");
     setConfirmPassword("");
   }
@@ -88,7 +90,7 @@ const { error } = await supabase.auth.updateUser({
 
 const handleEmailUpdate = async () => {
   if (!newEmail) {
-    alert("Please enter a new email");
+    notify("Please enter a new email", { type: "error" });
     return;
   }
 
@@ -97,10 +99,11 @@ const handleEmailUpdate = async () => {
   });
 
   if (error) {
-    alert(error.message);
+    notify(error.message, { type: "error" });
   } else {
-    alert(
-      "Verification email sent. Please check your new email inbox."
+    notify(
+      "Verification email sent. Please check your new email inbox.",
+      { type: "success" }
     );
     setNewEmail("");
   }
@@ -115,7 +118,7 @@ const { error: uploadError } = await supabase.storage
     .upload(fileName, file);
 
   if (uploadError) {
-    alert(uploadError.message);
+    notify(uploadError.message, { type: "error" });
     return;
   }
 
@@ -135,9 +138,9 @@ const { error: updateError } = await supabase
 
   if (updateError) {
     console.log(updateError);
-    alert(updateError.message);
+    notify(updateError.message, { type: "error" });
   } else {
-    alert("Profile image updated successfully");
+    notify("Profile image updated successfully", { type: "success" });
   }
 };
  return (

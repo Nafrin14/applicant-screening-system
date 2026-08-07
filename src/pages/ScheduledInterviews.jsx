@@ -10,6 +10,7 @@ import {
 import { supabase }
 from "../supabase";
 import Sidebar from "../components/Sidebar";
+import { useNotification } from "../context/NotificationContext";
 import {
   FaTachometerAlt,
   FaUsers,
@@ -29,6 +30,7 @@ import {
 function ScheduledInterviews() {
 const navigate =
       useNavigate();
+const { notify } = useNotification();
 const [
     interviews,
     setInterviews,
@@ -75,8 +77,9 @@ if (error) {
 console.log(error);
     } else {
 
-      alert(
-        "Interview Deleted"
+      notify(
+        "Interview Deleted",
+        { type: "success" }
       );
 
       fetchInterviews();
@@ -102,8 +105,9 @@ const { error } =
       console.log(error);
     } else {
 
-      alert(
-        "Status Updated"
+      notify(
+        "Status Updated",
+        { type: "success" }
       );
       fetchInterviews();
     }

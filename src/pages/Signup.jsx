@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../supabase";
+import { useNotification } from "../context/NotificationContext";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const { notify } = useNotification();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] =
@@ -17,9 +19,9 @@ const Signup = () => {
       });
 
     if (error) {
-      alert(error.message);
+      notify(error.message, { type: "error" });
     } else {
-      alert("Signup Successful");
+      notify("Signup Successful", { type: "success" });
       navigate("/login");
     }
   };

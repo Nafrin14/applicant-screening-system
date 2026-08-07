@@ -8,9 +8,11 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { supabase } from "../supabaseClient";
+import { useNotification } from "../context/NotificationContext";
 
 function Navbar() {
   const navigate = useNavigate();
+  const { confirmDialog } = useNotification();
   const [profileImage, setProfileImage] = useState("");
   const [hrName, setHrName] = useState("");
   const [companyName, setCompanyName] = useState("");
@@ -169,8 +171,9 @@ const markAsRead = async (id) => {
 };
 
 const handleDelete = async (id) => {
-  const confirmDelete = window.confirm(
-    "Delete this notification?"
+  const confirmDelete = await confirmDialog(
+    "Delete this notification?",
+    { danger: true, confirmLabel: "Delete" }
   );
 
   if (!confirmDelete) return;

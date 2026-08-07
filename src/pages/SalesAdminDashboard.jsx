@@ -4,6 +4,7 @@ import CalendarTracker from '../components/CalendarTracker';
 import { validateEmail } from '../utils/validation';
 import { formatDateString } from '../utils/helpers';
 import Papa from "papaparse";
+import { useNotification } from "../context/NotificationContext";
 
 // ─── Date Range Helper ──────────────────────────────────────────────────────
 const getDateRange = (preset) => {
@@ -42,6 +43,7 @@ function normalizeStage(stage) {
 }
 
 export default function SalesAdminDashboard() {
+  const { notify, confirmDialog } = useNotification();
   // ── Database State ─────────────────────────────────────────────────────────
   const [salesUsers,       setSalesUsers]       = useState([]);
   const [uploadedCsvFiles, setUploadedCsvFiles] = useState([]);
@@ -134,7 +136,7 @@ export default function SalesAdminDashboard() {
   const handleOpenEditMode = (user) => {
     console.log("✏️ Editing user:", user);
     if (!user || !user.id) {
-      alert('Invalid user data');
+      notify('Invalid user data', { type: 'error' });
       return;
     }
     setIsEditing(true);
@@ -149,14 +151,14 @@ export default function SalesAdminDashboard() {
   const handleSaveUserForm = async (e) => {
     e.preventDefault();
     if (!validateEmail(formEmail)) {
-      alert('Please enter a valid email address.');
+      notify('Please enter a valid email address.', { type: 'error' });
       return;
     }
 
     try {
       if (isEditing) {
         if (!targetUserId) {
-          alert('No user selected for editing');
+          notify('No user selected for editing', { type: 'error' });
           return;
         }
 
@@ -171,7 +173,7 @@ export default function SalesAdminDashboard() {
 
         if (formResetPassword.trim().length > 0) {
           if (formResetPassword.trim().length < 6) {
-            alert('Password must be at least 6 characters.');
+            notify('Password must be at least 6 characters.', { type: 'error' });
             return;
           }
           const { error: resetError } = await supabase.auth.resetPasswordForEmail(formEmail, {
@@ -204,12 +206,12 @@ export default function SalesAdminDashboard() {
       await fetchDashboardData();
     } catch(err) {
       console.error("❌ Save user error:", err);
-      alert(err.message || 'Failed to save user. Please check console for details.');
+      notify(err.message || 'Failed to save user. Please check console for details.', { type: 'error' });
     }
   };
 
   const handleDeleteUser = async (id) => {
-    if (!window.confirm('Delete this user?')) return;
+    if (!(await confirmDialog('Delete this user?', { danger: true, confirmLabel: 'Delete' }))) return;
 
     try {
       console.log("🗑️ Deleting user:", id);
@@ -222,7 +224,7 @@ export default function SalesAdminDashboard() {
 
       if (checkError) {
         console.error("❌ User not found:", checkError);
-        alert('User not found in database.');
+        notify('User not found in database.', { type: 'error' });
         return;
       }
 
@@ -242,7 +244,7 @@ export default function SalesAdminDashboard() {
       await fetchDashboardData();
     } catch(err) {
       console.error("❌ Delete error:", err);
-      alert('Error deleting user: ' + err.message);
+      notify('Error deleting user: ' + err.message, { type: 'error' });
     }
   };
 
@@ -268,12 +270,12 @@ export default function SalesAdminDashboard() {
   const handleSelectAllCsvs = (e) => setSelectedCsvIds(e.target.checked?filteredCsvFiles.map(f=>f.id):[]);
   const handleBulkDeleteCsvs = async () => {
     if (!selectedCsvIds.length) return;
-    if (!window.confirm(`Delete ${selectedCsvIds.length} file(s)?`)) return;
+    if (!(await confirmDialog(`Delete ${selectedCsvIds.length} file(s)?`, { danger: true, confirmLabel: 'Delete' }))) return;
     try {
       const {error} = await supabase.from('csv_uploads').delete().in('id',selectedCsvIds);
       if (error) throw error;
       showToast(`${selectedCsvIds.length} file(s) deleted.`); setSelectedCsvIds([]); fetchDashboardData();
-    } catch(err) { alert('Error deleting files.'); }
+    } catch(err) { notify('Error deleting files.', { type: 'error' }); }
   };
   const clearCsvFilters = () => { setCsvFilterName('');setCsvDatePreset('');setCsvCustomStart('');setCsvCustomEnd('');setCsvFilterStatus('');setSelectedCsvIds([]); };
 
@@ -662,7 +664,7 @@ export default function SalesAdminDashboard() {
   const showToast = (msg) => { setNotification(msg); setTimeout(()=>setNotification(''),4500); };
 
   const handleLogout = async () => {
-    if (window.confirm('Log out?')) {
+    if (await confirmDialog('Log out?')) {
       await supabase.auth.signOut();
       localStorage.removeItem('isLoggedIn');
       window.location.href='/login';
