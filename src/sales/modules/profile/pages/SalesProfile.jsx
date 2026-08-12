@@ -1,0 +1,424 @@
+import React, { useEffect, useState } from "react";
+import { supabase } from "../../../../core/lib/supabase";
+import SalesSidebar from "../../../components/SalesSidebar";
+import SalesNavbar from "../../../components/SalesNavbar";
+import { useNotification } from "../../../../core/context/NotificationContext";
+
+export default function SalesProfile() {
+  const { notify } = useNotification();
+  const [profile, setProfile] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    profile_image: "",
+    last_login: "",
+    created_at: "",
+    role: "",
+  });
+
+  const [imageFile, setImageFile] = useState(null);
+
+  const [stats, setStats] = useState({
+    totalUploads: 0,
+    totalReports: 0,
+    successRate: 0,
+  });
+
+  useEffect(() => {
+    loadProfile();
+    loadStats();
+  }, []);
+
+  const loadProfile = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      console.log(error.message);
+      return;
+    }
+
+    setProfile({
+      name: data?.name || "",
+      email: data?.email || user.email || "",
+      phone: data?.phone || "",
+      profile_image: data?.profile_image || "",
+      last_login: data?.last_login || "",
+      created_at: data?.created_at || "",
+      role: data?.role || "user",
+    });
+  };
+
+  const loadStats = async () => {
+    const { data, error } = await supabase.from("csv_uploads").select("*");
+
+    if (error) {
+      console.log(error.message);
+      return;
+    }
+
+    const totalUploads = data.length;
+
+    const successUploads = data.filter(
+      (item) => item.status === "success"
+    ).length;
+
+    const successRate =
+      totalUploads > 0 ? Math.round((successUploads / totalUploads) * 100) : 0;
+
+    setStats({
+      totalUploads,
+      totalReports: successUploads,
+      successRate,
+    });
+  };
+
+  const formatJoinedDate = (date) => {
+    if (!date) return "-";
+
+    return new Date(date).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatLastLogin = (date) => {
+    if (!date) return "First Login";
+
+    const loginDate = new Date(date);
+    const today = new Date();
+
+    const isToday = loginDate.toDateString() === today.toDateString();
+
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const isYesterday = loginDate.toDateString() === yesterday.toDateString();
+
+    const time = loginDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    if (isToday) return `Today at ${time}`;
+    if (isYesterday) return `Yesterday at ${time}`;
+
+    return loginDate.toLocaleString("en-US", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const saveProfile = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        name: profile.name,
+        phone: profile.phone,
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      notify(error.message, { type: "error" });
+      return;
+    }
+
+    notify("Profile updated successfully.", { type: "success" });
+  };
+
+  const uploadProfileImage = async (file) => {
+    if (!file) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("profile-images")
+      .upload(fileName, file);
+
+    if (uploadError) {
+      notify(uploadError.message, { type: "error" });
+      return;
+    }
+
+    const { data } = supabase.storage
+      .from("profile-images")
+      .getPublicUrl(fileName);
+
+    const imageUrl = data.publicUrl;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        profile_image: imageUrl,
+      })
+      .eq("id", user.id);
+
+    if (error) {
+      notify(error.message, { type: "error" });
+      return;
+    }
+
+    setProfile({
+      ...profile,
+      profile_image: imageUrl,
+    });
+
+    notify("Profile image updated successfully.", { type: "success" });
+  };
+
+  return (
+    <div className="min-h-screen bg-white text-slate-900">
+      <SalesSidebar />
+
+      <main className="relative z-10 lg:ml-72 min-h-screen">
+        <SalesNavbar
+          title="Profile"
+          subtitle="Manage your account information and preferences."
+        />
+
+        <div className="px-6 py-8 md:px-10">
+          <section className="grid lg:grid-cols-3 gap-6 mb-6">
+            <div className="dashboard-card lg:col-span-2">
+              <div className="flex flex-col md:flex-row items-center gap-8">
+                <div className="relative">
+                  <div className="w-36 h-36 rounded-full bg-[#064E3B] text-white overflow-hidden flex items-center justify-center text-6xl font-black">
+                    {profile.profile_image ? (
+                      <img
+                        src={profile.profile_image}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      profile.name?.charAt(0).toUpperCase() || "U"
+                    )}
+                  </div>
+
+                  <button className="absolute bottom-2 right-2 w-10 h-10 rounded-full bg-[#064E3B] hover:bg-[#065F46] text-white flex items-center justify-center shadow-lg">
+                    📷
+                  </button>
+                </div>
+
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-3xl font-black">
+                      {profile.name || "User"}
+                    </h2>
+
+                    <span className="px-3 py-1 rounded-full bg-[#064E3B] text-white font-semibold text-sm">
+                      {profile.role || "User"}
+                    </span>
+                  </div>
+
+                  <p className="text-slate-600 mt-3">📧 {profile.email}</p>
+
+                  <p className="text-slate-600 mt-2">
+                    📞 {profile.phone || "No phone added"}
+                  </p>
+
+                  <div className="flex flex-wrap gap-6 mt-6">
+                    <p className="text-slate-600">
+                      📅 Joined : {formatJoinedDate(profile.created_at)}
+                    </p>
+
+                    <p className="text-slate-600">
+                      🕒 Last Login : {formatLastLogin(profile.last_login)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <h2 className="text-xl font-bold mb-6">Profile Overview</h2>
+
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span>Total Uploads</span>
+                  <span className="font-bold text-[#064E3B]">
+                    {stats.totalUploads}
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Total Reports</span>
+                  <span className="font-bold text-[#064E3B]">
+                    {stats.totalReports}
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Success Rate</span>
+                  <span className="font-bold text-[#064E3B]">
+                    {stats.successRate}%
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Member Since</span>
+                  <span className="font-bold text-[#064E3B]">
+                    {formatJoinedDate(profile.created_at)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="grid lg:grid-cols-3 gap-6 mb-6">
+            <div className="dashboard-card lg:col-span-2">
+              <h2 className="text-2xl font-bold mb-8">Edit Profile</h2>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block mb-2 text-slate-600 font-medium">
+                    Full Name
+                  </label>
+
+                  <input
+                    type="text"
+                    value={profile.name}
+                    onChange={(e) =>
+                      setProfile({
+                        ...profile,
+                        name: e.target.value,
+                      })
+                    }
+                    className="w-full h-12 bg-white border border-[#064E3B] rounded-xl px-4 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-[#064E3B] shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-slate-600 font-medium">
+                    Email
+                  </label>
+
+                  <input
+                    type="email"
+                    value={profile.email}
+                    readOnly
+                    className="w-full h-12 bg-white border border-[#064E3B] rounded-xl px-4 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-[#064E3B] shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-slate-600 font-medium">
+                    Phone
+                  </label>
+
+                  <input
+                    type="text"
+                    value={profile.phone}
+                    onChange={(e) =>
+                      setProfile({
+                        ...profile,
+                        phone: e.target.value,
+                      })
+                    }
+                    className="w-full h-12 bg-white border border-[#064E3B] rounded-xl px-4 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-[#064E3B] shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-2 text-slate-600 font-medium">
+                    Password
+                  </label>
+
+                  <input
+                    type="password"
+                    placeholder="********"
+                    className="w-full h-12 bg-white border border-[#064E3B] rounded-xl px-4 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-[#064E3B] shadow-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-8 flex gap-4">
+                <button
+                  onClick={saveProfile}
+                  className="bg-[#064E3B] hover:bg-[#065F46] text-white shadow-md transition-all px-8 py-3 rounded-xl font-bold"
+                >
+                  Save Changes
+                </button>
+
+                <button className="border border-[#064E3B] text-[#064E3B] hover:bg-[#064E3B] hover:text-white px-8 py-3 rounded-xl transition-all font-bold">
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <h2 className="text-xl font-bold mb-6">Profile Image</h2>
+
+              <div className="flex flex-col items-center">
+                <div className="w-36 h-36 rounded-full bg-[#064E3B] text-white overflow-hidden flex items-center justify-center text-5xl font-black mb-6">
+                  {profile.profile_image ? (
+                    <img
+                      src={profile.profile_image}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    profile.name?.charAt(0).toUpperCase() || "U"
+                  )}
+                </div>
+
+                <label className="bg-[#064E3B] hover:bg-[#065F46] text-white px-6 py-3 rounded-xl font-bold cursor-pointer shadow-md transition-all">
+                  Upload Image
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+
+                      if (!file) return;
+
+                      if (file.size > 2 * 1024 * 1024) {
+                        notify("Image size must be less than 2MB.", { type: "error" });
+                        return;
+                      }
+
+                      setImageFile(file);
+                      uploadProfileImage(file);
+                    }}
+                  />
+                </label>
+
+                <p className="text-slate-500 text-sm mt-4 text-center">
+                  JPG, PNG up to 2MB
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}
