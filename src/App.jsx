@@ -2,35 +2,35 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Pages Layer Imports
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import Dashboard from "./pages/Dashboard";
-import SalesDashboard from "./pages/SalesDashboard";
-import SalesAdminDashboard from "./pages/SalesAdminDashboard";
-import CandidateList from "./pages/CandidateList";
-import CandidateDetails from "./pages/CandidateDetails";
-import CandidateProfile from "./pages/CandidateProfile";
-import CandidateChat from "./pages/CandidateChat";
-import Conversations from "./pages/Conversations";
-import InterviewSchedule from "./pages/InterviewSchedule";
-import ScheduledInterviews from "./pages/ScheduledInterviews";
-import CSVUpload from "./pages/CSVUpload";
-import UploadResume from "./pages/UploadResume";
-import AIResults from "./pages/AIResults";
-import ResumeViewer from "./pages/ResumeViewer";
-import Jobs from "./pages/Jobs";
-import JobDetails from "./pages/JobDetails";
-import Settings from "./pages/Settings";
-import UploadHistory from "./pages/UploadHistory";
-import SalesReports from "./pages/SalesReports";
-import Notifications from "./pages/Notifications";
-import SalesProfile from "./pages/SalesProfile";
-import ComingSoon from "./pages/ComingSoon";
+import Login from "./core/auth/pages/Login";
+import Signup from "./core/auth/pages/Signup";
+import ForgotPassword from "./core/auth/pages/ForgotPassword";
+import ResetPassword from "./core/auth/pages/ResetPassword";
+import Dashboard from "./smart-hire/modules/dashboard/pages/Dashboard";
+import SalesDashboard from "./sales/modules/dashboard/pages/SalesDashboard";
+import SalesAdminDashboard from "./sales/modules/dashboard/pages/SalesAdminDashboard";
+import CandidateList from "./smart-hire/modules/candidates/pages/CandidateList";
+import CandidateDetails from "./smart-hire/modules/candidates/pages/CandidateDetails";
+import CandidateProfile from "./smart-hire/modules/candidates/pages/CandidateProfile";
+import CandidateChat from "./smart-hire/modules/candidates/pages/CandidateChat";
+import Conversations from "./smart-hire/modules/conversations/pages/Conversations";
+import InterviewSchedule from "./smart-hire/modules/interviews/pages/InterviewSchedule";
+import ScheduledInterviews from "./smart-hire/modules/interviews/pages/ScheduledInterviews";
+import CSVUpload from "./sales/modules/csv-upload/pages/CSVUpload";
+import UploadResume from "./smart-hire/modules/resume-ai/pages/UploadResume";
+import AIResults from "./smart-hire/modules/resume-ai/pages/AIResults";
+import ResumeViewer from "./smart-hire/modules/resume-ai/pages/ResumeViewer";
+import Jobs from "./smart-hire/modules/jobs/pages/Jobs";
+import JobDetails from "./smart-hire/modules/jobs/pages/JobDetails";
+import Settings from "./smart-hire/modules/settings/pages/Settings";
+import UploadHistory from "./sales/modules/csv-upload/pages/UploadHistory";
+import SalesReports from "./sales/modules/reports/pages/SalesReports";
+import Notifications from "./sales/modules/notifications/pages/Notifications";
+import SalesProfile from "./sales/modules/profile/pages/SalesProfile";
+import ComingSoon from "./core/auth/pages/ComingSoon";
 // Components Layout wrappers
-import ProtectedRoute from "./components/ProtectedRoute";
-import { NotificationProvider } from "./context/NotificationContext";
+import ProtectedRoute from "./core/components/ProtectedRoute";
+import { NotificationProvider } from "./core/context/NotificationContext";
 
 function App() {
   return (
