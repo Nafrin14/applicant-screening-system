@@ -1,5 +1,6 @@
 import React, {
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -27,9 +28,6 @@ import {
   FaUserCheck,
   FaUserTimes,
   FaUserClock,
-  FaBriefcase,
-  FaMapMarkerAlt,
-  FaMoneyBillWave,
    FaUpload,
 } from "react-icons/fa";
 
@@ -66,6 +64,58 @@ function Dashboard() {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  const trendData = useMemo(() => {
+    const days = [];
+
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push({
+        key: date.toISOString().slice(0, 10),
+        label: date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        count: 0,
+      });
+    }
+
+    const byDay = Object.fromEntries(
+      days.map((day) => [day.key, day])
+    );
+
+    applicants.forEach((applicant) => {
+      const createdAt =
+        applicant.created_at || applicant.createdAt;
+      if (!createdAt) return;
+
+      const key = new Date(createdAt)
+        .toISOString()
+        .slice(0, 10);
+
+      if (byDay[key]) {
+        byDay[key].count += 1;
+      }
+    });
+
+    return days;
+  }, [applicants]);
+
+  const statusData = useMemo(
+    () =>
+      [
+        { name: "Shortlisted", value: shortlisted, color: "#22c55e" },
+        { name: "Rejected", value: rejected, color: "#ef4444" },
+        { name: "Pending", value: pending, color: "#eab308" },
+      ].filter((slice) => slice.value > 0),
+    [shortlisted, rejected, pending]
+  );
+
+  const percentOf = (value) =>
+    totalCandidates > 0
+      ? Math.round((value / totalCandidates) * 100)
+      : 0;
 
   const fetchDashboardData =
     async () => {
@@ -161,81 +211,193 @@ className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-t
         {/* Stats Cards */}
 
      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
- <div className="bg-white rounded-3xl p-4 min-h-[130px] border-l-[4px] border-l-blue-500 border border-slate-200 shadow-sm">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-slate-500 text-sm">
-          Total Applicants
-        </p>
-        <h2 className="text-3xl md:text-4xl font-bold text-slate-800 mt-3">
-          {totalCandidates}
-        </h2>
-      </div>
+ <div className="relative overflow-hidden bg-white rounded-3xl p-5 min-h-[140px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 opacity-10 blur-2xl" />
 
-      <div className="bg-blue-100 p-3 rounded-2xl">
-        <FaUsers className="text-blue-600 text-xl" />
+    <div className="relative flex justify-between items-start">
+      <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-2xl shadow-lg shadow-blue-500/30">
+        <FaUsers className="text-white text-xl" />
       </div>
     </div>
+
+    <h2 className="relative text-3xl md:text-4xl font-extrabold text-slate-900 mt-4">
+      {totalCandidates}
+    </h2>
+    <p className="relative text-slate-500 text-sm font-medium mt-1">
+      Total Applicants
+    </p>
   </div>
 
-<div className="bg-white rounded-3xl p-4 min-h-[130px] border-l-[4px] border-l-green-500 border border-slate-200 shadow-sm">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-slate-500 text-sm">
-          Shortlisted
-        </p>
-        <h2 className="text-3xl md:text-4xl font-bold text-green-600 mt-3">
-          {shortlisted}
-        </h2>
+<div className="relative overflow-hidden bg-white rounded-3xl p-5 min-h-[140px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 opacity-10 blur-2xl" />
+
+    <div className="relative flex justify-between items-start">
+      <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-2xl shadow-lg shadow-green-500/30">
+        <FaUserCheck className="text-white text-xl" />
       </div>
 
-      <div className="bg-green-100 p-3 rounded-2xl">
-        <FaUserCheck className="text-green-600 text-xl" />
-      </div>
+      {totalCandidates > 0 && (
+        <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+          {percentOf(shortlisted)}%
+        </span>
+      )}
     </div>
+
+    <h2 className="relative text-3xl md:text-4xl font-extrabold text-slate-900 mt-4">
+      {shortlisted}
+    </h2>
+    <p className="relative text-slate-500 text-sm font-medium mt-1">
+      Shortlisted
+    </p>
   </div>
 
- <div className="bg-white rounded-3xl p-4 min-h-[130px] border-l-[4px] border-l-red-500 border border-slate-200 shadow-sm">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-slate-500 text-sm">
-          Rejected
-        </p>
-        <h2 className="text-3xl md:text-4xl font-bold text-red-600 mt-3">
-          {rejected}
-        </h2>
+ <div className="relative overflow-hidden bg-white rounded-3xl p-5 min-h-[140px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-gradient-to-br from-red-400 to-rose-500 opacity-10 blur-2xl" />
+
+    <div className="relative flex justify-between items-start">
+      <div className="bg-gradient-to-br from-red-500 to-rose-600 p-3 rounded-2xl shadow-lg shadow-red-500/30">
+        <FaUserTimes className="text-white text-xl" />
       </div>
 
-      <div className="bg-red-100 p-3 rounded-2xl">
-        <FaUserTimes className="text-red-600 text-xl" />
-      </div>
+      {totalCandidates > 0 && (
+        <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full">
+          {percentOf(rejected)}%
+        </span>
+      )}
     </div>
+
+    <h2 className="relative text-3xl md:text-4xl font-extrabold text-slate-900 mt-4">
+      {rejected}
+    </h2>
+    <p className="relative text-slate-500 text-sm font-medium mt-1">
+      Rejected
+    </p>
   </div>
 
-  <div className="bg-white rounded-3xl p-4 min-h-[130px] border-l-[4px] border-l-yellow-500 border border-slate-200 shadow-sm">
-    <div className="flex justify-between items-start">
-      <div>
-        <p className="text-slate-500 text-sm">
-          Pending
-        </p>
-        <h2 className="text-3xl md:text-4xl font-bold text-yellow-600 mt-3">
-          {pending}
-        </h2>
+  <div className="relative overflow-hidden bg-white rounded-3xl p-5 min-h-[140px] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+    <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 opacity-10 blur-2xl" />
+
+    <div className="relative flex justify-between items-start">
+      <div className="bg-gradient-to-br from-yellow-400 to-orange-500 p-3 rounded-2xl shadow-lg shadow-yellow-500/30">
+        <FaUserClock className="text-white text-xl" />
       </div>
 
-      <div className="bg-yellow-100 p-3 rounded-2xl">
-        <FaUserClock className="text-yellow-600 text-xl" />
-      </div>
+      {totalCandidates > 0 && (
+        <span className="text-xs font-semibold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full">
+          {percentOf(pending)}%
+        </span>
+      )}
     </div>
+
+    <h2 className="relative text-3xl md:text-4xl font-extrabold text-slate-900 mt-4">
+      {pending}
+    </h2>
+    <p className="relative text-slate-500 text-sm font-medium mt-1">
+      Pending
+    </p>
   </div>
 
 </div>
         {/* Analytics + Recent Applicants */}
 
         <div className="grid grid-cols-1 gap-6">
-         
 
-         
+          {/* Analytics */}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">
+                Applications (Last 30 Days)
+              </h2>
+
+              <ResponsiveContainer width="100%" height={260}>
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.4} />
+                      <stop offset="95%" stopColor="#4f46e5" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    interval={4}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fontSize: 11, fill: "#94a3b8" }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={30}
+                  />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="count"
+                    stroke="#4f46e5"
+                    strokeWidth={2}
+                    fill="url(#trendFill)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+              <h2 className="text-lg font-bold text-slate-800 mb-4">
+                Status Breakdown
+              </h2>
+
+              {statusData.length === 0 ? (
+                <p className="text-sm text-slate-400 py-16 text-center">
+                  No applicant data yet
+                </p>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={statusData}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={55}
+                        outerRadius={80}
+                        paddingAngle={3}
+                      >
+                        {statusData.map((slice) => (
+                          <Cell key={slice.name} fill={slice.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+
+                  <div className="flex flex-col gap-2 mt-4">
+                    {statusData.map((slice) => (
+                      <div
+                        key={slice.name}
+                        className="flex items-center justify-between text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: slice.color }}
+                          />
+                          <span className="text-slate-600">{slice.name}</span>
+                        </div>
+                        <span className="font-semibold text-slate-800">
+                          {slice.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+          </div>
 
           {/* Recent Applicants */}
 
