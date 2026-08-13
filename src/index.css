@@ -162,6 +162,28 @@ body,
   overflow-x: hidden;
 }
 
+:root {
+  --sh-sidebar-width: 224px;
+}
+
+.sh-content-offset {
+  transition: margin-left 300ms ease-in-out;
+}
+
+.sh-navbar-offset {
+  transition: left 300ms ease-in-out;
+}
+
+@media (min-width: 768px) {
+  .sh-content-offset {
+    margin-left: var(--sh-sidebar-width);
+  }
+
+  .sh-navbar-offset {
+    left: var(--sh-sidebar-width);
+  }
+}
+
 * {
   box-sizing: border-box;
 }

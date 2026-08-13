@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../../../components/Sidebar";
 import { supabase } from "../../../../core/lib/supabase";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
@@ -177,12 +176,11 @@ function Jobs() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden">
       {/* Decorative background blobs */}
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-50/80 to-transparent -z-10 pointer-events-none" />
-      <Sidebar />
 
-      <div className="flex-1 md:ml-56 min-w-0 z-10">
+      <div className="min-w-0 z-10">
         <main className="p-6 md:p-10 max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-8">
             <div>

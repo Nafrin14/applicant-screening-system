@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../../../../core/lib/supabase";
-import Sidebar from "../../../components/Sidebar";
 import { useNotification } from "../../../../core/context/NotificationContext";
 import {
   FaChevronLeft,
@@ -198,13 +197,10 @@ function CandidateDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex">
-        <Sidebar />
-        <div className="flex-1 md:ml-56 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div>
-            <p className="text-slate-500 font-medium animate-pulse">Loading candidate profile...</p>
-          </div>
+      <div className="flex items-center justify-center py-24">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div>
+          <p className="text-slate-500 font-medium animate-pulse">Loading candidate profile...</p>
         </div>
       </div>
     );
@@ -212,23 +208,20 @@ function CandidateDetails() {
 
   if (!applicant) {
     return (
-      <div className="min-h-screen bg-slate-50 flex">
-        <Sidebar />
-        <div className="flex-1 md:ml-56 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-20 h-20 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-4xl mb-4 shadow-sm">
-            ⚠️
-          </div>
-          <h1 className="text-2xl font-bold text-slate-800">No Candidate Profile Found</h1>
-          <p className="text-slate-500 max-w-md mt-2">
-            The candidate details could not be loaded. Please return to the candidate list and select another candidate.
-          </p>
-          <button
-            onClick={() => navigate("/results")}
-            className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-md transition"
-          >
-            Go to Candidates List
-          </button>
+      <div className="flex flex-col items-center justify-center py-24 p-6 text-center">
+        <div className="w-20 h-20 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-4xl mb-4 shadow-sm">
+          ⚠️
         </div>
+        <h1 className="text-2xl font-bold text-slate-800">No Candidate Profile Found</h1>
+        <p className="text-slate-500 max-w-md mt-2">
+          The candidate details could not be loaded. Please return to the candidate list and select another candidate.
+        </p>
+        <button
+          onClick={() => navigate("/results")}
+          className="mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-xl shadow-md transition"
+        >
+          Go to Candidates List
+        </button>
       </div>
     );
   }
@@ -256,11 +249,7 @@ function CandidateDetails() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/50 flex">
-      <Sidebar />
-
-      {/* Main Container */}
-      <div className="flex-1 md:ml-56 p-4 md:p-8 overflow-y-auto overflow-x-hidden min-h-screen pb-24 md:pb-12 pt-20 md:pt-8">
+    <div className="min-h-screen bg-slate-50/50 p-4 md:p-8 overflow-y-auto overflow-x-hidden pb-24 md:pb-12">
         <div className="w-full max-w-7xl mx-auto space-y-6">
           
           {/* Back Navigation & breadcrumbs */}
@@ -808,7 +797,6 @@ function CandidateDetails() {
           </div>
 
         </div>
-      </div>
     </div>
   );
 }

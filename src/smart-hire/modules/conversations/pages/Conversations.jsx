@@ -11,12 +11,13 @@ import {
   FaArrowLeft,
   FaTrash,
   FaBars,
+  FaUserPlus,
 } from "react-icons/fa";
+import { MdDialpad, MdBackspace } from "react-icons/md";
 import EmojiPicker from "emoji-picker-react";
 import throttle from "lodash/throttle";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../../core/lib/supabase";
-import Sidebar from "../../../components/Sidebar";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
 // ==========================================
@@ -100,6 +101,21 @@ const normalizePhone = (phone) => {
 // SUB-COMPONENTS (Defined within the same file)
 // ==========================================
 
+const DIAL_PAD_KEYS = [
+  { digit: "1", letters: "" },
+  { digit: "2", letters: "ABC" },
+  { digit: "3", letters: "DEF" },
+  { digit: "4", letters: "GHI" },
+  { digit: "5", letters: "JKL" },
+  { digit: "6", letters: "MNO" },
+  { digit: "7", letters: "PQRS" },
+  { digit: "8", letters: "TUV" },
+  { digit: "9", letters: "WXYZ" },
+  { digit: "*", letters: "" },
+  { digit: "0", letters: "+" },
+  { digit: "#", letters: "" },
+];
+
 const ChatSidebarPanel = ({
   selectedCandidate,
   searchTerm,
@@ -113,6 +129,7 @@ const ChatSidebarPanel = ({
   setSidebarOpen,
   setCandidateMenu,
   setCandidateMenuPos,
+  setShowCreateCandidateModal,
 }) => (
   <div
     className={`${
@@ -137,10 +154,17 @@ const ChatSidebarPanel = ({
           SmartHire Chats
         </span>
       </div>
+      <button
+        onClick={() => setShowCreateCandidateModal(true)}
+        title="Create candidate"
+        className="w-9 h-9 rounded-full bg-[#25d366] text-white flex items-center justify-center shadow-sm hover:bg-[#20bd5a] transition-colors"
+      >
+        <FaUserPlus className="text-sm" />
+      </button>
     </div>
 
     {/* Search Bar Container */}
-    <div className="p-2 bg-white border-b border-[#f0f2f5] flex items-center">
+    <div className="p-2 bg-white border-b border-[#f0f2f5] flex items-center gap-2">
       <div className="bg-[#f0f2f5] flex items-center gap-3 px-3 py-1.5 rounded-lg w-full">
         <FaSearch className="text-gray-500 text-sm flex-shrink-0" />
         <input
@@ -162,7 +186,7 @@ const ChatSidebarPanel = ({
     </div>
 
     {/* Candidate List */}
-    <div className="flex-1 overflow-y-auto bg-white">
+    <div className="flex-1 min-h-0 overflow-y-auto bg-white">
       {filteredCandidates.length > 0 ? (
         filteredCandidates.map((candidate) => (
           <div
@@ -176,7 +200,7 @@ const ChatSidebarPanel = ({
       y: e.clientY,
     });
   }}
-            className={`flex items-center gap-3 p-3 cursor-pointer border-b border-[#f0f2f5] transition-colors duration-150 relative ${
+            className={`group flex items-center gap-3 p-3 cursor-pointer border-b border-[#f0f2f5] transition-colors duration-150 relative ${
               selectedCandidate?.id === candidate.id
                 ? "bg-[#f0f2f5]"
                 : "hover:bg-[#f5f6f6]"
@@ -198,10 +222,21 @@ const ChatSidebarPanel = ({
                   {candidate.name}
                 </h3>
                 {lastMessages[normalizePhone(candidate.phone)]?.time && (
-                  <span className="text-xs text-[#667781] font-normal ml-2 flex-shrink-0">
+                  <span className="text-xs text-[#667781] font-normal ml-2 flex-shrink-0 group-hover:hidden">
                     {formatMessageTime(lastMessages[normalizePhone(candidate.phone)].time)}
                   </span>
                 )}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCandidateMenu(candidate);
+                    setCandidateMenuPos({ x: e.clientX, y: e.clientY });
+                  }}
+                  title="Candidate options"
+                  className="hidden group-hover:flex ml-2 flex-shrink-0 w-6 h-6 rounded-full items-center justify-center text-[#667781] hover:bg-gray-200 hover:text-[#111b21]"
+                >
+                  <FaEllipsisV className="text-xs" />
+                </button>
               </div>
 
               <div className="flex justify-between items-center">
@@ -267,6 +302,15 @@ const [candidateMenuPos, setCandidateMenuPos] = useState({
   y: 0,
 });
 
+  const [showDialPad, setShowDialPad] = useState(false);
+  const [showCreateCandidateModal, setShowCreateCandidateModal] = useState(false);
+  const [createModalTab, setCreateModalTab] = useState("existing");
+  const [startChatSearch, setStartChatSearch] = useState("");
+  const [newCandidateName, setNewCandidateName] = useState("");
+  const [newCandidatePhone, setNewCandidatePhone] = useState("");
+  const [newCandidateEmail, setNewCandidateEmail] = useState("");
+  const [creatingCandidate, setCreatingCandidate] = useState(false);
+
   // Refs
   const emojiRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -298,27 +342,8 @@ const [candidateMenuPos, setCandidateMenuPos] = useState({
         "postgres_changes",
         { event: "*", schema: "public", table: "chat_messages" },
       async (payload) => {
-  console.log("NEW MESSAGE:", payload);
-
-  const phone = payload.new?.phone || payload.old?.phone;
-
   await loadCandidates();
 
-  if (phone) {
-    setSortedCandidates((prev) => {
-     const found = prev.find(
-  (c) => normalizePhone(c.phone) === normalizePhone(phone)
-);
-      if (!found) return prev;
-
-      return [
-        found,
-        ...prev.filter(
-  (c) => normalizePhone(c.phone) !== normalizePhone(phone)
-)
-      ];
-    });
-  }
           if (
             selectedCandidate &&
             (payload.new?.phone === selectedCandidate.phone ||
@@ -332,7 +357,7 @@ const [candidateMenuPos, setCandidateMenuPos] = useState({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [candidates, selectedCandidate]);
+  }, [selectedCandidate]);
 
   useEffect(() => {
     loadCandidates();
@@ -466,13 +491,7 @@ if (!latest[msgPhone]) {
 const sorted = [...candidateList].sort((a, b) => {
   return getTime(b.phone) - getTime(a.phone);
 });
-   
-    console.log("SORTED =", sorted);
-    console.log(
-  "FIRST CANDIDATE =",
-  sorted[0]?.name,
-  sorted[0]?.phone
-);
+
     setSortedCandidates(sorted);
     const counts = {};
     data.forEach((msg) => {
@@ -565,6 +584,40 @@ const sorted = [...candidateList].sort((a, b) => {
     });
   };
 
+  const handleCreateCandidate = async () => {
+    if (!newCandidateName.trim() || !newCandidatePhone.trim()) {
+      notify("Name and phone are required", { type: "error" });
+      return;
+    }
+    setCreatingCandidate(true);
+    const { data, error } = await supabase
+      .from("applicants")
+      .insert([
+        {
+          name: newCandidateName.trim(),
+          phone: newCandidatePhone.trim(),
+          email: newCandidateEmail.trim() || null,
+          source: "Manual",
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single();
+    setCreatingCandidate(false);
+    if (error) {
+      console.log("Create Candidate Error:", error);
+      notify(error.message || "Failed to create candidate", { type: "error" });
+      return;
+    }
+    notify("Candidate created", { type: "success" });
+    setShowCreateCandidateModal(false);
+    setNewCandidateName("");
+    setNewCandidatePhone("");
+    setNewCandidateEmail("");
+    await loadCandidates();
+    handleSelectCandidate(data);
+  };
+
   const sendTypingStatus = throttle(async () => {
     if (!selectedCandidate) return;
     await supabase.from("typing_status").upsert({
@@ -593,16 +646,27 @@ const sorted = [...candidateList].sort((a, b) => {
         }
       );
       const result = await response.json();
+      if (!response.ok) {
+        const existingId = result?.meta?.contactId;
+        if (existingId) {
+          console.log("GHL contact already exists, reusing:", existingId);
+          return existingId;
+        }
+        console.log("GHL Contact Create Error:", response.status, result);
+        notify(result?.message || "Failed to create GHL contact", { type: "error" });
+        return null;
+      }
       return result?.contact?.id;
     } catch (error) {
       console.log("Contact Create Error:", error);
+      notify("Failed to create GHL contact", { type: "error" });
       return null;
     }
   };
 
   const sendSMS = async (message, contactId) => {
     try {
-      await fetch("https://services.leadconnectorhq.com/conversations/messages", {
+      const response = await fetch("https://services.leadconnectorhq.com/conversations/messages", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${GHL_TOKEN}`,
@@ -615,8 +679,14 @@ const sorted = [...candidateList].sort((a, b) => {
           message: message,
         }),
       });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        console.log("SMS Error:", response.status, result);
+        notify(result?.message || "Message failed to send", { type: "error" });
+      }
     } catch (error) {
       console.log("SMS Error:", error);
+      notify("Message failed to send", { type: "error" });
     }
   };
 
@@ -944,21 +1014,38 @@ const handleDeleteCandidate = async (candidate) => {
     setShowMenu(false);
   };
 
-  // Filter candidates based on name, phone, or email
+  // Only candidates with at least one message show up as a "chat" — keeps
+  // the list focused on active conversations instead of the full directory.
   const filteredCandidates = sortedCandidates.filter((candidate) => {
+    if (!lastMessages[normalizePhone(candidate.phone)]) return false;
     const query = searchTerm.toLowerCase();
+    const normalizedQuery = normalizePhone(searchTerm);
     return (
       candidate.name?.toLowerCase().includes(query) ||
       candidate.phone?.includes(query) ||
+      (normalizedQuery && normalizePhone(candidate.phone).includes(normalizedQuery)) ||
       candidate.email?.toLowerCase().includes(query)
     );
   });
 
+  // Candidates who exist in the system but have no chat history yet —
+  // surfaced through the "Start Chat" picker instead of the main list.
+  const candidatesWithoutMessages = candidates
+    .filter((candidate) => !lastMessages[normalizePhone(candidate.phone)])
+    .filter((candidate) => {
+      const query = startChatSearch.toLowerCase();
+      const normalizedQuery = normalizePhone(startChatSearch);
+      if (!query) return true;
+      return (
+        candidate.name?.toLowerCase().includes(query) ||
+        candidate.phone?.includes(query) ||
+        (normalizedQuery && normalizePhone(candidate.phone).includes(normalizedQuery)) ||
+        candidate.email?.toLowerCase().includes(query)
+      );
+    });
+
   return (
-    <div className="h-screen flex bg-slate-100 overflow-hidden">
-      <Sidebar />
-    
-      <div className="md:ml-56 h-screen flex overflow-hidden bg-[#eae6df] relative w-full">
+      <div className="h-[calc(100vh-64px)] flex overflow-hidden bg-[#eae6df] relative w-full">
         {/* Chat Sidebar */}
      <ChatSidebarPanel
   selectedCandidate={selectedCandidate}
@@ -973,6 +1060,7 @@ const handleDeleteCandidate = async (candidate) => {
   setSidebarOpen={setSidebarOpen}
   setCandidateMenu={setCandidateMenu}
 setCandidateMenuPos={setCandidateMenuPos}
+  setShowCreateCandidateModal={setShowCreateCandidateModal}
 />
 {candidateMenu && (
   <>
@@ -1548,9 +1636,203 @@ setCandidateMenuPos={setCandidateMenuPos}
               </div>
             </div>
           )}
+
+          {/* Start Chat / Create Candidate Modal */}
+          {showCreateCandidateModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white w-96 rounded-xl shadow-xl flex flex-col max-h-[80vh]">
+                <div className="bg-[#25d366] text-white p-4 rounded-t-xl flex items-center justify-between flex-shrink-0">
+                  <h2 className="font-semibold">
+                    {createModalTab === "existing" ? "Start a Chat" : "New Candidate"}
+                  </h2>
+                  <button
+                    onClick={() => setShowCreateCandidateModal(false)}
+                    className="text-white/90 hover:text-white"
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+
+                {/* Tabs */}
+                <div className="flex border-b border-gray-200 flex-shrink-0">
+                  <button
+                    onClick={() => setCreateModalTab("existing")}
+                    className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+                      createModalTab === "existing"
+                        ? "text-[#25d366] border-b-2 border-[#25d366]"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Existing Candidate
+                  </button>
+                  <button
+                    onClick={() => setCreateModalTab("new")}
+                    className={`flex-1 py-2.5 text-sm font-medium transition-colors ${
+                      createModalTab === "new"
+                        ? "text-[#25d366] border-b-2 border-[#25d366]"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    New Candidate
+                  </button>
+                </div>
+
+                {createModalTab === "existing" ? (
+                  <div className="flex flex-col min-h-0 flex-1">
+                    <div className="p-3 border-b border-gray-100 flex-shrink-0 flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={startChatSearch}
+                        onChange={(e) => setStartChatSearch(e.target.value)}
+                        placeholder="Search candidates..."
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#25d366]"
+                      />
+                      <button
+                        onClick={() => setShowDialPad((prev) => !prev)}
+                        title="Search by dial pad"
+                        className={`w-9 h-9 flex-shrink-0 rounded-full flex items-center justify-center transition-colors ${
+                          showDialPad
+                            ? "bg-[#25d366] text-white"
+                            : "bg-[#f0f2f5] text-gray-500 hover:bg-gray-200"
+                        }`}
+                      >
+                        <MdDialpad className="text-lg" />
+                      </button>
+                    </div>
+
+                    <div className="overflow-y-auto flex-1">
+                      {candidatesWithoutMessages.length === 0 ? (
+                        <p className="p-6 text-center text-sm text-gray-400">
+                          {candidates.length === 0
+                            ? "No candidates yet."
+                            : "Everyone here already has a chat."}
+                        </p>
+                      ) : (
+                        candidatesWithoutMessages.map((candidate) => (
+                          <button
+                            key={candidate.id}
+                            onClick={() => {
+                              handleSelectCandidate(candidate);
+                              setShowCreateCandidateModal(false);
+                              setStartChatSearch("");
+                            }}
+                            className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 border-b border-gray-50 text-left"
+                          >
+                            <div
+                              className={`w-10 h-10 rounded-full flex-shrink-0 bg-gradient-to-br ${getAvatarColor(
+                                candidate.name
+                              )} flex items-center justify-center text-white font-bold text-sm`}
+                            >
+                              {candidate.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-[#111b21] truncate">
+                                {candidate.name}
+                              </p>
+                              <p className="text-xs text-[#667781] truncate">
+                                {candidate.phone}
+                              </p>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Dial pad — docked at the bottom like a keyboard, kept compact
+                        so the results list above still has room to breathe */}
+                    {showDialPad && (
+                      <div className="bg-[#111b21] px-3 py-2.5 flex-shrink-0">
+                        <div className="grid grid-cols-3 gap-x-3 gap-y-1.5 max-w-[190px] mx-auto">
+                          {DIAL_PAD_KEYS.map(({ digit, letters }) => (
+                            <button
+                              key={digit}
+                              onClick={() => setStartChatSearch((prev) => prev + digit)}
+                              className="w-11 h-11 rounded-full bg-[#2a3942] text-white flex flex-col items-center justify-center mx-auto hover:bg-[#374752] active:bg-[#1f2a30] transition-colors"
+                            >
+                              <span className="text-base leading-none font-normal">{digit}</span>
+                              <span className="text-[7px] tracking-[1px] text-white/60 mt-0.5 h-2">
+                                {letters}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {startChatSearch && (
+                          <div className="flex justify-center mt-1.5">
+                            <button
+                              onClick={() => setStartChatSearch((prev) => prev.slice(0, -1))}
+                              title="Backspace"
+                              className="text-white/70 hover:text-white p-1"
+                            >
+                              <MdBackspace className="text-base" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          value={newCandidateName}
+                          onChange={(e) => setNewCandidateName(e.target.value)}
+                          placeholder="Candidate name"
+                          className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#25d366]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">
+                          Phone
+                        </label>
+                        <input
+                          type="text"
+                          value={newCandidatePhone}
+                          onChange={(e) => setNewCandidatePhone(e.target.value)}
+                          placeholder="+1 (555) 000-0000"
+                          className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#25d366]"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-500">
+                          Email (optional)
+                        </label>
+                        <input
+                          type="email"
+                          value={newCandidateEmail}
+                          onChange={(e) => setNewCandidateEmail(e.target.value)}
+                          placeholder="candidate@email.com"
+                          className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-[#25d366]"
+                        />
+                      </div>
+                    </div>
+                    <div className="p-4 pt-0 flex justify-end gap-2">
+                      <button
+                        onClick={() => setShowCreateCandidateModal(false)}
+                        className="px-4 py-2 bg-gray-200 rounded-lg text-sm"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleCreateCandidate}
+                        disabled={creatingCandidate}
+                        className="px-4 py-2 bg-[#25d366] text-white rounded-lg text-sm disabled:opacity-60"
+                      >
+                        {creatingCandidate ? "Creating..." : "Create"}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
   );
 }
 

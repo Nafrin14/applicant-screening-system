@@ -4,6 +4,8 @@ import {
   FaSearch,
   FaUserCircle,
   FaTrash,
+  FaCog,
+  FaSignOutAlt,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
@@ -25,8 +27,10 @@ function Navbar() {
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const searchRef = useRef(null);
   const debounceRef = useRef(null);
+  const profileRef = useRef(null);
 
  useEffect(() => {
   fetchProfile();
@@ -48,6 +52,12 @@ useEffect(() => {
       !searchRef.current.contains(event.target)
     ) {
       setShowSearchResults(false);
+    }
+    if (
+      profileRef.current &&
+      !profileRef.current.contains(event.target)
+    ) {
+      setShowProfileMenu(false);
     }
   };
 
@@ -188,8 +198,13 @@ const handleDelete = async (id) => {
   }
 };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/login");
+  };
+
   return (
-    <div className="fixed top-0 left-[224px] right-0 h-16 bg-white border-b border-slate-200 shadow-sm z-40">
+    <div className="sh-navbar-offset fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 shadow-sm z-40">
       <div className="h-full flex items-center justify-between px-8">
 
         {/* Search */}
@@ -407,33 +422,60 @@ const handleDelete = async (id) => {
 )}
 
           {/* Profile */}
-          <div className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-100 transition">
+          <div ref={profileRef} className="relative">
+            <div
+              onClick={() => setShowProfileMenu((prev) => !prev)}
+              className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-100 transition"
+            >
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center">
+                {profileImage ? (
+                  <img
+                    src={profileImage}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <FaUserCircle
+                    size={34}
+                    className="text-blue-600"
+                  />
+                )}
+              </div>
 
-            <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center">
-              {profileImage ? (
-                <img
-                  src={profileImage}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <FaUserCircle
-                  size={34}
-                  className="text-blue-600"
-                />
-              )}
+              <div className="hidden md:block">
+                <p className="text-sm font-semibold text-slate-800">
+                  {hrName || "Admin"}
+                </p>
+
+                <p className="text-xs text-slate-500">
+                  {companyName || "Company"}
+                </p>
+              </div>
             </div>
 
-            <div className="hidden md:block">
-              <p className="text-sm font-semibold text-slate-800">
-  {hrName || "Admin"}
-</p>
-
-<p className="text-xs text-slate-500">
-  {companyName || "Company"}
-</p>
-            </div>
-
+            {showProfileMenu && (
+              <div className="absolute top-14 right-0 w-56 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden py-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate("/settings");
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-100 transition"
+                >
+                  <FaCog className="text-slate-500" />
+                  Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"
+                >
+                  <FaSignOutAlt />
+                  Logout
+                </button>
+              </div>
+            )}
           </div>
 
         </div>

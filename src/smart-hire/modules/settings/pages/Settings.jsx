@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import Sidebar from "../../../components/Sidebar";
 import { supabase } from "../../../../core/lib/supabaseClient";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
@@ -145,19 +144,11 @@ const { error: updateError } = await supabase
 };
  return (
 
-<div className="min-h-screen bg-slate-100 flex flex-col">
-<div className="flex">
+<div className="p-4 md:p-6 overflow-y-auto">
 
-{/* Sidebar */}
-
-<Sidebar />
-
-{/* Main */}
-<div className="flex-1 md:ml-56  p-4 md:p-6 min-h-screen overflow-y-auto">
-        
 {/* Header */}
 
-<div className="mb-6 pt-14 md:pt-0">
+<div className="mb-6">
 <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600
  to-purple-600 bg-clip-text text-transparent">
 Settings
@@ -303,7 +294,6 @@ Update company and HR details</p>
     </div>
   </div>
 </div>
-</div></div>
   );
 }
 export default Settings;

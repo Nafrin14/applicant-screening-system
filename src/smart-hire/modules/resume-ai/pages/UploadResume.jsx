@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../../core/lib/supabase";
 import { screenResume } from "../services/aiService";
-import Sidebar from "../../../components/Sidebar";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
 
@@ -344,13 +343,7 @@ const {
     }
   };
  return (
-  <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex flex-col">
-  <div className="flex">
-     
-      {/* Sidebar */}
-      <Sidebar />
-
-  <div className="flex-1 md:ml-60  px-4 md:px-4 py-4 md:py-8 min-h-screen">
+  <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 px-4 md:px-4 py-4 md:py-8">
   <div className="mb-6 md:mb-8">
   <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600
  to-purple-600 bg-clip-text text-transparent">
@@ -616,8 +609,6 @@ md:text-base
           </div>
         </div>
       </div>
-    </div>
-    </div>
   );
 }
 

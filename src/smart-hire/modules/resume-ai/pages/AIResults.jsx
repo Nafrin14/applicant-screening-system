@@ -8,7 +8,6 @@ import {
 } from "react-router-dom";
 
 import { supabase } from "../../../../core/lib/supabase";
-import Sidebar from "../../../components/Sidebar";
 
 
 import {
@@ -136,15 +135,7 @@ function AIResults() {
 });
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col">
-      <div className="flex">
-        
-        {/* Sidebar */}
-        <Sidebar />
-
-        {/* Main */}
-        <div className="flex-1 md:ml-56  p-4 md:p-6 min-h-screen overflow-y-auto">
-          
+        <div className="p-4 md:p-6 overflow-y-auto">
         {/* Header */}
         <div className="mb-5">
             
@@ -333,7 +324,6 @@ function AIResults() {
           <div className="text-center text-gray-400 mt-12 w-full text-sm font-semibold">
             No matching applicants found for "{searchTerm}"
           </div> )}
-          </div>
 
         {/* Resume Modal Overlay */}
         
@@ -353,7 +343,6 @@ function AIResults() {
         </div>
         </div>)}
         </div>
-       </div>
   );
 }
 
