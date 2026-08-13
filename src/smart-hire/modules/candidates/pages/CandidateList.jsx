@@ -14,7 +14,6 @@ import {
 import { supabase }
 from "../../../../core/lib/supabase";
 
-import Sidebar from "../../../components/Sidebar";
 import { useNotification } from "../../../../core/context/NotificationContext";
 import {
   FaEye,
@@ -46,7 +45,13 @@ function CandidateList() {
 const [selectedApplicants, setSelectedApplicants] = useState([]);
 const [statusFilter, setStatusFilter] = useState("All");
 const [selectedDate, setSelectedDate] = useState("");
+const [currentPage, setCurrentPage] = useState(1);
+const ITEMS_PER_PAGE = 10;
 const { notify, confirmDialog } = useNotification();
+
+useEffect(() => {
+  setCurrentPage(1);
+}, [search, statusFilter, selectedDate]);
 
   useEffect(() => {
     fetchApplicants();
@@ -125,7 +130,13 @@ const filteredApplicants = applicants.filter((applicant) => {
   });
 };
 
-const groupedApplicants = filteredApplicants.reduce((groups, applicant) => {
+const totalPages = Math.max(1, Math.ceil(filteredApplicants.length / ITEMS_PER_PAGE));
+const paginatedApplicants = filteredApplicants.slice(
+  (currentPage - 1) * ITEMS_PER_PAGE,
+  currentPage * ITEMS_PER_PAGE
+);
+
+const groupedApplicants = paginatedApplicants.reduce((groups, applicant) => {
  const label = getDateLabel(
   applicant.created_at || applicant.createdAt || applicant.uploaded_at
 );
@@ -367,21 +378,7 @@ const result = await response.json();
 
   return (
 
-   <div className="min-h-screen bg-slate-100 flex flex-col">
-
- 
-
-  <div className="flex">
-
-      
-
-     {/* Sidebar */}
-<Sidebar />
-
-
-
-      {/* Main */}
-<div className="flex-1 md:ml-56 p-4 md:p-8 overflow-y-auto">
+<div className="p-4 md:p-8 overflow-y-auto">
 
 
         {/* Header */}
@@ -859,11 +856,38 @@ const result = await response.json();
 
           </div>
 
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-2 pt-4">
+              <p className="text-sm text-slate-500">
+                Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredApplicants.length)} of{" "}
+                {filteredApplicants.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                >
+                  Prev
+                </button>
+                <span className="text-sm text-slate-600">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
 
       </div>
-</div>
-    </div>
   );
 }
 

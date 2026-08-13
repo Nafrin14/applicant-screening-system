@@ -10,8 +10,6 @@ import {
 import { supabase }
 from "../../../../core/lib/supabase";
 
-import Sidebar from "../../../components/Sidebar";
-import Navbar from "../../../components/Navbar";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -122,16 +120,12 @@ function Dashboard() {
   };
   return (
 
-  <div className="min-h-screen bg-slate-100">
-  <Navbar />
-  <Sidebar />
+  <div className="p-4 md:p-6">
 
-<div className="md:ml-56 mt-20 p-4 md:p-6">
-        
         {/* Header */}
 
 <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-6 mb-8">
-<div className="pt-12 md:pt-0">
+<div>
 <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600
  to-purple-600 bg-clip-text text-transparent">
  Dashboard </h1>
@@ -344,7 +338,6 @@ hover:-translate-y-1 transition-all duration-300 cursor-pointer"
 
       </div>
 
-    </div>
   );
 }
 

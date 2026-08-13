@@ -30,6 +30,7 @@ import SalesProfile from "./sales/modules/profile/pages/SalesProfile";
 import ComingSoon from "./core/auth/pages/ComingSoon";
 // Components Layout wrappers
 import ProtectedRoute from "./core/components/ProtectedRoute";
+import SmartHireLayout from "./smart-hire/components/SmartHireLayout";
 import { NotificationProvider } from "./core/context/NotificationContext";
 
 function App() {
@@ -74,31 +75,101 @@ function App() {
 
         {/* =========================================================
             APPLICANT SCREENING SYSTEM INTEGRATED CORE
+            (Sidebar + top Navbar are persistent — rendered once by
+            SmartHireLayout so switching tabs never remounts them)
            ========================================================= */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/results"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <CandidateList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/candidate-details"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <CandidateDetails />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<SmartHireLayout />}>
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/results"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <CandidateList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/candidate-details"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <CandidateDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/conversations"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "user"]}>
+                <Conversations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/interview-schedule"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <InterviewSchedule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/scheduled-interviews"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <ScheduledInterviews />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/upload"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <UploadResume />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-results"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AIResults />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "user"]}>
+                <Jobs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/jobs/:id"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "user"]}>
+                <JobDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "user"]}>
+                <Settings />
+              </ProtectedRoute>
+            }
+          />
+        </Route>
+
+        {/* Standalone applicant sub-views (no sidebar/navbar chrome) */}
         <Route
           path="/candidate-profile"
           element={
@@ -116,30 +187,6 @@ function App() {
           }
         />
         <Route
-          path="/conversations"
-          element={
-            <ProtectedRoute allowedRoles={["admin", "user"]}>
-              <Conversations />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/interview-schedule"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <InterviewSchedule />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/scheduled-interviews"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <ScheduledInterviews />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/csv-upload"
           element={
             <ProtectedRoute allowedRoles={["admin", "user"]}>
@@ -148,50 +195,10 @@ function App() {
           }
         />
         <Route
-          path="/upload"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <UploadResume />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/ai-results"
-          element={
-            <ProtectedRoute allowedRoles={["admin"]}>
-              <AIResults />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/jobs"
-          element={
-            <ProtectedRoute allowedRoles={["admin", "user"]}>
-              <Jobs />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/jobs/:id"
-          element={
-            <ProtectedRoute allowedRoles={["admin", "user"]}>
-              <JobDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/resume-viewer"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <ResumeViewer />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute allowedRoles={["admin", "user"]}>
-              <Settings />
             </ProtectedRoute>
           }
         />

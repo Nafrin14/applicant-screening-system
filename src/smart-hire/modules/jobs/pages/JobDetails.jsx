@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../../../../core/lib/supabase";
-import Sidebar from "../../../components/Sidebar";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
 import {
@@ -24,9 +23,15 @@ function JobDetails() {
   const [job, setJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   useEffect(() => {
     fetchJobAndApplicants();
+  }, [id]);
+
+  useEffect(() => {
+    setCurrentPage(1);
   }, [id]);
 
   async function fetchJobAndApplicants() {
@@ -73,7 +78,7 @@ function JobDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
@@ -81,9 +86,9 @@ function JobDetails() {
 
   if (!job) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+      <div className="flex flex-col items-center justify-center py-24">
         <h2 className="text-2xl font-bold text-slate-700 mb-4">Job Category Not Found</h2>
-        <button 
+        <button
           onClick={() => navigate('/jobs')}
           className="text-indigo-600 hover:underline flex items-center gap-2"
         >
@@ -93,13 +98,18 @@ function JobDetails() {
     );
   }
 
+  const totalPages = Math.max(1, Math.ceil(applicants.length / ITEMS_PER_PAGE));
+  const paginatedApplicants = applicants.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50 flex relative overflow-hidden">
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden pt-10 pb-20">
       {/* Decorative background */}
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-indigo-50/80 to-transparent -z-10 pointer-events-none" />
-      <Sidebar />
 
-      <div className="flex-1 md:ml-56 min-w-0 z-10 pt-10 pb-20">
+      <div className="min-w-0 z-10">
         <div className="max-w-7xl mx-auto px-6 sm:px-8">
           
           {/* Back Button */}
@@ -157,7 +167,7 @@ function JobDetails() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100/80">
-                    {applicants.map((app) => (
+                    {paginatedApplicants.map((app) => (
                       <tr key={app.id} className="hover:bg-slate-50/50 transition-colors group">
                         
                         <td className="px-8 py-5">
@@ -219,6 +229,33 @@ function JobDetails() {
                   </tbody>
                 </table>
               </div>
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+                  <p className="text-sm text-slate-500">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
+                    {Math.min(currentPage * ITEMS_PER_PAGE, applicants.length)} of {applicants.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                    >
+                      Prev
+                    </button>
+                    <span className="text-sm text-slate-600">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

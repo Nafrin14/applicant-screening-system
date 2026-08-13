@@ -9,7 +9,6 @@ import {
 
 import { supabase }
 from "../../../../core/lib/supabase";
-import Sidebar from "../../../components/Sidebar";
 import { useNotification } from "../../../../core/context/NotificationContext";
 import {
   FaTachometerAlt,
@@ -35,10 +34,16 @@ const [
     interviews,
     setInterviews,
   ] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
      useEffect(() => {
      fetchInterviews();
      }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [interviews.length]);
 
 const fetchInterviews =
   async () => {
@@ -126,15 +131,15 @@ const cancelledCount = interviews.filter(
   (item) => item.status === "Cancelled"
 ).length;
 
+const totalPages = Math.max(1, Math.ceil(interviews.length / ITEMS_PER_PAGE));
+const paginatedInterviews = interviews.slice(
+  (currentPage - 1) * ITEMS_PER_PAGE,
+  currentPage * ITEMS_PER_PAGE
+);
+
 return (
 
-<div className="min-h-screen bg-slate-100 flex flex-col">
-<div className="flex">
- <Sidebar />
-  
-{/* Main */}
-
-<div className="md:ml-56 p-4 md:p-6">
+<div className="p-4 md:p-6">
 
 {/* Header */}
 
@@ -192,7 +197,7 @@ Actions
 
 <tbody>
 
-  {interviews.map(
+  {paginatedInterviews.map(
      (
   interview
  ) => (
@@ -310,8 +315,33 @@ Delete
 </tbody>
 </table>
 </div>
-</div>
-</div>
+{totalPages > 1 && (
+  <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+    <p className="text-sm text-slate-500">
+      Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
+      {Math.min(currentPage * ITEMS_PER_PAGE, interviews.length)} of {interviews.length}
+    </p>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+        disabled={currentPage === 1}
+        className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+      >
+        Prev
+      </button>
+      <span className="text-sm text-slate-600">
+        Page {currentPage} of {totalPages}
+      </span>
+      <button
+        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+        disabled={currentPage === totalPages}
+        className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
 </div>
 </div>
   );

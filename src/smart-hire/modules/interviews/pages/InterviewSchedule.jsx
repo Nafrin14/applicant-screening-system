@@ -10,7 +10,6 @@ import {
 } from "react-router-dom";
 
 import { supabase } from "../../../../core/lib/supabase";
-import Sidebar from "../../../components/Sidebar";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
 
@@ -435,16 +434,7 @@ await sendSMS(contactId);
 
   return (
 
-   <div className="min-h-screen bg-slate-100 flex flex-col">
-
- 
-
-  <div className="flex">
-      {/* Sidebar */}
-       <Sidebar />
-
-      {/* Main */}
-   <div className="flex-1 md:ml-56  px-6 md:px-8 py-6 min-h-screen overflow-y-auto">
+   <div className="px-6 md:px-8 py-6 overflow-y-auto">
         {/* Header */}
 
 <div className="mb-4">
@@ -684,7 +674,6 @@ transition-all
 
         </div>
 
-      </div>
 {showPreview && (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
 
@@ -739,7 +728,6 @@ transition-all
 
   </div>
 )}
-    </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "../../core/lib/supabase";
 
 import {
   FaTachometerAlt,
@@ -10,15 +9,26 @@ import {
   FaCalendarAlt,
   FaClipboardList,
   FaBriefcase,
-  FaCog,
-  FaSignOutAlt,
   FaComments,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
+
+const EXPANDED_WIDTH = "224px";
+const COLLAPSED_WIDTH = "80px";
 
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sh-sidebar-width",
+      collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH
+    );
+  }, [collapsed]);
 
   const menuItems = [
     { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt /> },
@@ -37,8 +47,12 @@ function Sidebar() {
       path: "/scheduled-interviews",
       icon: <FaClipboardList />,
     },
-    { name: "Settings", path: "/settings", icon: <FaCog /> },
   ];
+
+  const goTo = (path) => {
+    navigate(path);
+    setSidebarOpen(false);
+  };
 
   return (
     <>
@@ -60,11 +74,13 @@ function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen w-56 bg-white border-r border-slate-200 z-50 transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-screen ${
+          collapsed ? "w-20" : "w-56"
+        } bg-white border-r border-slate-200 z-50 transition-[width,transform] duration-300 ease-in-out overflow-visible ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0`}
       >
-        {/* Close Button */}
+        {/* Close Button (mobile) */}
         <button
           onClick={() => setSidebarOpen(false)}
           className="md:hidden absolute top-4 right-4 text-xl text-slate-600"
@@ -72,19 +88,36 @@ function Sidebar() {
           ✕
         </button>
 
+        {/* Collapse Toggle (desktop) */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="hidden md:flex absolute top-8 -right-3 w-6 h-6 rounded-full bg-blue-600 text-white items-center justify-center shadow-md hover:bg-blue-700 transition-colors z-10"
+        >
+          {collapsed ? (
+            <FaChevronRight className="text-[10px]" />
+          ) : (
+            <FaChevronLeft className="text-[10px]" />
+          )}
+        </button>
+
         {/* Logo */}
-        <div className="px-4 py-5 border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+        <div className="px-4 py-5 border-b border-slate-200 overflow-hidden">
+          <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>
+            <div className="w-10 h-10 flex-shrink-0 rounded-xl bg-blue-100 flex items-center justify-center">
               <FaBriefcase className="text-blue-600 text-lg" />
             </div>
 
-            <div>
-              <h1 className="text-2xl font-black text-slate-800">
+            <div
+              className={`overflow-hidden transition-all duration-300 ${
+                collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+              }`}
+            >
+              <h1 className="text-2xl font-black text-slate-800 whitespace-nowrap">
                 SmartHire
               </h1>
 
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-400 whitespace-nowrap">
                 AI Recruitment Platform
               </p>
             </div>
@@ -100,18 +133,22 @@ function Sidebar() {
               return (
                 <li
                   key={item.name}
-                  onClick={() => {
-                    navigate(item.path);
-                    setSidebarOpen(false);
-                  }}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
+                  onClick={() => goTo(item.path)}
+                  title={collapsed ? item.name : undefined}
+                  className={`flex items-center px-4 py-3 rounded-xl cursor-pointer transition-all ${
+                    collapsed ? "justify-center" : "gap-3"
+                  } ${
                     active
                       ? "bg-blue-50 text-blue-600 border border-blue-100 shadow-sm"
                       : "text-slate-700 hover:bg-slate-100"
                   }`}
                 >
-                  <span className="text-base">{item.icon}</span>
-                  <span className="text-sm font-medium">
+                  <span className="text-base flex-shrink-0">{item.icon}</span>
+                  <span
+                    className={`text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                      collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+                    }`}
+                  >
                     {item.name}
                   </span>
                 </li>
@@ -119,20 +156,6 @@ function Sidebar() {
             })}
           </ul>
         </nav>
-
-        {/* Logout */}
-        <div className="absolute bottom-4 left-3 right-3">
-          <button
-            onClick={async () => {
-              await supabase.auth.signOut();
-              navigate("/login");
-            }}
-            className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 py-3 rounded-xl font-semibold transition"
-          >
-            <FaSignOutAlt />
-            Logout
-          </button>
-        </div>
       </aside>
     </>
   );
