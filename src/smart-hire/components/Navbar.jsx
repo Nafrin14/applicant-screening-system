@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import {
   FaBell,
-  FaSearch,
   FaUserCircle,
   FaTrash,
   FaCog,
@@ -23,14 +22,9 @@ function Navbar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [hasUpcomingInterview, setHasUpcomingInterview] = useState(false);
   const [upcomingInterview, setUpcomingInterview] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [showSearchResults, setShowSearchResults] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const searchRef = useRef(null);
-  const debounceRef = useRef(null);
   const profileRef = useRef(null);
+  const notificationRef = useRef(null);
 
  useEffect(() => {
   fetchProfile();
@@ -48,16 +42,16 @@ function Navbar() {
 useEffect(() => {
   const handleClickOutside = (event) => {
     if (
-      searchRef.current &&
-      !searchRef.current.contains(event.target)
-    ) {
-      setShowSearchResults(false);
-    }
-    if (
       profileRef.current &&
       !profileRef.current.contains(event.target)
     ) {
       setShowProfileMenu(false);
+    }
+    if (
+      notificationRef.current &&
+      !notificationRef.current.contains(event.target)
+    ) {
+      setShowNotifications(false);
     }
   };
 
@@ -65,53 +59,8 @@ useEffect(() => {
 
   return () => {
     document.removeEventListener("mousedown", handleClickOutside);
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
   };
 }, []);
-
-const handleSearchChange = (e) => {
-  const value = e.target.value;
-  setSearchQuery(value);
-
-  if (debounceRef.current) {
-    clearTimeout(debounceRef.current);
-  }
-
-  if (!value.trim()) {
-    setSearchResults([]);
-    setShowSearchResults(false);
-    setIsSearching(false);
-    return;
-  }
-
-  debounceRef.current = setTimeout(() => {
-    searchApplicants(value.trim());
-  }, 300);
-};
-
-const searchApplicants = async (query) => {
-  setIsSearching(true);
-
-  const { data, error } = await supabase
-    .from("applicants")
-    .select("id, name, email, role, status")
-    .or(`name.ilike.%${query}%,email.ilike.%${query}%,role.ilike.%${query}%`)
-    .order("id", { ascending: false })
-    .limit(8);
-
-  if (error) {
-    console.error("Search error:", error);
-    setSearchResults([]);
-    setShowSearchResults(true);
-  } else {
-    setSearchResults(data || []);
-    setShowSearchResults(true);
-  }
-
-  setIsSearching(false);
-};
 
   const fetchProfile = async () => {
     const { data, error } = await supabase
@@ -180,6 +129,26 @@ const markAsRead = async (id) => {
   }
 };
 
+const handleClearAll = async () => {
+  if (notifications.length === 0) return;
+
+  const confirmClear = await confirmDialog(
+    "Clear all notifications?",
+    { danger: true, confirmLabel: "Clear All" }
+  );
+
+  if (!confirmClear) return;
+
+  const { error } = await supabase
+    .from("notifications")
+    .delete()
+    .in("id", notifications.map((item) => item.id));
+
+  if (!error) {
+    fetchNotifications();
+  }
+};
+
 const handleDelete = async (id) => {
   const confirmDelete = await confirmDialog(
     "Delete this notification?",
@@ -207,105 +176,11 @@ const handleDelete = async (id) => {
     <div className="sh-navbar-offset fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 shadow-sm z-40">
       <div className="h-full flex items-center justify-between px-8">
 
-        {/* Search */}
-        <div
-          ref={searchRef}
-          className="relative hidden md:flex items-center bg-slate-100 rounded-2xl px-4 py-2 w-[320px]"
-        >
-          <FaSearch className="text-slate-400" />
-
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            onFocus={() => {
-              if (searchResults.length > 0) {
-                setShowSearchResults(true);
-              }
-            }}
-            placeholder="Search candidates..."
-            className="bg-transparent outline-none ml-3 w-full text-sm text-slate-700"
-          />
-
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery("");
-                setSearchResults([]);
-                setShowSearchResults(false);
-              }}
-              className="text-slate-400 hover:text-slate-600 text-xs ml-2"
-            >
-              ✕
-            </button>
-          )}
-
-          {showSearchResults && (
-            <div className="absolute left-0 top-full mt-2 w-full z-50 rounded-2xl bg-white border border-slate-200 shadow-xl">
-              <div className="px-4 py-3 border-b border-slate-200">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-800">
-                    Search results
-                  </p>
-                  {isSearching && (
-                    <span className="text-xs text-slate-500">
-                      Searching...
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="max-h-72 overflow-y-auto">
-                {searchResults.length === 0 ? (
-                  <p className="p-4 text-sm text-slate-500">
-                    No candidates found
-                  </p>
-                ) : (
-                  <>
-                    <div className="px-4 py-2 text-xs text-slate-500 border-b border-slate-200">
-                      {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
-                    </div>
-                    {searchResults.map((applicant) => (
-                      <button
-                        key={applicant.id}
-                        type="button"
-                        onClick={() => {
-                          navigate("/candidate-details", {
-                            state: applicant,
-                          });
-                          setShowSearchResults(false);
-                          setSearchQuery("");
-                          setSearchResults([]);
-                        }}
-                        className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b last:border-b-0"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div>
-                            <p className="font-semibold text-sm text-slate-900">
-                              {applicant.name || "Unnamed Candidate"}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">
-                              {applicant.email}
-                            </p>
-                          </div>
-                          <span className="text-xs text-slate-500">
-                            {applicant.status || "Status unknown"}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Right Side */}
       <div className="flex items-center gap-6 ml-auto relative">
 
           {/* Notification */}
+        <div ref={notificationRef} className="relative">
          <button
   onClick={() =>
     setShowNotifications(!showNotifications)
@@ -338,6 +213,7 @@ const handleDelete = async (id) => {
 
       <button
         type="button"
+        onClick={handleClearAll}
         className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-md"
       >
         Clear all
@@ -420,6 +296,7 @@ const handleDelete = async (id) => {
     </div>
   </div>
 )}
+        </div>
 
           {/* Profile */}
           <div ref={profileRef} className="relative">

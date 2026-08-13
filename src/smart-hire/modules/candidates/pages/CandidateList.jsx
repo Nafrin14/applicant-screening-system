@@ -440,9 +440,9 @@ const result = await response.json();
 
         {/* Table */}
 
-        <div className="bg-white rounded-3xl shadow-md p-6">
+        <div className="bg-white rounded-[32px] shadow-sm border border-slate-100/50 overflow-hidden">
 
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-3">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 p-6 pb-5">
 
            <p className="text-sm text-slate-500 font-medium">
   Showing {filteredApplicants.length} Candidates
@@ -461,7 +461,7 @@ const result = await response.json();
       "Shortlisted"
     )
   }
-  className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg"
+  className="bg-green-50 hover:bg-green-100 text-green-700 border border-green-100 p-2.5 rounded-xl shadow-sm transition"
   title="Bulk Shortlist"
 >
   <FaUserCheck size={14} />
@@ -471,7 +471,7 @@ const result = await response.json();
   onClick={() =>
     bulkUpdateStatus("Rejected")
   }
-  className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg"
+  className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 p-2.5 rounded-xl shadow-sm transition"
   title="Bulk Reject"
 >
   <FaUserTimes size={14} />
@@ -481,21 +481,21 @@ const result = await response.json();
   onClick={() =>
     bulkUpdateStatus("Pending")
   }
-  className="bg-yellow-100 hover:bg-yellow-200 text-yellow-700 p-2 rounded-lg"
+  className="bg-yellow-50 hover:bg-yellow-100 text-yellow-700 border border-yellow-100 p-2.5 rounded-xl shadow-sm transition"
   title="Bulk Pending"
 >
   <FaClock size={14} />
 </button>
 <button
   onClick={shareSelectedResumes}
-  className="bg-green-500 hover:bg-green-600 text-white p-2 rounded-lg"
+  className="bg-green-500 hover:bg-green-600 text-white p-2.5 rounded-xl shadow-sm transition"
   title="Share Resumes"
 >
   <FaWhatsapp size={16} />
 </button>
     <button
   onClick={bulkDelete}
-  className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg"
+  className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 p-2.5 rounded-xl shadow-sm transition"
   title="Bulk Delete"
 >
   <FaTrashAlt size={14} />
@@ -509,9 +509,9 @@ const result = await response.json();
 
   <select
     value={statusFilter}
-    
+
     onChange={(e) => setStatusFilter(e.target.value)}
-    className="bg-slate-100 border border-gray-200 px-4 py-3 rounded-2xl outline-none w-full md:w-auto"
+    className="bg-white border border-slate-200 px-4 py-3 rounded-2xl outline-none w-full md:w-auto shadow-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
   >
     <option value="All">All Status</option>
     <option value="Shortlisted">Shortlisted</option>
@@ -525,12 +525,12 @@ const result = await response.json();
   type="date"
   value={selectedDate}
   onChange={(e) => setSelectedDate(e.target.value)}
-  className="bg-slate-100 border border-gray-200 px-4 py-3 rounded-2xl outline-none w-full md:w-auto"
+  className="bg-white border border-slate-200 px-4 py-3 rounded-2xl outline-none w-full md:w-auto shadow-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
 />
 
 <button
   onClick={() => setSelectedDate("")}
-  className="bg-gray-200 hover:bg-gray-300 px-4 py-3 rounded-2xl"
+  className="bg-slate-100 hover:bg-slate-200 text-slate-600 px-4 py-3 rounded-2xl transition"
 >
   Clear
 </button>
@@ -540,11 +540,11 @@ const result = await response.json();
     placeholder="Search candidate..."
     value={search}
     onChange={(e) => setSearch(e.target.value)}
-    className="bg-slate-100 border border-gray-200 px-5 py-3 rounded-2xl outline-none w-full md:w-72"
+    className="bg-white border border-slate-200 px-5 py-3 rounded-2xl outline-none w-full md:w-72 shadow-sm focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all"
   />
 
 </div>
- 
+
 
           </div>
 
@@ -553,8 +553,8 @@ const result = await response.json();
           <table className="min-w-[1200px] w-full">
               <thead>
 
-                <tr className="border-b border-gray-200 text-left">
-                  <th className="py-4">
+                <tr className="bg-slate-50/80 border-y border-slate-100/80 text-xs uppercase tracking-wider font-bold text-slate-500">
+                  <th className="px-6 py-5">
   <input
     type="checkbox"
     onChange={(e) =>
@@ -569,26 +569,26 @@ const result = await response.json();
   />
 </th>
 
-                  <th className="py-4 text-gray-500 font-semibold">
+                  <th className="px-6 py-5">
                     Candidate
                   </th>
 
-                  <th className="text-gray-500 font-semibold">
+                  <th className="px-6 py-5">
                     Email
                   </th>
-<th className="text-gray-500 font-semibold">
+<th className="px-6 py-5">
   Applied Job
 </th>
 
-                  <th className="text-gray-500 font-semibold">
+                  <th className="px-6 py-5">
                     AI Score
                   </th>
 
-                 
-<th className="text-gray-500 font-semibold">
+
+<th className="px-6 py-5">
   Status
 </th>
-                  <th className="text-gray-500 font-semibold">
+                  <th className="px-6 py-5">
                     Actions
                   </th>
 
@@ -596,29 +596,29 @@ const result = await response.json();
 
               </thead>
 
-              <tbody>
+              <tbody className="divide-y divide-slate-100/80">
 
                 {Object.entries(groupedApplicants).map(([date, list]) => (
   <React.Fragment key={date}>
     <tr>
       <td
         colSpan="7"
-        className="bg-slate-100 py-3 px-4 text-center text-sm font-bold text-slate-600"
+        className="bg-slate-50/60 py-3 px-6 text-xs font-bold text-slate-500 uppercase tracking-wider"
       >
-        ───── {date} ─────
+        {date}
       </td>
     </tr>
 
     {list.map((applicant, index) => (
                   <tr
   key={applicant.id}
-  className={`border-b border-gray-100 transition ${
+  className={`transition-colors group ${
     selectedApplicants.includes(applicant.id)
-      ? "bg-blue-50"
-      : "hover:bg-slate-50"
+      ? "bg-indigo-50/50"
+      : "hover:bg-slate-50/50"
   }`}
 >
-                    <td>
+                    <td className="px-6 py-5">
   <input
     type="checkbox"
     checked={selectedApplicants.includes(applicant.id)}
@@ -639,12 +639,12 @@ const result = await response.json();
   />
 </td>
 
-                    <td className="py-5">
+                    <td className="px-6 py-5">
 
                       <div className="flex items-center gap-4">
 
-                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center
-                         text-blue-600 font-bold text-lg">
+                        <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center
+                         text-indigo-600 font-bold text-lg shrink-0">
 
                           {applicant.name
                             ?.charAt(0)}
@@ -676,7 +676,7 @@ const result = await response.json();
                             {applicant.name}
                           </h3>
 
-                          
+
 
                         </div>
 
@@ -684,11 +684,11 @@ const result = await response.json();
 
                     </td>
 
-                    <td className="text-gray-600">
+                    <td className="px-6 py-5 text-gray-600">
   <div>
-    <p>{applicant.email}</p>
+    <p className="text-sm">{applicant.email}</p>
 
-    <p className="mt-1">
+    <p className="mt-1 text-sm">
       📞 {applicant.phone ? (
         <a
           href={`tel:${applicant.phone}`}
@@ -702,7 +702,7 @@ const result = await response.json();
     </p>
   </div>
 </td>
-<td className="text-gray-600">
+<td className="px-6 py-5 text-gray-600">
   <div className="max-w-xs">
 
     <p className="text-sm text-blue-600 font-medium">
@@ -711,11 +711,11 @@ const result = await response.json();
 
   </div>
 </td>
-                    <td>
+                    <td className="px-6 py-5">
 
                       <div className="flex items-center gap-2">
 
-  <span className="font-bold text-blue-600">
+  <span className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 font-bold text-indigo-700 shadow-sm">
 
     {applicant.ai_score ||
       applicant.score ||
@@ -737,29 +737,29 @@ const result = await response.json();
 
                     </td>
 
-                    
 
-                  <td>
+
+                  <td className="px-6 py-5">
 
   <span
-    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold shadow-sm ${
       applicant.status === "Shortlisted"
-        ? "bg-green-100 text-green-600"
+        ? "bg-green-50 text-green-700 border-green-100"
         : applicant.status === "Rejected"
-        ? "bg-red-100 text-red-600"
+        ? "bg-red-50 text-red-600 border-red-100"
         : applicant.status === "Interview Scheduled"
-        ? "bg-purple-100 text-purple-700"
+        ? "bg-purple-50 text-purple-700 border-purple-100"
         : applicant.status === "Selected"
-        ? "bg-blue-100 text-blue-700"
-        : "bg-yellow-100 text-yellow-700"
+        ? "bg-blue-50 text-blue-700 border-blue-100"
+        : "bg-yellow-50 text-yellow-700 border-yellow-100"
     }`}
   >
     {applicant.status}
   </span>
 
-</td>  
+</td>
 
-<td className="w-[180px]">
+<td className="px-6 py-5 w-[180px]">
 
  <div className="flex items-center gap-2 whitespace-nowrap">
 
@@ -769,7 +769,7 @@ const result = await response.json();
           state: applicant,
         })
       }
-      className="bg-blue-100 hover:bg-blue-200 text-blue-600 p-2 rounded-lg transition"
+      className="bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 p-2.5 rounded-xl transition"
       title="View Details"
     >
       <FaEye size={14} />
@@ -783,7 +783,7 @@ const result = await response.json();
             "Shortlisted"
           )
         }
-        className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg transition"
+        className="bg-green-50 hover:bg-green-100 text-green-700 border border-green-100 p-2.5 rounded-xl transition"
         title="Shortlist Candidate"
       >
         <FaUserCheck size={14} />
@@ -798,7 +798,7 @@ const result = await response.json();
             "Rejected"
           )
         }
-        className="bg-red-100 hover:bg-red-200 text-red-600 p-2 rounded-lg transition"
+        className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 p-2.5 rounded-xl transition"
         title="Reject Candidate"
       >
         <FaUserTimes size={14} />
@@ -822,7 +822,7 @@ const result = await response.json();
   );
 
 }}
-        className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition"
+        className="bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-100 p-2.5 rounded-xl transition"
         title="Schedule Interview"
       >
         <FaCalendarAlt size={14} />
@@ -835,7 +835,7 @@ const result = await response.json();
           applicant.id
         )
       }
-      className="bg-gray-200 hover:bg-gray-300 text-gray-700 p-2 rounded-lg transition"
+      className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 p-2.5 rounded-xl transition"
       title="Delete Profile"
     >
       <FaTrashAlt size={14} />
@@ -857,7 +857,7 @@ const result = await response.json();
           </div>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-2 pt-4">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
               <p className="text-sm text-slate-500">
                 Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
                 {Math.min(currentPage * ITEMS_PER_PAGE, filteredApplicants.length)} of{" "}
