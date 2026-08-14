@@ -80,7 +80,7 @@ function MailInbox() {
           Mail Inbox
         </h1>
         <p className="text-slate-500 text-sm mt-1">
-          Candidate replies to your bulk emails, synced automatically every 10 minutes.
+          Candidate replies to your bulk emails, synced automatically every 5 minutes.
         </p>
       </div>
 
