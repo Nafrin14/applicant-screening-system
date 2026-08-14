@@ -12,6 +12,7 @@ import {
   FaComments,
   FaBullhorn,
   FaChartBar,
+  FaInbox,
   FaChevronLeft,
   FaChevronRight,
   FaChevronDown,
@@ -39,6 +40,7 @@ const menuItems = [
       { name: "Chats", path: "/conversations", icon: <FaComments /> },
       { name: "Bulk Send", path: "/bulk-actions", icon: <FaBullhorn /> },
       { name: "Send History", path: "/bulk-actions-report", icon: <FaChartBar /> },
+      { name: "Mail Inbox", path: "/mail-inbox", icon: <FaInbox /> },
     ],
   },
   {
