@@ -21,7 +21,8 @@ import {
  FaStar,
   FaSave,
   FaGlobe,
-  FaInfoCircle
+  FaInfoCircle,
+  FaTrash
 } from "react-icons/fa";
 
 function CandidateDetails() {
@@ -40,7 +41,7 @@ function CandidateDetails() {
   const [copiedText, setCopiedText] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [communicationHistory, setCommunicationHistory] = useState([]);
-  const { notify } = useNotification();
+  const { notify, confirmDialog } = useNotification();
 
   // Extract ID from state or query parameter
   const queryParams = new URLSearchParams(location.search);
@@ -204,6 +205,33 @@ function CandidateDetails() {
     } finally {
       setUpdatingStatus(false);
     }
+  };
+
+  const handleDeleteCandidate = async () => {
+    if (!applicant) return;
+    const confirmed = await confirmDialog(
+      `Delete ${applicant.name} and all their chat messages? This cannot be undone.`,
+      { danger: true, confirmLabel: "Delete" }
+    );
+    if (!confirmed) return;
+
+    await supabase
+      .from("chat_messages")
+      .delete()
+      .eq("phone", applicant.phone);
+
+    const { error } = await supabase
+      .from("applicants")
+      .delete()
+      .eq("id", applicant.id);
+
+    if (error) {
+      notify("Failed to delete candidate: " + error.message, { type: "error" });
+      return;
+    }
+
+    notify(`${applicant.name} has been deleted.`, { type: "success" });
+    navigate(-1);
   };
 
   const copyToClipboard = (text, type) => {
@@ -443,6 +471,16 @@ function CandidateDetails() {
               >
                 <FaComments />
                 <span>Chat</span>
+              </button>
+
+              <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+              <button
+                onClick={handleDeleteCandidate}
+                className="flex items-center gap-2 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm"
+              >
+                <FaTrash />
+                <span>Delete</span>
               </button>
             </div>
           </div>

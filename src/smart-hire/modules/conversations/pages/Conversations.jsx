@@ -963,6 +963,29 @@ const handleDeleteCandidate = async (candidate) => {
   setCandidateMenu(null);
   await loadCandidates();
 };
+
+  const handleClearChatForCandidate = async (candidate) => {
+    if (!candidate) return;
+    const confirmed = await confirmDialog(
+      `Clear all messages for ${candidate.name}?`,
+      { danger: true, confirmLabel: "Clear" }
+    );
+    if (!confirmed) return;
+    const { error } = await supabase
+      .from("chat_messages")
+      .delete()
+      .eq("phone", candidate.phone);
+    if (error) {
+      notify(`Error clearing chat: ${error.message}`, { type: "error" });
+      return;
+    }
+    if (selectedCandidate?.id === candidate.id) {
+      setMessages([]);
+    }
+    setCandidateMenu(null);
+    await loadCandidates();
+  };
+
   const handleClearChat = async () => {
     if (!selectedCandidate) return;
     const confirmed = await confirmDialog(
@@ -1070,17 +1093,36 @@ setCandidateMenuPos={setCandidateMenuPos}
     />
 
     <div
-      className="fixed bg-white shadow-xl rounded-lg border z-[9999] min-w-[190px]"
+      className="fixed bg-white shadow-xl rounded-lg border z-[9999] min-w-[200px] py-1 overflow-hidden"
       style={{
         left: candidateMenuPos.x,
         top: candidateMenuPos.y,
       }}
     >
       <button
-        onClick={() => handleDeleteCandidate(candidateMenu)}
-        className="w-full text-left px-4 py-3 hover:bg-red-50 text-red-500 font-medium"
+        onClick={() => handleClearChatForCandidate(candidateMenu)}
+        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 text-sm font-medium flex items-center gap-3"
       >
-        🗑️ Delete Candidate
+        <span className="text-base">🧹</span> Clear Chat
+      </button>
+
+      <button
+        onClick={() => {
+          navigate("/candidate-details", { state: candidateMenu });
+          setCandidateMenu(null);
+        }}
+        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 text-sm font-medium flex items-center gap-3"
+      >
+        <span className="text-base">�</span> Candidate Details
+      </button>
+
+      <div className="h-px bg-slate-100 mx-2 my-1" />
+
+      <button
+        onClick={() => setCandidateMenu(null)}
+        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-400 text-sm font-medium flex items-center gap-3"
+      >
+        <span className="text-base">✕</span> Close Menu
       </button>
     </div>
   </>

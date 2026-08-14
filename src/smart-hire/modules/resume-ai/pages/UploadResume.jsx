@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../../../core/lib/supabase";
 import { screenResume } from "../services/aiService";
@@ -12,6 +12,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
   
 import {
   FaCloudUploadAlt,
+  FaSearch,
+  FaTimes,
+  FaChevronDown,
 } from "react-icons/fa";
 
 
@@ -23,11 +26,24 @@ const [files, setFiles] = useState([]);
 const [role, setRole] = useState("");
 const [jobs, setJobs] = useState([]);
 const [selectedJobId, setSelectedJobId] = useState("");
+const [jobSearch, setJobSearch] = useState("");
+const [jobDropdownOpen, setJobDropdownOpen] = useState(false);
+const jobDropdownRef = useRef(null);
 const [aiResult, setAiResult] = useState(null);
 const [loading, setLoading] = useState(false);
        useEffect(() => {
        fetchJobs();
        }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (jobDropdownRef.current && !jobDropdownRef.current.contains(e.target)) {
+        setJobDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
 const fetchJobs = async () => {
 const { data } = await supabase
@@ -362,24 +378,102 @@ const {
   Candidate Information
 </h2>
 
-<div className="mb-6">
-<label className="block text-sm font-semibold text-slate-700 mb-2">
+<div className="mb-6 relative" ref={jobDropdownRef}>
+  <label className="block text-sm font-semibold text-slate-700 mb-2">
     Select Job Position
   </label>
 
-<select
-    value={selectedJobId}
-    onChange={(e) => setSelectedJobId(e.target.value)}
-    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none text-sm md:text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+  {/* Trigger button */}
+  <button
+    type="button"
+    onClick={() => {
+      setJobDropdownOpen((prev) => !prev);
+      setJobSearch("");
+    }}
+    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none text-sm md:text-base focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all flex items-center justify-between text-left"
   >
-    <option value="">Select Job Position...</option>
+    <span className={selectedJobId ? "text-slate-800" : "text-slate-400"}>
+      {selectedJobId
+        ? jobs.find((j) => j.id == selectedJobId)?.title || "Select Job Position..."
+        : "Select Job Position..."}
+    </span>
+    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+      {selectedJobId && (
+        <span
+          role="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedJobId("");
+            setJobSearch("");
+          }}
+          className="text-slate-400 hover:text-red-500 transition"
+        >
+          <FaTimes className="text-xs" />
+        </span>
+      )}
+      <FaChevronDown
+        className={`text-slate-400 text-xs transition-transform duration-200 ${jobDropdownOpen ? "rotate-180" : ""}`}
+      />
+    </div>
+  </button>
 
-    {jobs.map((job) => (
-      <option key={job.id} value={job.id}>
-        {job.title}
-      </option>
-    ))}
-  </select>
+  {/* Dropdown */}
+  {jobDropdownOpen && (
+      <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden">
+      {/* Search input */}
+      <div className="p-3 border-b border-slate-100">
+        <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2">
+          <FaSearch className="text-slate-400 text-xs flex-shrink-0" />
+          <input
+            autoFocus
+            type="text"
+            placeholder="Search job position..."
+            value={jobSearch}
+            onChange={(e) => setJobSearch(e.target.value)}
+            className="bg-transparent text-sm outline-none w-full text-slate-700 placeholder-slate-400"
+          />
+          {jobSearch && (
+            <button onClick={() => setJobSearch("")} className="text-slate-400 hover:text-slate-600">
+              <FaTimes className="text-xs" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Options */}
+      <div className="max-h-52 overflow-y-auto">
+        {jobs
+          .filter((job) =>
+            job.title.toLowerCase().includes(jobSearch.toLowerCase())
+          )
+          .map((job) => (
+            <button
+              key={job.id}
+              type="button"
+              onClick={() => {
+                setSelectedJobId(job.id);
+                setJobDropdownOpen(false);
+                setJobSearch("");
+              }}
+              className={`w-full text-left px-4 py-3 text-sm transition-colors ${
+                selectedJobId == job.id
+                  ? "bg-blue-50 text-blue-700 font-semibold"
+                  : "text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {job.title}
+            </button>
+          ))}
+        {jobs.filter((job) =>
+          job.title.toLowerCase().includes(jobSearch.toLowerCase())
+        ).length === 0 && (
+          <div className="px-4 py-6 text-center text-sm text-slate-400">
+            No matching positions found
+          </div>
+        )}
+      </div>
+    </div>
+  )}
 </div>
  <div
    onDragOver={(e) =>
