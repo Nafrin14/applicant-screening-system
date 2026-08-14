@@ -10,18 +10,53 @@ import {
   FaClipboardList,
   FaBriefcase,
   FaComments,
+  FaBullhorn,
+  FaChartBar,
   FaChevronLeft,
   FaChevronRight,
+  FaChevronDown,
 } from "react-icons/fa";
 
 const EXPANDED_WIDTH = "224px";
 const COLLAPSED_WIDTH = "80px";
+
+const menuItems = [
+  { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt /> },
+  { name: "Jobs", path: "/jobs", icon: <FaBriefcase /> },
+  { name: "Candidates", path: "/results", icon: <FaUsers /> },
+  {
+    name: "AI Analysis",
+    icon: <FaRobot />,
+    children: [
+      { name: "Resume Upload", path: "/upload", icon: <FaFileUpload /> },
+      { name: "AI Results", path: "/ai-results", icon: <FaRobot /> },
+    ],
+  },
+  {
+    name: "Conversations",
+    icon: <FaComments />,
+    children: [
+      { name: "Chats", path: "/conversations", icon: <FaComments /> },
+      { name: "Bulk Send", path: "/bulk-actions", icon: <FaBullhorn /> },
+      { name: "Send History", path: "/bulk-actions-report", icon: <FaChartBar /> },
+    ],
+  },
+  {
+    name: "Schedule Management",
+    icon: <FaCalendarAlt />,
+    children: [
+      { name: "Schedule Interview", path: "/interview-schedule", icon: <FaCalendarAlt /> },
+      { name: "All Interviews", path: "/scheduled-interviews", icon: <FaClipboardList /> },
+    ],
+  },
+];
 
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState({});
 
   useEffect(() => {
     document.documentElement.style.setProperty(
@@ -30,28 +65,30 @@ function Sidebar() {
     );
   }, [collapsed]);
 
-  const menuItems = [
-    { name: "Dashboard", path: "/dashboard", icon: <FaTachometerAlt /> },
-    { name: "Jobs", path: "/jobs", icon: <FaBriefcase /> },
-    { name: "Candidates", path: "/results", icon: <FaUsers /> },
-    { name: "Resume Upload", path: "/upload", icon: <FaFileUpload /> },
-    { name: "AI Results", path: "/ai-results", icon: <FaRobot /> },
-    { name: "Conversations", path: "/conversations", icon: <FaComments /> },
-    {
-      name: "Interview Schedule",
-      path: "/interview-schedule",
-      icon: <FaCalendarAlt />,
-    },
-    {
-      name: "Scheduled Interviews",
-      path: "/scheduled-interviews",
-      icon: <FaClipboardList />,
-    },
-  ];
-
   const goTo = (path) => {
     navigate(path);
     setSidebarOpen(false);
+  };
+
+  const toggleGroup = (name) => {
+    if (collapsed) {
+      setCollapsed(false);
+    }
+
+    setExpandedGroups((prev) => {
+      const groupItem = menuItems.find((item) => item.name === name);
+      const currentlyExpanded =
+        prev[name] ??
+        groupItem?.children?.some((child) => child.path === location.pathname);
+
+      // Accordion behavior — opening one group closes every other group.
+      const next = {};
+      menuItems.forEach((item) => {
+        if (item.children) next[item.name] = false;
+      });
+      next[name] = !currentlyExpanded;
+      return next;
+    });
   };
 
   return (
@@ -128,6 +165,68 @@ function Sidebar() {
         <nav className="p-3">
           <ul className="space-y-2">
             {menuItems.map((item) => {
+              if (item.children) {
+                const groupActive = item.children.some(
+                  (child) => child.path === location.pathname
+                );
+                const expanded = expandedGroups[item.name] ?? groupActive;
+
+                return (
+                  <li key={item.name}>
+                    <div
+                      onClick={() => toggleGroup(item.name)}
+                      title={collapsed ? item.name : undefined}
+                      className={`flex items-center px-4 py-3 rounded-xl cursor-pointer transition-all ${
+                        collapsed ? "justify-center" : "gap-3"
+                      } ${
+                        groupActive
+                          ? "bg-blue-50 text-blue-600 border border-blue-100 shadow-sm"
+                          : "text-slate-700 hover:bg-slate-100"
+                      }`}
+                    >
+                      <span className="text-base flex-shrink-0">{item.icon}</span>
+                      <span
+                        className={`flex-1 text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                          collapsed ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+                        }`}
+                      >
+                        {item.name}
+                      </span>
+                      {!collapsed && (
+                        <FaChevronDown
+                          className={`text-[10px] text-slate-400 transition-transform duration-200 ${
+                            expanded ? "rotate-180" : ""
+                          }`}
+                        />
+                      )}
+                    </div>
+
+                    {!collapsed && expanded && (
+                      <ul className="mt-1 ml-4 pl-3 border-l border-slate-200 space-y-1">
+                        {item.children.map((child) => {
+                          const active = location.pathname === child.path;
+
+                          return (
+                            <li
+                              key={child.name}
+                              onClick={() => goTo(child.path)}
+                              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer transition-all text-sm ${
+                                active
+                                  ? "bg-blue-50 text-blue-600 font-semibold"
+                                  : "text-slate-600 hover:bg-slate-100"
+                              }`}
+                            >
+                              <span className="text-sm flex-shrink-0">{child.icon}</span>
+                              <span className="whitespace-nowrap">{child.name}</span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              }
+
               const active = location.pathname === item.path;
 
               return (

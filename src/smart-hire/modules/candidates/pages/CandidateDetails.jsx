@@ -39,6 +39,7 @@ function CandidateDetails() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [copiedText, setCopiedText] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [communicationHistory, setCommunicationHistory] = useState([]);
   const { notify } = useNotification();
 
   // Extract ID from state or query parameter
@@ -49,8 +50,24 @@ function CandidateDetails() {
     if (applicantId) {
       fetchApplicantDetails(applicantId);
       loadNotes(applicantId);
+      loadCommunicationHistory(applicantId);
     }
   }, [applicantId]);
+
+  const loadCommunicationHistory = async (id) => {
+    const { data, error } = await supabase
+      .from("bulk_send_logs")
+      .select("*")
+      .eq("candidate_id", id)
+      .order("sent_at", { ascending: false });
+
+    if (error) {
+      console.log("loadCommunicationHistory error (table may not exist yet):", error);
+      return;
+    }
+
+    setCommunicationHistory(data || []);
+  };
 
   const fetchApplicantDetails = async (id) => {
     try {
@@ -542,6 +559,23 @@ function CandidateDetails() {
                       </span>
                     )}
                   </button>
+
+                  <button
+                    onClick={() => setActiveTab("communications")}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                      activeTab === "communications"
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/10"
+                        : "text-slate-500 hover:text-indigo-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <FaEnvelope />
+                    <span>Email History</span>
+                    {communicationHistory.length > 0 && (
+                      <span className={`ml-1.5 px-1.5 py-0.5 text-[10px] rounded-full ${activeTab === 'communications' ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                        {communicationHistory.length}
+                      </span>
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -790,7 +824,64 @@ function CandidateDetails() {
                     </div>
                   </div>
                 )}
-                
+
+                {/* 5. Email/Communication History Tab */}
+                {activeTab === "communications" && (
+                  <div className="space-y-4 animate-fadeIn">
+                    <div>
+                      <h3 className="text-md font-bold text-slate-800">Communication History</h3>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Every bulk SMS, WhatsApp, and email sent to this candidate, with delivery status.
+                      </p>
+                    </div>
+
+                    {communicationHistory.length === 0 ? (
+                      <div className="border border-dashed border-slate-200 rounded-2xl p-6 text-center text-slate-400">
+                        <p className="text-sm font-semibold">No communications sent yet.</p>
+                        <p className="text-xs mt-1 text-slate-400">
+                          Sends from Conversations &gt; Bulk Send will show up here.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                        {communicationHistory.map((log) => (
+                          <div
+                            key={log.id}
+                            className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-start justify-between gap-4"
+                          >
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="uppercase text-[10px] font-bold bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">
+                                  {log.channel}
+                                </span>
+                                <p className="text-sm font-semibold text-slate-700 truncate">
+                                  {log.label || "Untitled"}
+                                </p>
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-bold tracking-wider">
+                                {log.sent_at ? new Date(log.sent_at).toLocaleString() : "—"}
+                                {log.sent_by ? ` · ${log.sent_by}` : ""}
+                              </p>
+                              {log.status !== "sent" && log.error && (
+                                <p className="text-xs text-red-500 mt-1">{log.error}</p>
+                              )}
+                            </div>
+                            {log.status === "sent" ? (
+                              <span className="text-xs font-bold text-green-600 flex-shrink-0">
+                                ✓ Sent
+                              </span>
+                            ) : (
+                              <span className="text-xs font-bold text-red-500 flex-shrink-0">
+                                ✕ Failed
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </div>
             </div>
 

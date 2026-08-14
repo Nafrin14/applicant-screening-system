@@ -395,18 +395,18 @@ const {
       }}
                
 
-className="border-2 border-dashed border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl min-h-[500px]
-flex flex-col justify-center items-center p-10 md:p-14 text-center hover:scale-[1.02] hover:shadow-xl transition-all duration-300
+className="border-2 border-dashed border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl min-h-[280px]
+flex flex-col justify-center items-center p-6 md:p-8 text-center hover:scale-[1.02] hover:shadow-xl transition-all duration-300
 cursor-pointer
 " >
-<div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg">
-  <FaCloudUploadAlt className="text-white text-4xl" />
+<div className="w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg">
+  <FaCloudUploadAlt className="text-white text-2xl" />
 </div>
-<p className="text-lg md:text-xl font-bold text-blue-700 mb-1 md:mb-2">
+<p className="text-base md:text-lg font-bold text-blue-700 mb-1">
    Drag & Drop Resume
 </p>
 
-<p className="text-xs md:text-sm text-gray-500 mb-4 md:mb-6">
+<p className="text-xs text-gray-500 mb-3 md:mb-4">
   Upload PDF, DOC, DOCX
   </p>
 <input id="resumeUpload"
@@ -429,9 +429,9 @@ cursor-pointer
   from-blue-600
   to-indigo-600
   text-white
-  
-  px-8 py-4 text-lg font-semibold
-  rounded-2xl
+
+  px-5 py-2.5 text-sm font-semibold
+  rounded-xl
   cursor-pointer
   shadow-lg
   hover:shadow-xl
