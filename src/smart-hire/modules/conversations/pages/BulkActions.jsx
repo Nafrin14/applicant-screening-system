@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaTrash, FaTimes } from "react-icons/fa";
+import { FaTrash, FaTimes, FaPen } from "react-icons/fa";
 import { FaSquareWhatsapp } from "react-icons/fa6";
 import Papa from "papaparse";
 import emailjs from "@emailjs/browser";
@@ -74,6 +74,7 @@ function BulkActions() {
   const [manageTemplateName, setManageTemplateName] = useState("");
   const [manageTemplateBody, setManageTemplateBody] = useState("");
   const [manageTemplateSubject, setManageTemplateSubject] = useState("");
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
   const [creatingTemplate, setCreatingTemplate] = useState(false);
   const [importingTemplates, setImportingTemplates] = useState(false);
 
@@ -180,7 +181,7 @@ function BulkActions() {
       "{{FirstName}}": firstName,
       "{{LastName}}": lastName,
       "{{FullName}}": candidate.name || "there",
-      "{{Position}}": candidate.role || "the position",
+      "{{Position}}": candidate.role || "open",
       "{{CompanyName}}": companySettings.company_name || "our company",
       "{{InterviewDate}}": bulkInterviewDate || "[DATE]",
       "{{InterviewTime}}": bulkInterviewTime || "[TIME]",
@@ -305,7 +306,24 @@ Thank you,
     if (selectedTemplateId === String(id)) {
       setSelectedTemplateId("");
     }
+    if (editingTemplateId === id) {
+      cancelTemplateEdit();
+    }
     notify("Template deleted", { type: "success" });
+  };
+
+  const startTemplateEdit = (template) => {
+    setEditingTemplateId(template.id);
+    setManageTemplateName(template.name || "");
+    setManageTemplateSubject(template.subject || "");
+    setManageTemplateBody(template.body || "");
+  };
+
+  const cancelTemplateEdit = () => {
+    setEditingTemplateId(null);
+    setManageTemplateName("");
+    setManageTemplateSubject("");
+    setManageTemplateBody("");
   };
 
   const handleCreateTemplateDirect = async () => {
@@ -319,6 +337,32 @@ Thank you,
     }
 
     setCreatingTemplate(true);
+
+    if (editingTemplateId) {
+      const { data, error } = await supabase
+        .from("sms_templates")
+        .update({
+          name: manageTemplateName.trim(),
+          body: manageTemplateBody.trim(),
+          subject: manageTemplateSubject.trim() || null,
+        })
+        .eq("id", editingTemplateId)
+        .select()
+        .single();
+      setCreatingTemplate(false);
+
+      if (error) {
+        notify(error.message || "Failed to update template", { type: "error" });
+        return;
+      }
+
+      notify("Template updated", { type: "success" });
+      setTemplates((prev) => prev.map((t) => (t.id === editingTemplateId ? data : t)));
+      cancelTemplateEdit();
+      setShowManageTemplatesModal(false);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("sms_templates")
       .insert([
@@ -510,11 +554,14 @@ Thank you,
             batch_id: batchId,
             candidate_id: candidate.id,
             candidate_name: candidate.name,
+            recipient: bulkChannel === "Email" ? candidate.email : candidate.phone,
             channel: effectiveChannel.toLowerCase(),
             status,
             error: errorMessage,
             label,
             sent_by: currentUserEmail || null,
+            message: personalizedBody,
+            subject: bulkChannel === "Email" ? personalizedSubject : null,
           },
         ]);
       } catch (logError) {
@@ -1157,7 +1204,10 @@ Thank you,
               <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
                 <h3 className="font-semibold text-[#111b21]">Manage Templates</h3>
                 <button
-                  onClick={() => setShowManageTemplatesModal(false)}
+                  onClick={() => {
+                    cancelTemplateEdit();
+                    setShowManageTemplatesModal(false);
+                  }}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <FaTimes />
@@ -1165,10 +1215,10 @@ Thank you,
               </div>
 
               <div className="p-5 overflow-y-auto flex-1 space-y-6">
-                {/* Create new template */}
+                {/* Create / edit template */}
                 <div>
                   <h4 className="text-sm font-semibold text-[#111b21] mb-2">
-                    New Template
+                    {editingTemplateId ? "Edit Template" : "New Template"}
                   </h4>
                   <input
                     type="text"
@@ -1191,13 +1241,29 @@ Thank you,
                     rows={3}
                     className="w-full border border-gray-200 rounded-lg p-3 text-sm outline-none resize-none mb-2"
                   />
-                  <button
-                    onClick={handleCreateTemplateDirect}
-                    disabled={creatingTemplate}
-                    className="bg-[#25d366] hover:bg-[#20bd5a] disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-                  >
-                    {creatingTemplate ? "Creating..." : "Create Template"}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleCreateTemplateDirect}
+                      disabled={creatingTemplate}
+                      className="bg-[#25d366] hover:bg-[#20bd5a] disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+                    >
+                      {creatingTemplate
+                        ? editingTemplateId
+                          ? "Saving..."
+                          : "Creating..."
+                        : editingTemplateId
+                        ? "Save Changes"
+                        : "Create Template"}
+                    </button>
+                    {editingTemplateId && (
+                      <button
+                        onClick={cancelTemplateEdit}
+                        className="text-sm font-semibold text-gray-500 hover:text-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Import from CSV */}
@@ -1254,13 +1320,22 @@ Thank you,
                             </p>
                             <p className="text-xs text-gray-500 truncate">{t.body}</p>
                           </div>
-                          <button
-                            onClick={() => handleDeleteTemplate(t.id)}
-                            title="Delete template"
-                            className="text-red-400 hover:text-red-600 p-1 flex-shrink-0"
-                          >
-                            <FaTrash size={13} />
-                          </button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => startTemplateEdit(t)}
+                              title="Edit template"
+                              className="text-blue-500 hover:text-blue-700 p-1"
+                            >
+                              <FaPen size={12} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTemplate(t.id)}
+                              title="Delete template"
+                              className="text-red-400 hover:text-red-600 p-1"
+                            >
+                              <FaTrash size={13} />
+                            </button>
+                          </div>
                         </div>
                       ))}
                     </div>
