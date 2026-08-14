@@ -590,13 +590,40 @@ const sorted = [...candidateList].sort((a, b) => {
       return;
     }
     setCreatingCandidate(true);
+
+    const trimmedPhone = newCandidatePhone.trim();
+    const trimmedEmail = newCandidateEmail.trim();
+
+    const { data: phoneMatch } = await supabase
+      .from("applicants")
+      .select("id")
+      .eq("phone", trimmedPhone)
+      .limit(1);
+
+    let duplicate = (phoneMatch || []).length > 0;
+
+    if (!duplicate && trimmedEmail) {
+      const { data: emailMatch } = await supabase
+        .from("applicants")
+        .select("id")
+        .ilike("email", trimmedEmail)
+        .limit(1);
+      duplicate = (emailMatch || []).length > 0;
+    }
+
+    if (duplicate) {
+      setCreatingCandidate(false);
+      notify("A candidate with this phone or email already exists", { type: "error" });
+      return;
+    }
+
     const { data, error } = await supabase
       .from("applicants")
       .insert([
         {
           name: newCandidateName.trim(),
-          phone: newCandidatePhone.trim(),
-          email: newCandidateEmail.trim() || null,
+          phone: trimmedPhone,
+          email: trimmedEmail || null,
           source: "Manual",
           created_at: new Date().toISOString(),
         },
