@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { FaTimes, FaDownload, FaChartBar } from "react-icons/fa";
+import { FaTimes, FaDownload, FaChartBar, FaRedo } from "react-icons/fa";
+import emailjs from "@emailjs/browser";
 import { supabase } from "../../../../core/lib/supabase";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
 const HISTORY_ITEMS_PER_PAGE = 10;
+
+const withCandidateRefTag = (subject, candidateId) =>
+  candidateId ? `${subject} [Ref: ${candidateId}]` : subject;
+
+const nowISOString = () => new Date().toISOString();
 
 const getBatchStatus = (batch) => {
   if (batch.failed === 0) return "Complete";
@@ -32,6 +38,7 @@ function BulkActionsReport() {
   const [historyUserFilter, setHistoryUserFilter] = useState("All");
   const [historyPage, setHistoryPage] = useState(1);
   const [historyDetailBatchId, setHistoryDetailBatchId] = useState(null);
+  const [resendingLogId, setResendingLogId] = useState(null);
 
   useEffect(() => {
     fetchBulkHistory();
@@ -54,6 +61,163 @@ function BulkActionsReport() {
     }
 
     setBulkLogs(data || []);
+  };
+
+  // Re-attempts a single failed send using the message/subject stored on
+  // that log row, then records the outcome as a new log in the same batch.
+  const handleResend = async (log) => {
+    if (!log.message) {
+      notify(
+        "Can't resend — this entry was logged before resend support was added (no saved message)",
+        { type: "error" }
+      );
+      return;
+    }
+
+    setResendingLogId(log.id);
+
+    const { data: candidate, error: candidateError } = await supabase
+      .from("applicants")
+      .select("*")
+      .eq("id", log.candidate_id)
+      .maybeSingle();
+
+    if (candidateError || !candidate) {
+      setResendingLogId(null);
+      notify("Can't resend — candidate record no longer exists", { type: "error" });
+      return;
+    }
+
+    let status = "sent";
+    let errorMessage = null;
+
+    try {
+      if (log.channel === "email") {
+        const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+        const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+        const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+        if (!serviceId || !templateId || !publicKey) {
+          throw new Error("EmailJS is not configured yet (missing env keys)");
+        }
+
+        const { data: settingsData } = await supabase
+          .from("settings")
+          .select("reply_to_email")
+          .eq("id", 1)
+          .single();
+
+        await emailjs.send(
+          serviceId,
+          templateId,
+          {
+            to_email: candidate.email,
+            to_name: candidate.name,
+            subject: withCandidateRefTag(log.subject || "", candidate.id),
+            message: log.message,
+            reply_to: settingsData?.reply_to_email || undefined,
+          },
+          { publicKey }
+        );
+      } else {
+        const GHL_TOKEN = import.meta.env.VITE_GHL_TOKEN;
+        const LOCATION_ID = import.meta.env.VITE_GHL_LOCATION_ID;
+
+        let contactId = candidate.contact_id;
+        if (!contactId) {
+          const response = await fetch("https://services.leadconnectorhq.com/contacts/", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${GHL_TOKEN}`,
+              Version: "2021-07-28",
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              firstName: candidate.name,
+              phone: candidate.phone,
+              locationId: LOCATION_ID,
+            }),
+          });
+          const result = await response.json();
+          contactId = response.ok ? result?.contact?.id : result?.meta?.contactId;
+          if (!contactId) throw new Error(result?.message || "Failed to create contact");
+          await supabase.from("applicants").update({ contact_id: contactId }).eq("id", candidate.id);
+        }
+
+        const channelType = log.channel === "whatsapp" ? "WhatsApp" : "SMS";
+        const response = await fetch("https://services.leadconnectorhq.com/conversations/messages", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${GHL_TOKEN}`,
+            Version: "2021-07-28",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ type: channelType, contactId, message: log.message }),
+        });
+        if (!response.ok) {
+          const result = await response.json().catch(() => null);
+          throw new Error(result?.message || "Message failed to send");
+        }
+      }
+    } catch (error) {
+      status = "failed";
+      errorMessage = error.message;
+    }
+
+    if (status === "sent" && log.channel !== "email") {
+      try {
+        await supabase.from("chat_messages").insert([
+          {
+            candidate_name: candidate.name,
+            phone: candidate.phone,
+            message: log.message,
+            sender: "hr",
+            is_read: true,
+            delivery_status: "sent",
+          },
+        ]);
+      } catch (chatLogError) {
+        console.log("chat_messages insert failed:", chatLogError);
+      }
+    }
+
+    if (status === "sent" && log.channel === "email") {
+      try {
+        await supabase
+          .from("applicants")
+          .update({ email_status: "Interview Email Sent", last_email_sent_at: nowISOString() })
+          .eq("id", candidate.id);
+      } catch (statusError) {
+        console.log("applicants email_status update failed:", statusError);
+      }
+    }
+
+    const { data: userData } = await supabase.auth.getUser();
+
+    try {
+      await supabase.from("bulk_send_logs").insert([
+        {
+          batch_id: log.batch_id,
+          candidate_id: candidate.id,
+          candidate_name: candidate.name,
+          recipient: log.recipient,
+          channel: log.channel,
+          status,
+          error: errorMessage,
+          label: log.label,
+          sent_by: userData?.user?.email || null,
+          message: log.message,
+          subject: log.subject,
+        },
+      ]);
+    } catch (logError) {
+      console.log("bulk_send_logs insert failed:", logError);
+    }
+
+    setResendingLogId(null);
+    notify(status === "sent" ? "Resent successfully" : `Resend failed: ${errorMessage}`, {
+      type: status === "sent" ? "success" : "error",
+    });
+    await fetchBulkHistory();
   };
 
   // Group raw per-candidate logs into per-batch rows
@@ -121,6 +285,7 @@ function BulkActionsReport() {
       "Action Label",
       "Operation",
       "Candidate",
+      "Recipient",
       "Status",
       "Error",
       "Sent At",
@@ -132,6 +297,7 @@ function BulkActionsReport() {
         r.label || "Untitled",
         r.channel,
         r.candidate_name,
+        r.recipient || "",
         r.status,
         r.error || "",
         r.sent_at ? new Date(r.sent_at).toLocaleString() : "",
@@ -339,18 +505,36 @@ function BulkActionsReport() {
               {detailBatchLogs.map((log) => (
                 <div
                   key={`${log.candidate_id}-${log.sent_at}`}
-                  className="flex items-center justify-between py-2.5 text-sm"
+                  className="flex items-center justify-between py-2.5 text-sm gap-3"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[#111b21] font-medium">{log.candidate_name}</p>
+                    {log.recipient && (
+                      <p className="text-xs text-gray-500 mt-0.5">{log.recipient}</p>
+                    )}
                     {log.error && (
                       <p className="text-xs text-red-500 mt-0.5">{log.error}</p>
                     )}
                   </div>
                   {log.status === "sent" ? (
-                    <span className="text-green-600 font-semibold">✓ Sent</span>
+                    <span className="text-green-600 font-semibold flex-shrink-0">✓ Sent</span>
                   ) : (
-                    <span className="text-red-500 font-semibold">✕ Failed</span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span className="text-red-500 font-semibold">✕ Failed</span>
+                      <button
+                        onClick={() => handleResend(log)}
+                        disabled={resendingLogId === log.id || !log.message}
+                        title={
+                          !log.message
+                            ? "No saved message to resend (sent before this feature was added)"
+                            : "Resend"
+                        }
+                        className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-50"
+                      >
+                        <FaRedo size={10} />
+                        {resendingLogId === log.id ? "Resending..." : "Resend"}
+                      </button>
+                    </div>
                   )}
                 </div>
               ))}
