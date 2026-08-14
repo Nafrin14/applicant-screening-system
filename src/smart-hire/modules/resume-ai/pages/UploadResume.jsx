@@ -14,7 +14,23 @@ import {
   FaCloudUploadAlt,
 } from "react-icons/fa";
 
+// Same candidate re-uploaded (same email, or same name+phone when no email
+// was extracted) should not create a second row in applicants.
+const findDuplicateApplicant = async (candidateEmail, candidateName, candidatePhone) => {
+  let query = supabase.from("applicants").select("id").limit(1);
 
+  if (candidateEmail && candidateEmail !== "Not Found") {
+    query = query.ilike("email", candidateEmail);
+  } else {
+    query = query.ilike("name", candidateName);
+    if (candidatePhone && candidatePhone !== "--") {
+      query = query.eq("phone", candidatePhone);
+    }
+  }
+
+  const { data } = await query;
+  return (data || []).length > 0;
+};
 
 function UploadResume() {
 const navigate = useNavigate();
@@ -242,6 +258,19 @@ const location =
     ? locationMatch[0]
     : "Not Found";
 
+    /* DUPLICATE CHECK */
+
+    const candidateName = aiResponse?.name || file?.name || "Unknown Candidate";
+    const isDuplicate = await findDuplicateApplicant(email, candidateName, phone);
+
+    if (isDuplicate) {
+      notify(
+        `Skipped "${candidateName}" — already exists in the system`,
+        { type: "error" }
+      );
+      continue;
+    }
+
     /* FILE NAME */
 
 const fileName =
@@ -285,7 +314,7 @@ const {
           .from("applicants")
           .insert([
             {
-              name:aiResponse?.name ||file?.name ||"Unknown Candidate",
+              name: candidateName,
               email: email,
               phone: phone,
               role: selectedJobTitle,
