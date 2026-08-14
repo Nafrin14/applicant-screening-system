@@ -1,5 +1,5 @@
 // Run on a schedule by .github/workflows/imap-poll.yml — connects to the
-// recruiting mailbox over IMAP, pulls unseen messages, and stores each one
+// recruiting mailbox over IMAP, pulls recent messages, and stores each one
 // in Supabase's email_replies table. Candidates are matched via the
 // "[Ref: id]" tag every bulk email's subject already carries
 // (see withCandidateRefTag in src/.../BulkActions.jsx) — there's no other
@@ -51,13 +51,19 @@ async function pollMail() {
   try {
     const lock = await client.getMailboxLock("INBOX");
     try {
-      const uids = await client.search({ seen: false });
+      // Search by date instead of the \Seen flag — reading a reply in
+      // webmail (or any other client) before this runs would otherwise
+      // mark it seen and make the poller skip it forever. Already-stored
+      // messages are cheaply skipped below via the message_id upsert.
+      const since = new Date();
+      since.setDate(since.getDate() - 2);
+      const uids = await client.search({ since });
       if (!uids || uids.length === 0) {
-        console.log("No unseen messages.");
+        console.log("No recent messages.");
         return;
       }
 
-      console.log(`Found ${uids.length} unseen message(s).`);
+      console.log(`Found ${uids.length} message(s) from the last 2 days.`);
 
       for (const uid of uids) {
         const message = await client.fetchOne(uid, { source: true });
