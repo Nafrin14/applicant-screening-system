@@ -23,9 +23,9 @@ export function NotificationProvider({ children }) {
 
   const notify = useCallback(
     (message, options = {}) => {
-      const { type = "info", duration = 3500 } = options;
+      const { type = "info", duration = 3500, action = null } = options;
       const id = ++toastId;
-      setToasts((prev) => [...prev, { id, message, type, duration }]);
+      setToasts((prev) => [...prev, { id, message, type, duration, action }]);
       if (duration > 0) {
         setTimeout(() => dismiss(id), duration);
       }

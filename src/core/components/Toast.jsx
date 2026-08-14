@@ -26,9 +26,20 @@ function ToastItem({ toast, onDismiss }) {
     <div className="pointer-events-auto w-80 max-w-[90vw] bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl rounded-2xl overflow-hidden animate-toast-in">
       <div className="flex items-start gap-3 px-4 py-3">
         <Icon className={`text-lg mt-0.5 shrink-0 ${style.icon}`} />
-        <p className="flex-1 text-sm text-slate-800 leading-snug">
-          {toast.message}
-        </p>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-slate-800 leading-snug">{toast.message}</p>
+          {toast.action && (
+            <button
+              onClick={() => {
+                toast.action.onClick();
+                onDismiss(toast.id);
+              }}
+              className="mt-1.5 text-xs font-semibold text-blue-600 hover:underline"
+            >
+              {toast.action.label}
+            </button>
+          )}
+        </div>
         <button
           onClick={() => onDismiss(toast.id)}
           className="text-slate-400 hover:text-slate-600 mt-0.5 shrink-0"

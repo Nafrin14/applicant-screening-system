@@ -12,6 +12,8 @@ function Settings() {
 const { notify } = useNotification();
 const [companyName, setCompanyName] = useState("SmartHire");
 const [hrRole, setHrRole] = useState("HR Manager");
+const [hrPhone, setHrPhone] = useState("");
+const [replyToEmail, setReplyToEmail] = useState("");
 const [email, setEmail] = useState("");
 const [newEmail, setNewEmail] = useState("");
 const [newPassword, setNewPassword] = useState("");
@@ -31,6 +33,8 @@ const { data, error } = await supabase
    if (data) {
   setCompanyName(data.company_name);
   setHrRole(data.hr_name);
+  setHrPhone(data.hr_phone || "");
+  setReplyToEmail(data.reply_to_email || "");
   setEmail(data.email);
   setProfileImage(data.profile_image || "");
 }
@@ -47,6 +51,8 @@ const { data, error } = await supabase
      .update({
   company_name: companyName,
   hr_name: hrRole,
+  hr_phone: hrPhone,
+  reply_to_email: replyToEmail,
   profile_image: profileImage,
 })
       .eq("id", 1)
@@ -207,6 +213,22 @@ Update company and HR details</p>
   placeholder="Admin Name"
   value={hrRole}
   onChange={(e) => setHrRole(e.target.value)}
+  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
+/>
+
+<input
+  type="tel"
+  placeholder="Recruiter Phone (used in bulk emails)"
+  value={hrPhone}
+  onChange={(e) => setHrPhone(e.target.value)}
+  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
+/>
+
+<input
+  type="email"
+  placeholder="Reply-To Email (for bulk interview emails)"
+  value={replyToEmail}
+  onChange={(e) => setReplyToEmail(e.target.value)}
   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none"
 />
 

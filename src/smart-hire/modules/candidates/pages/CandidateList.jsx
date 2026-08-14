@@ -22,7 +22,6 @@ import {
   FaCalendarAlt,
   FaTrashAlt,
   FaClock,
-  FaWhatsapp,
 } from "react-icons/fa";
 
 
@@ -320,61 +319,6 @@ const bulkUpdateStatus = async (status) => {
     "Candidates.xlsx"
   );
 };
-const shareSelectedResumes = async () => {
-  const selected = applicants
-    .filter((a) => selectedApplicants.includes(a.id))
-    .sort((a, b) => (b.ai_score || 0) - (a.ai_score || 0));
-
-  if (selected.length === 0) {
-    notify("Please select at least one candidate.", { type: "error" });
-    return;
-  }
-
- const message = selected
-  .map(
-    (candidate, index) =>
-      `${index + 1}. ${candidate.name}\n` +
-      `Contact: ${candidate.phone || "N/A"}\n` +
-      `Job: ${candidate.role || "N/A"}`
-  )
-  .join("\n\n");
-
-  try {
-    console.log(import.meta.env.VITE_API_URL);
-    const response = await fetch(
-  `${import.meta.env.VITE_API_URL}/api/share-whatsapp`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contactName: "Sarath",
-      candidates: selected.map((candidate, index) => ({
-        rank: index + 1,
-        name: candidate.name,
-        phone: candidate.phone,
-        role: candidate.role,
-        resume_url: candidate.resume_url,
-      })),
-    }),
-  }
-);
-
-const result = await response.json();
-
-    if (!response.ok) {
-      notify(result.error || "WhatsApp automation failed.", { type: "error" });
-      return;
-    }
-
-    notify("WhatsApp automation started successfully.", { type: "success" });
-  } catch (error) {
-    console.log(error);
-    notify("Backend is not running.", { type: "error" });
-  }
-};
-  
 
   return (
 
@@ -485,13 +429,6 @@ const result = await response.json();
   title="Bulk Pending"
 >
   <FaClock size={14} />
-</button>
-<button
-  onClick={shareSelectedResumes}
-  className="bg-green-500 hover:bg-green-600 text-white p-2.5 rounded-xl shadow-sm transition"
-  title="Share Resumes"
->
-  <FaWhatsapp size={16} />
 </button>
     <button
   onClick={bulkDelete}

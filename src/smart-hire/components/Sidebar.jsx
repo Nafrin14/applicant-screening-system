@@ -10,6 +10,8 @@ import {
   FaClipboardList,
   FaBriefcase,
   FaComments,
+  FaBullhorn,
+  FaChartBar,
   FaChevronLeft,
   FaChevronRight,
   FaChevronDown,
@@ -30,7 +32,15 @@ const menuItems = [
       { name: "AI Results", path: "/ai-results", icon: <FaRobot /> },
     ],
   },
-  { name: "Conversations", path: "/conversations", icon: <FaComments /> },
+  {
+    name: "Conversations",
+    icon: <FaComments />,
+    children: [
+      { name: "Chats", path: "/conversations", icon: <FaComments /> },
+      { name: "Bulk Send", path: "/bulk-actions", icon: <FaBullhorn /> },
+      { name: "Send History", path: "/bulk-actions-report", icon: <FaChartBar /> },
+    ],
+  },
   {
     name: "Schedule Management",
     icon: <FaCalendarAlt />,
@@ -65,7 +75,20 @@ function Sidebar() {
       setCollapsed(false);
     }
 
-    setExpandedGroups((prev) => ({ ...prev, [name]: !prev[name] }));
+    setExpandedGroups((prev) => {
+      const groupItem = menuItems.find((item) => item.name === name);
+      const currentlyExpanded =
+        prev[name] ??
+        groupItem?.children?.some((child) => child.path === location.pathname);
+
+      // Accordion behavior — opening one group closes every other group.
+      const next = {};
+      menuItems.forEach((item) => {
+        if (item.children) next[item.name] = false;
+      });
+      next[name] = !currentlyExpanded;
+      return next;
+    });
   };
 
   return (

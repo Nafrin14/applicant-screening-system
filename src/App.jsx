@@ -14,6 +14,8 @@ import CandidateDetails from "./smart-hire/modules/candidates/pages/CandidateDet
 import CandidateProfile from "./smart-hire/modules/candidates/pages/CandidateProfile";
 import CandidateChat from "./smart-hire/modules/candidates/pages/CandidateChat";
 import Conversations from "./smart-hire/modules/conversations/pages/Conversations";
+import BulkActions from "./smart-hire/modules/conversations/pages/BulkActions";
+import BulkActionsReport from "./smart-hire/modules/conversations/pages/BulkActionsReport";
 import InterviewSchedule from "./smart-hire/modules/interviews/pages/InterviewSchedule";
 import ScheduledInterviews from "./smart-hire/modules/interviews/pages/ScheduledInterviews";
 import CSVUpload from "./sales/modules/csv-upload/pages/CSVUpload";
@@ -108,6 +110,22 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={["admin", "user"]}>
                 <Conversations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bulk-actions"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "user"]}>
+                <BulkActions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/bulk-actions-report"
+            element={
+              <ProtectedRoute allowedRoles={["admin", "user"]}>
+                <BulkActionsReport />
               </ProtectedRoute>
             }
           />
