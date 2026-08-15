@@ -47,6 +47,7 @@ function BulkActions() {
 
   const [candidates, setCandidates] = useState([]);
   const [bulkSearch, setBulkSearch] = useState("");
+  const [bulkJobFilter, setBulkJobFilter] = useState("");
   const [bulkSelected, setBulkSelected] = useState([]);
   const [bulkMessage, setBulkMessage] = useState("");
   const [bulkChannel, setBulkChannel] = useState("Text"); // "Text" | "Email"
@@ -607,10 +608,19 @@ Thank you,
     );
   };
 
+  // Unique job roles for the category filter dropdown
+  const jobCategories = [...new Set(
+    candidates.map((c) => c.role).filter(Boolean)
+  )].sort();
+
   // Show every candidate matching the search — never hide anyone silently.
   const bulkSearchFilteredCandidates = candidates.filter((candidate) => {
     const query = bulkSearch.toLowerCase();
     const normalizedQuery = normalizePhone(bulkSearch);
+
+    // Job category filter — applied independently of search
+    if (bulkJobFilter && candidate.role !== bulkJobFilter) return false;
+
     if (!query) return true;
     return (
       candidate.name?.toLowerCase().includes(query) ||
@@ -670,6 +680,27 @@ Thank you,
               onChange={(e) => setBulkSearch(e.target.value)}
               className="w-full bg-[#f0f2f5] px-3 py-2 rounded-lg text-sm outline-none"
             />
+          </div>
+
+          <div className="px-4 py-2.5 border-b border-[#e9edef] flex-shrink-0">
+            <select
+              value={bulkJobFilter}
+              onChange={(e) => {
+                setBulkJobFilter(e.target.value);
+                setBulkSelected([]); // clear selection when category changes
+              }}
+              className="w-full bg-[#f0f2f5] px-3 py-2 rounded-lg text-sm outline-none text-[#111b21]"
+            >
+              <option value="">All Job Categories ({candidates.length})</option>
+              {jobCategories.map((role) => {
+                const count = candidates.filter((c) => c.role === role).length;
+                return (
+                  <option key={role} value={role}>
+                    {role} ({count})
+                  </option>
+                );
+              })}
+            </select>
           </div>
 
           <div className="px-4 py-2.5 border-b border-[#e9edef] flex items-center justify-between flex-shrink-0">

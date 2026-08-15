@@ -8,7 +8,7 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-import { supabase } from "../../core/lib/supabaseClient";
+import { supabase } from "../../core/lib/supabase";
 import { useNotification } from "../../core/context/NotificationContext";
 
 function Navbar() {

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { FaEnvelope, FaEnvelopeOpen, FaLink } from "react-icons/fa";
+import { FaEnvelope, FaEnvelopeOpen, FaLink, FaReply, FaPaperPlane, FaTimes } from "react-icons/fa";
+import emailjs from "@emailjs/browser";
 import { supabase } from "../../../../core/lib/supabase";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
@@ -10,9 +11,18 @@ function MailInbox() {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState(null);
 
+  // Reply state
+  const [replyingToId, setReplyingToId] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
+
+  // Company settings for reply-from name
+  const [companySettings, setCompanySettings] = useState(null);
+
   useEffect(() => {
     fetchReplies();
     fetchCandidates();
+    fetchSettings();
   }, []);
 
   const fetchReplies = async () => {
@@ -35,9 +45,20 @@ function MailInbox() {
     setCandidates(data || []);
   };
 
+  const fetchSettings = async () => {
+    const { data } = await supabase.from("settings").select("*").eq("id", 1).single();
+    if (data) setCompanySettings(data);
+  };
+
   const toggleExpand = async (reply) => {
     const opening = expandedId !== reply.id;
     setExpandedId(opening ? reply.id : null);
+
+    // Close reply box when collapsing
+    if (!opening) {
+      setReplyingToId(null);
+      setReplyText("");
+    }
 
     if (opening && !reply.is_read) {
       await supabase.from("email_replies").update({ is_read: true }).eq("id", reply.id);
@@ -60,6 +81,52 @@ function MailInbox() {
 
     notify("Linked to candidate", { type: "success" });
     fetchReplies();
+  };
+
+  const handleSendReply = async (reply) => {
+    if (!replyText.trim()) {
+      notify("Reply cannot be empty", { type: "error" });
+      return;
+    }
+
+    const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+    const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+
+    if (!serviceId || !templateId || !publicKey) {
+      notify("EmailJS is not configured. Add VITE_EMAILJS_* keys to .env", { type: "error" });
+      return;
+    }
+
+    setSending(true);
+    try {
+      const replySubject = reply.subject?.startsWith("Re:")
+        ? reply.subject
+        : `Re: ${reply.subject || ""}`;
+
+      await emailjs.send(
+        serviceId,
+        templateId,
+        {
+          to_email: reply.from_email,
+          to_name: reply.from_name || reply.from_email,
+          subject: replySubject,
+          message: replyText.trim(),
+          from_name: companySettings?.company_name || "Recruiting Team",
+          reply_to: companySettings?.reply_to_email || undefined,
+        },
+        { publicKey }
+      );
+
+      notify(`Reply sent to ${reply.from_email}`, { type: "success" });
+      setReplyingToId(null);
+      setReplyText("");
+    } catch (err) {
+      console.error("Reply send error:", err);
+      notify(err?.text || "Failed to send reply", { type: "error" });
+    } finally {
+      setSending(false);
+    }
   };
 
   const filteredReplies = replies.filter((reply) => {
@@ -102,9 +169,11 @@ function MailInbox() {
             <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
               {filteredReplies.map((reply) => {
                 const expanded = expandedId === reply.id;
+                const isReplying = replyingToId === reply.id;
 
                 return (
                   <div key={reply.id}>
+                    {/* Mail row */}
                     <button
                       onClick={() => toggleExpand(reply)}
                       className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-start gap-3"
@@ -138,6 +207,7 @@ function MailInbox() {
                       </div>
                     </button>
 
+                    {/* Expanded view */}
                     {expanded && (
                       <div className="px-4 pb-4 pl-11">
                         <p className="text-xs text-gray-500 mb-2">
@@ -150,8 +220,9 @@ function MailInbox() {
                           {reply.body_text || "(no text content)"}
                         </p>
 
+                        {/* Link to candidate */}
                         {!reply.candidate_id && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 mb-3">
                             <FaLink className="text-gray-400 flex-shrink-0" size={12} />
                             <select
                               defaultValue=""
@@ -170,6 +241,58 @@ function MailInbox() {
                                 </option>
                               ))}
                             </select>
+                          </div>
+                        )}
+
+                        {/* Reply button */}
+                        {!isReplying && (
+                          <button
+                            onClick={() => {
+                              setReplyingToId(reply.id);
+                              setReplyText("");
+                            }}
+                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-all"
+                          >
+                            <FaReply size={11} />
+                            Reply
+                          </button>
+                        )}
+
+                        {/* Reply box */}
+                        {isReplying && (
+                          <div className="mt-2 border border-blue-200 rounded-xl bg-blue-50 p-3">
+                            <p className="text-xs text-blue-600 font-semibold mb-2">
+                              Replying to {reply.from_name || reply.from_email}
+                            </p>
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              rows={4}
+                              placeholder="Type your reply..."
+                              className="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm outline-none bg-white resize-none focus:border-blue-400 transition-colors"
+                              autoFocus
+                            />
+                            <div className="flex items-center gap-2 mt-2">
+                              <button
+                                onClick={() => handleSendReply(reply)}
+                                disabled={sending}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-all"
+                              >
+                                <FaPaperPlane size={10} />
+                                {sending ? "Sending..." : "Send Reply"}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setReplyingToId(null);
+                                  setReplyText("");
+                                }}
+                                disabled={sending}
+                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 bg-white px-3 py-2 rounded-lg transition-all"
+                              >
+                                <FaTimes size={10} />
+                                Cancel
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
