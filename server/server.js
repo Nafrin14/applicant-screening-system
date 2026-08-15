@@ -1,10 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
-const { spawn } = require("child_process");
-const path = require("path");
-const fs = require("fs");
-const https = require("https");
 
 console.log(
   "API KEY =>",
@@ -15,6 +11,11 @@ const aiScreeningRoutes =
 
   const indeedRoutes =
   require("./routes/indeedRoutes");
+const {
+  sendWhatsAppShare,
+  WhatsAppAutomationError,
+  getWhatsAppRuntimeInfo,
+} = require("./whatsappClient");
 
 const app = express();
 app.get("/", (req, res) => {
@@ -42,120 +43,34 @@ app.use(
   "/api/indeed",
   indeedRoutes
 );
-async function downloadFile(url, destination) {
-  return new Promise((resolve, reject) => {
-    const file = fs.createWriteStream(destination);
-
-    https
-      .get(url, (response) => {
-        if (response.statusCode !== 200) {
-          return reject(
-            new Error(`Download failed: ${response.statusCode}`)
-          );
-        }
-
-        response.pipe(file);
-
-        file.on("finish", () => {
-          file.close(resolve);
-        });
-      })
-      .on("error", (err) => {
-        fs.unlink(destination, () => {});
-        reject(err);
-      });
-  });
-}
 app.post("/api/share-whatsapp", async (req, res) => {
   try {
-    const { contactName, candidates } = req.body;
-
-    if (!contactName || !candidates || candidates.length === 0) {
-      return res.status(400).json({
-        error: "contactName and candidates are required",
-      });
-    }
-
-    const tempDir = path.join(__dirname, "..", "automation", "temp");
-
-    if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir, { recursive: true });
-    }
-
-    const shareItems = [];
-
-    for (const candidate of candidates) {
-      if (!candidate.resume_url) continue;
-
-      const safeName = candidate.name
-        .replace(/[^a-z0-9]/gi, "_")
-        .toLowerCase();
-
-      const pdfPath = path.join(
-        tempDir,
-        `${safeName}_${Date.now()}.pdf`
-      );
-
-      await downloadFile(candidate.resume_url, pdfPath);
-
-      shareItems.push({
-        message:
-          `${candidate.rank}. ${candidate.name}\n` +
-          `Contact: ${candidate.phone || "N/A"}\n` +
-          `Job: ${candidate.role || "N/A"}`,
-        pdfPath,
-      });
-    }
-
-    const dataPath = path.join(tempDir, "share_data.json");
-
-    fs.writeFileSync(
-      dataPath,
-      JSON.stringify({
-        contactName,
-        items: shareItems,
-      })
-    );
-
-    const scriptPath = path.join(
-      __dirname,
-      "..",
-      "automation",
-      "send_whatsapp.py"
-    );
-
-   const python = spawn(
-  "python3",
-  [scriptPath, dataPath],
-  {
-    cwd: path.join(__dirname, "..", "automation"),
-  }
-);
-python.on("error", (err) => {
-  console.error("Python spawn error:", err);
-});
-
-    python.stdout.on("data", (data) => {
-      console.log(data.toString());
-    });
-
-    python.stderr.on("data", (data) => {
-      console.error(data.toString());
-    });
-
-    python.on("close", (code) => {
-      console.log("Python exited:", code);
-    });
+    const result = await sendWhatsAppShare(req.body || {});
 
     res.json({
       success: true,
-      message: "WhatsApp automation started",
+      message:
+        result.mode === "web"
+          ? "WhatsApp Web share completed"
+          : "WhatsApp desktop share completed",
+      runtime: getWhatsAppRuntimeInfo(),
+      result,
     });
   } catch (error) {
-    console.log(error.message);
+    const statusCode = error instanceof WhatsAppAutomationError
+      ? error.statusCode || 500
+      : 500;
 
-    res.status(500).json({
-      error: error.message,
+    console.error("WhatsApp share failed:", error);
+
+    res.status(statusCode).json({
+      error: error.message || "WhatsApp automation failed",
+      code: error.code || "WHATSAPP_AUTOMATION_FAILED",
+      runtime: getWhatsAppRuntimeInfo(),
+      suggestion:
+        process.platform === "win32"
+          ? "Use WHATSAPP_MODE=web for browser automation or open WhatsApp Desktop on Windows before retrying."
+          : "Use WHATSAPP_MODE=web and ensure a Chromium-compatible browser is installed. On Linux, verify sandbox/no-sandbox requirements in your environment.",
     });
   }
 });
