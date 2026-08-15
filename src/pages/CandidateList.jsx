@@ -71,6 +71,10 @@ await supabase
 
   }
 };
+
+// FIX #1: date-filter crash guard.
+// new Date(undefined).toISOString() throws RangeError: Invalid time value.
+// Guard against missing/invalid created_at before calling toISOString().
 const filteredApplicants = applicants.filter((applicant) => {
   const matchesSearch =
     applicant.name
@@ -84,9 +88,9 @@ const filteredApplicants = applicants.filter((applicant) => {
 
   const matchesDate =
     !selectedDate ||
-    new Date(applicant.created_at)
-      .toISOString()
-      .slice(0, 10) === selectedDate;
+    (applicant.created_at &&
+      !isNaN(new Date(applicant.created_at).getTime()) &&
+      new Date(applicant.created_at).toISOString().slice(0, 10) === selectedDate);
 
   return (
     matchesSearch &&
@@ -122,6 +126,16 @@ const filteredApplicants = applicants.filter((applicant) => {
     year: "numeric",
   });
 };
+
+// FIX #2: global rank instead of per-date-group rank.
+// Build a rank lookup (by ai_score, highest first) across ALL filtered applicants,
+// so "Rank #1" / medal / "Top Candidate" only ever applies to a single person,
+// regardless of which date group they land in. Display order within each date
+// group is left untouched — only the rank NUMBER shown is now global.
+const scoreRanked = [...filteredApplicants].sort(
+  (a, b) => (b.ai_score || b.score || 0) - (a.ai_score || a.score || 0)
+);
+const rankMap = new Map(scoreRanked.map((applicant, i) => [applicant.id, i + 1]));
 
 const groupedApplicants = filteredApplicants.reduce((groups, applicant) => {
  const label = getDateLabel(
@@ -235,10 +249,13 @@ const bulkUpdateStatus = async (status) => {
 
   }
 };
+
+  // FIX #3: downloadExcel now respects the current search/status/date filters
+  // instead of always exporting the full unfiltered applicant list.
   const downloadExcel = () => {
 
   const excelData =
-    applicants.map((applicant) => ({
+    filteredApplicants.map((applicant) => ({
       Name: applicant.name,
       Email: applicant.email,
       Phone: applicant.phone,
@@ -300,6 +317,18 @@ const bulkUpdateStatus = async (status) => {
     "Candidates.xlsx"
   );
 };
+
+// FIX #4 (WhatsApp send):
+// - Removed the dead `message` string that was built but never used/sent.
+// - Removed the leftover debug console.log of the API URL.
+// - contactName is no longer hardcoded to "Nafrin KD" — it now prompts for
+//   the target group/contact each time (defaulting to the last-used value),
+//   so bulk sends actually go where you intend instead of a fixed group.
+// - The success alert is reworded so it doesn't overclaim: it now says the
+//   request was accepted by the backend, not that WhatsApp delivery is
+//   confirmed. A 2xx response only means your backend accepted the HTTP
+//   call — it does NOT mean the message was actually sent by WhatsApp.
+//   That gap has to be closed on the backend (see note below the file).
 const shareSelectedResumes = async () => {
   const selected = applicants
     .filter((a) => selectedApplicants.includes(a.id))
@@ -310,45 +339,54 @@ const shareSelectedResumes = async () => {
     return;
   }
 
- const message = selected
-  .map(
-    (candidate, index) =>
-      `${index + 1}. ${candidate.name}\n` +
-      `Contact: ${candidate.phone || "N/A"}\n` +
-      `Job: ${candidate.role || "N/A"}`
-  )
-  .join("\n\n");
+  const contactName = window.prompt(
+    "Send to which WhatsApp group/contact?",
+    "Nafrin KD"
+  );
+
+  if (!contactName) {
+    // user cancelled the prompt
+    return;
+  }
 
   try {
-    console.log(import.meta.env.VITE_API_URL);
     const response = await fetch(
-  `${import.meta.env.VITE_API_URL}/api/share-whatsapp`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contactName: "shakeel KD group",
-      candidates: selected.map((candidate, index) => ({
-        rank: index + 1,
-        name: candidate.name,
-        phone: candidate.phone,
-        role: candidate.role,
-        resume_url: candidate.resume_url,
-      })),
-    }),
-  }
-);
+      `${import.meta.env.VITE_API_URL}/api/share-whatsapp`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contactName,
+          candidates: selected.map((candidate, index) => ({
+            rank: index + 1,
+            name: candidate.name,
+            phone: candidate.phone,
+            role: candidate.role,
+            resume_url: candidate.resume_url,
+          })),
+        }),
+      }
+    );
 
-const result = await response.json();
+    let result = {};
+    try {
+      result = await response.json();
+    } catch {
+      // backend didn't return JSON — fall through with empty result
+    }
 
     if (!response.ok) {
       alert(result.error || "WhatsApp automation failed.");
       return;
     }
 
-    alert("WhatsApp automation started successfully.");
+    alert(
+      `Request accepted by the server for "${contactName}". ` +
+      `This confirms the backend received it — check WhatsApp directly ` +
+      `to confirm the message actually sent.`
+    );
   } catch (error) {
     console.log(error);
     alert("Backend is not running.");
@@ -549,8 +587,22 @@ const result = await response.json();
 
                 <tr className="border-b border-gray-200 text-left">
                   <th className="py-4">
+  {/* FIX #5: select-all checkbox now reflects real selection state
+      (checked when everything filtered is selected, indeterminate
+      when only some are selected). */}
   <input
     type="checkbox"
+    checked={
+      filteredApplicants.length > 0 &&
+      selectedApplicants.length === filteredApplicants.length
+    }
+    ref={(el) => {
+      if (el) {
+        el.indeterminate =
+          selectedApplicants.length > 0 &&
+          selectedApplicants.length < filteredApplicants.length;
+      }
+    }}
     onChange={(e) =>
       setSelectedApplicants(
         e.target.checked
@@ -603,7 +655,9 @@ const result = await response.json();
       </td>
     </tr>
 
-    {list.map((applicant, index) => (
+    {list.map((applicant) => {
+      const rank = rankMap.get(applicant.id);
+      return (
                   <tr
   key={applicant.id}
   className={`border-b border-gray-100 transition ${
@@ -648,23 +702,23 @@ const result = await response.json();
                        <div>
                         <p
   className={`text-xs font-bold ${
-    index === 0
+    rank === 1
       ? "text-yellow-600"
-      : index === 1
+      : rank === 2
       ? "text-gray-600"
-      : index === 2
+      : rank === 3
       ? "text-orange-600"
       : "text-blue-600"
   }`}
 >
-  {index === 0
+  {rank === 1
     ? "🥇"
-    : index === 1
+    : rank === 2
     ? "🥈"
-    : index === 2
+    : rank === 3
     ? "🥉"
     : "🏅"}{" "}
-  Rank #{index + 1}
+  Rank #{rank}
 </p>
                           <h3 className="font-bold text-slate-800">
                             {applicant.name}
@@ -717,7 +771,7 @@ const result = await response.json();
 
   </span>
 
-  {index === 0 && (
+  {rank === 1 && (
 
     <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-bold">
 
@@ -839,8 +893,8 @@ const result = await response.json();
 
 </td>
                   </tr>
-
-                    ))}
+      );
+    })}
   </React.Fragment>
 ))}
 

@@ -60,7 +60,7 @@ function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-0 left-0 h-screen w-56 bg-white border-r border-slate-200 z-50 transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-screen w-56 bg-emerald-950 border-r border-slate-200 z-50 transition-transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } md:translate-x-0`}
       >
@@ -80,11 +80,11 @@ function Sidebar() {
             </div>
 
             <div>
-              <h1 className="text-2xl font-black text-slate-800">
+              <h1 className="text-2xl font-black text-white">
                 SmartHire
               </h1>
 
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-emerald-400">
                 AI Recruitment Platform
               </p>
             </div>
@@ -107,7 +107,7 @@ function Sidebar() {
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
                     active
                       ? "bg-blue-50 text-blue-600 border border-blue-100 shadow-sm"
-                      : "text-slate-700 hover:bg-slate-100"
+                      : " text-emerald-400 hover:bg-slate-100"
                   }`}
                 >
                   <span className="text-base">{item.icon}</span>
@@ -127,7 +127,7 @@ function Sidebar() {
               await supabase.auth.signOut();
               navigate("/login");
             }}
-            className="w-full flex items-center justify-center gap-2 bg-red-50 text-red-600 hover:bg-red-100 py-3 rounded-xl font-semibold transition"
+            className="w-full flex items-center justify-center gap-2 border border-red-800 border-dashed text-red-400 hover:bg-red-100 py-3 rounded-xl font-semibold transition"
           >
             <FaSignOutAlt />
             Logout
