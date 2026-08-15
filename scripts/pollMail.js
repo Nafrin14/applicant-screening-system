@@ -15,7 +15,7 @@ const {
   IMAP_USER,
   IMAP_PASSWORD,
   SUPABASE_URL,
-  SUPABASE_ANON_KEY,
+  SUPABASE_SERVICE_ROLE_KEY,
 } = process.env;
 
 const required = {
@@ -24,7 +24,7 @@ const required = {
   IMAP_USER,
   IMAP_PASSWORD,
   SUPABASE_URL,
-  SUPABASE_ANON_KEY,
+  SUPABASE_SERVICE_ROLE_KEY,
 };
 const missing = Object.entries(required)
   .filter(([, value]) => !value)
@@ -34,7 +34,7 @@ if (missing.length > 0) {
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const REF_TAG_RE = /\[Ref:\s*(\d+)\]/i;
 
 async function pollMail() {
