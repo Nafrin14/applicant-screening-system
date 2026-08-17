@@ -2,7 +2,7 @@ name: Poll Candidate Email Replies
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/1 * * * *"
   workflow_dispatch: {}
 
 jobs:
@@ -19,9 +19,14 @@ jobs:
         working-directory: scripts
         run: npm install
 
-      - name: Poll mailbox
+      - name: Poll mailbox (3× in 1 minute for ~20s effective interval)
         working-directory: scripts
-        run: node pollMail.js
+        run: |
+          node pollMail.js --once
+          sleep 20
+          node pollMail.js --once
+          sleep 20
+          node pollMail.js --once
         env:
           IMAP_HOST: ${{ secrets.IMAP_HOST }}
           IMAP_PORT: ${{ secrets.IMAP_PORT }}

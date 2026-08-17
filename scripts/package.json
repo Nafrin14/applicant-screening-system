@@ -3,7 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Standalone script run by .github/workflows/imap-poll.yml — fetches candidate email replies via IMAP and stores them in Supabase. Kept separate from the main app's package.json so CI installs stay fast.",
+  "description": "Standalone IMAP poller — runs continuously on Railway (loop mode) or once via GitHub Actions (--once flag).",
+  "scripts": {
+    "start": "node pollMail.js"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
     "imapflow": "^1.0.185",

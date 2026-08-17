@@ -1,43 +1,116 @@
-import React, { useEffect, useState } from "react";
-import { FaEnvelope, FaEnvelopeOpen, FaLink, FaReply, FaPaperPlane, FaTimes } from "react-icons/fa";
+import React, { useEffect, useRef, useState } from "react";
+import { FaEnvelope, FaLink, FaPaperPlane, FaTimes, FaInbox, FaChevronLeft } from "react-icons/fa";
 import emailjs from "@emailjs/browser";
 import { supabase } from "../../../../core/lib/supabase";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+const getAvatarColor = (name = "") => {
+  const colors = [
+    "bg-blue-500", "bg-purple-500", "bg-green-500",
+    "bg-red-500", "bg-yellow-500", "bg-pink-500", "bg-indigo-500",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const initials = (name = "") =>
+  name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+
+const formatTime = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const today = new Date();
+  const isToday =
+    d.getDate() === today.getDate() &&
+    d.getMonth() === today.getMonth() &&
+    d.getFullYear() === today.getFullYear();
+  return isToday
+    ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : d.toLocaleDateString([], { month: "short", day: "numeric" }) +
+        " " +
+        d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+};
+
+// ─── component ──────────────────────────────────────────────────────────────
+
 function MailInbox() {
   const { notify } = useNotification();
-  const [replies, setReplies] = useState([]);
-  const [candidates, setCandidates] = useState([]);
-  const [search, setSearch] = useState("");
-  const [expandedId, setExpandedId] = useState(null);
+  const bottomRef = useRef(null);
 
-  // Reply state
-  const [replyingToId, setReplyingToId] = useState(null);
+  const [incomingMails, setIncomingMails] = useState([]);   // email_replies
+  const [outgoingMails, setOutgoingMails] = useState([]);   // bulk_send_logs (email only)
+  const [candidates, setCandidates] = useState([]);
+  const [companySettings, setCompanySettings] = useState(null);
+
+  const [search, setSearch] = useState("");
+  const [selectedThread, setSelectedThread] = useState(null); // { email, name, candidateId }
+
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
 
-  // Company settings for reply-from name
-  const [companySettings, setCompanySettings] = useState(null);
-
   useEffect(() => {
-    fetchReplies();
-    fetchCandidates();
-    fetchSettings();
+    fetchAll();
+
+    // ── Supabase Realtime ──────────────────────────────────────────────
+    // Fires instantly when pollMail.js inserts a new row into email_replies
+    const channel = supabase
+      .channel("mail-inbox-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "email_replies" },
+        () => {
+          fetchIncoming();
+        }
+      )
+      .subscribe();
+
+    // ── 30-second fallback poll ────────────────────────────────────────
+    // Catches any updates that Realtime might miss (e.g. tab was in background)
+    const interval = setInterval(() => {
+      fetchIncoming();
+      fetchOutgoing();
+    }, 30_000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, []);
 
-  const fetchReplies = async () => {
+  // Scroll to bottom when thread opens or new message arrives
+  useEffect(() => {
+    if (selectedThread) {
+      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    }
+  }, [selectedThread, incomingMails, outgoingMails]);
+
+  const fetchAll = async () => {
+    await Promise.all([fetchIncoming(), fetchOutgoing(), fetchCandidates(), fetchSettings()]);
+  };
+
+  const fetchIncoming = async () => {
     const { data, error } = await supabase
       .from("email_replies")
       .select("*, applicants(name)")
-      .order("received_at", { ascending: false })
-      .limit(500);
+      .order("received_at", { ascending: true })
+      .limit(1000);
+    if (error) { console.log("fetchIncoming error:", error); return; }
+    setIncomingMails(data || []);
+  };
 
-    if (error) {
-      console.log("fetchReplies error (table may not exist yet):", error);
-      return;
-    }
-
-    setReplies(data || []);
+  const fetchOutgoing = async () => {
+    const { data, error } = await supabase
+      .from("bulk_send_logs")
+      .select("*")
+      .eq("channel", "email")
+      .eq("status", "sent")
+      .order("sent_at", { ascending: true })
+      .limit(1000);
+    if (error) { console.log("fetchOutgoing error:", error); return; }
+    setOutgoingMails(data || []);
   };
 
   const fetchCandidates = async () => {
@@ -50,44 +123,107 @@ function MailInbox() {
     if (data) setCompanySettings(data);
   };
 
-  const toggleExpand = async (reply) => {
-    const opening = expandedId !== reply.id;
-    setExpandedId(opening ? reply.id : null);
+  // ── Build thread list ───────────────────────────────────────────────────
 
-    // Close reply box when collapsing
-    if (!opening) {
-      setReplyingToId(null);
-      setReplyText("");
+  // Group all messages by from_email / recipient into threads
+  const threadMap = {};
+
+  incomingMails.forEach((m) => {
+    const email = m.from_email?.toLowerCase() || "unknown";
+    if (!threadMap[email]) {
+      threadMap[email] = {
+        email,
+        name: m.applicants?.name || m.from_name || m.from_email,
+        candidateId: m.candidate_id,
+        messages: [],
+        lastAt: m.received_at,
+        unread: 0,
+      };
     }
+    threadMap[email].messages.push({ ...m, direction: "incoming", at: m.received_at });
+    if (!m.is_read) threadMap[email].unread += 1;
+    if (m.received_at > threadMap[email].lastAt) threadMap[email].lastAt = m.received_at;
+  });
 
-    if (opening && !reply.is_read) {
-      await supabase.from("email_replies").update({ is_read: true }).eq("id", reply.id);
-      setReplies((prev) =>
-        prev.map((r) => (r.id === reply.id ? { ...r, is_read: true } : r))
-      );
+  outgoingMails.forEach((m) => {
+    const email = m.recipient?.toLowerCase() || "unknown";
+    if (!threadMap[email]) {
+      threadMap[email] = {
+        email,
+        name: m.candidate_name || m.recipient,
+        candidateId: m.candidate_id,
+        messages: [],
+        lastAt: m.sent_at,
+        unread: 0,
+      };
     }
-  };
+    threadMap[email].messages.push({ ...m, direction: "outgoing", at: m.sent_at });
+    if (m.sent_at > threadMap[email].lastAt) threadMap[email].lastAt = m.sent_at;
+  });
 
-  const linkToCandidate = async (replyId, candidateId) => {
-    const { error } = await supabase
-      .from("email_replies")
-      .update({ candidate_id: candidateId })
-      .eq("id", replyId);
+  // Sort messages within each thread by time
+  Object.values(threadMap).forEach((t) => {
+    t.messages.sort((a, b) => new Date(a.at) - new Date(b.at));
+  });
 
-    if (error) {
-      notify(error.message || "Failed to link candidate", { type: "error" });
-      return;
+  const threads = Object.values(threadMap).sort(
+    (a, b) => new Date(b.lastAt) - new Date(a.lastAt)
+  );
+
+  // Filter threads by search
+  const filteredThreads = threads.filter((t) => {
+    const q = search.toLowerCase();
+    if (!q) return true;
+    return (
+      t.email.includes(q) ||
+      t.name?.toLowerCase().includes(q)
+    );
+  });
+
+  // Active thread messages
+  const activeThread = selectedThread
+    ? threadMap[selectedThread.email]
+    : null;
+
+  // ── Link to candidate ───────────────────────────────────────────────────
+
+  const linkToCandidate = async (candidateId) => {
+    if (!activeThread) return;
+    // Update all incoming mails from this email address
+    const ids = incomingMails
+      .filter((m) => m.from_email?.toLowerCase() === activeThread.email)
+      .map((m) => m.id);
+
+    for (const id of ids) {
+      await supabase
+        .from("email_replies")
+        .update({ candidate_id: candidateId })
+        .eq("id", id);
     }
-
     notify("Linked to candidate", { type: "success" });
-    fetchReplies();
+    await fetchIncoming();
+    setSelectedThread((prev) => ({ ...prev, candidateId }));
   };
 
-  const handleSendReply = async (reply) => {
-    if (!replyText.trim()) {
-      notify("Reply cannot be empty", { type: "error" });
-      return;
-    }
+  // ── Mark thread as read ─────────────────────────────────────────────────
+
+  const markThreadRead = async (emailAddr) => {
+    const unreadIds = incomingMails
+      .filter((m) => m.from_email?.toLowerCase() === emailAddr && !m.is_read)
+      .map((m) => m.id);
+    if (unreadIds.length === 0) return;
+    await supabase.from("email_replies").update({ is_read: true }).in("id", unreadIds);
+    setIncomingMails((prev) =>
+      prev.map((m) =>
+        unreadIds.includes(m.id) ? { ...m, is_read: true } : m
+      )
+    );
+  };
+
+  // ── Send reply ──────────────────────────────────────────────────────────
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !activeThread) return;
 
     const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
     const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
@@ -98,29 +234,54 @@ function MailInbox() {
       return;
     }
 
-    setSending(true);
-    try {
-      const replySubject = reply.subject?.startsWith("Re:")
-        ? reply.subject
-        : `Re: ${reply.subject || ""}`;
+    const lastIncoming = [...activeThread.messages]
+      .reverse()
+      .find((m) => m.direction === "incoming");
 
+    const replySubject = lastIncoming?.subject?.startsWith("Re:")
+      ? lastIncoming.subject
+      : `Re: ${lastIncoming?.subject || ""}`;
+
+    const messageBody = replyText.trim();
+    setSending(true);
+
+    try {
       await emailjs.send(
         serviceId,
         templateId,
         {
-          to_email: reply.from_email,
-          to_name: reply.from_name || reply.from_email,
+          to_email: activeThread.email,
+          to_name: activeThread.name,
           subject: replySubject,
-          message: replyText.trim(),
+          message: messageBody,
           from_name: companySettings?.company_name || "Recruiting Team",
           reply_to: companySettings?.reply_to_email || undefined,
         },
         { publicKey }
       );
 
-      notify(`Reply sent to ${reply.from_email}`, { type: "success" });
-      setReplyingToId(null);
+      // Log to bulk_send_logs
+      const { data: userData } = await supabase.auth.getUser();
+      const batchId = `reply-${Date.now()}`;
+      await supabase.from("bulk_send_logs").insert([
+        {
+          batch_id: batchId,
+          candidate_id: activeThread.candidateId || null,
+          candidate_name: activeThread.name,
+          recipient: activeThread.email,
+          channel: "email",
+          status: "sent",
+          label: `Reply: ${replySubject}`,
+          sent_by: userData?.user?.email || null,
+          message: messageBody,
+          subject: replySubject,
+          sent_at: new Date().toISOString(),
+        },
+      ]);
+
       setReplyText("");
+      await fetchOutgoing();
+      notify(`Reply sent to ${activeThread.email}`, { type: "success" });
     } catch (err) {
       console.error("Reply send error:", err);
       notify(err?.text || "Failed to send reply", { type: "error" });
@@ -129,178 +290,223 @@ function MailInbox() {
     }
   };
 
-  const filteredReplies = replies.filter((reply) => {
-    const query = search.toLowerCase();
-    if (!query) return true;
-    return (
-      reply.from_email?.toLowerCase().includes(query) ||
-      reply.from_name?.toLowerCase().includes(query) ||
-      reply.subject?.toLowerCase().includes(query) ||
-      reply.applicants?.name?.toLowerCase().includes(query)
-    );
-  });
+  // ── UI ──────────────────────────────────────────────────────────────────
+
+  const totalUnread = threads.reduce((sum, t) => sum + t.unread, 0);
 
   return (
-    <div className="h-[calc(100vh-64px)] overflow-y-auto bg-[#f8f9fa]">
-      <div className="px-6 py-5 border-b border-slate-200 bg-white">
-        <h1 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          Mail Inbox
-        </h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Candidate replies to your bulk emails, synced automatically every 5 minutes.
-        </p>
+    <div className="h-[calc(100vh-64px)] flex flex-col overflow-hidden bg-[#f8f9fa]">
+
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-slate-200 bg-white flex items-center gap-3 flex-shrink-0">
+        {selectedThread && (
+          <button
+            onClick={() => { setSelectedThread(null); setReplyText(""); }}
+            className="md:hidden text-gray-500 hover:text-gray-800 mr-1"
+          >
+            <FaChevronLeft />
+          </button>
+        )}
+        <div className="flex-1 min-w-0">
+          {selectedThread ? (
+            <div className="flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold ${getAvatarColor(activeThread?.name || "")}`}>
+                {initials(activeThread?.name || "")}
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-[#111b21] text-sm truncate">{activeThread?.name}</p>
+                <p className="text-xs text-gray-400 truncate">{activeThread?.email}</p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h1 className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
+                Mail Inbox
+                {totalUnread > 0 && (
+                  <span className="text-sm font-bold bg-blue-600 text-white rounded-full px-2 py-0.5">
+                    {totalUnread}
+                  </span>
+                )}
+              </h1>
+              <p className="text-slate-500 text-xs mt-0.5">Synced every 5 minutes</p>
+            </div>
+          )}
+        </div>
+
+        {/* Link to candidate — shown when thread open & unmatched */}
+        {selectedThread && !activeThread?.candidateId && (
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <FaLink className="text-gray-400" size={11} />
+            <select
+              defaultValue=""
+              onChange={(e) => e.target.value && linkToCandidate(Number(e.target.value))}
+              className="border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none bg-white"
+            >
+              <option value="">Link candidate...</option>
+              {candidates.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      <div className="p-6">
-        <div className="max-w-4xl">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by candidate, sender, or subject..."
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none mb-4 bg-white"
-          />
+      <div className="flex flex-1 min-h-0 overflow-hidden">
 
-          {filteredReplies.length === 0 ? (
-            <p className="text-sm text-gray-400 bg-white border border-gray-200 rounded-xl p-6 text-center">
-              No replies yet.
-            </p>
-          ) : (
-            <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100 overflow-hidden">
-              {filteredReplies.map((reply) => {
-                const expanded = expandedId === reply.id;
-                const isReplying = replyingToId === reply.id;
+        {/* ── Thread list (left panel) ── */}
+        <div className={`${selectedThread ? "hidden md:flex" : "flex"} flex-col w-full md:w-[320px] border-r border-[#e9edef] bg-white flex-shrink-0`}>
+          <div className="p-3 border-b border-[#e9edef]">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search..."
+              className="w-full bg-[#f0f2f5] px-3 py-2 rounded-lg text-sm outline-none"
+            />
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {filteredThreads.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-2 p-8">
+                <FaInbox size={32} className="opacity-30" />
+                <p className="text-sm">No messages yet</p>
+              </div>
+            ) : (
+              filteredThreads.map((thread) => {
+                const lastMsg = thread.messages[thread.messages.length - 1];
+                const isActive = selectedThread?.email === thread.email;
+                const isOutgoing = lastMsg?.direction === "outgoing";
 
                 return (
-                  <div key={reply.id}>
-                    {/* Mail row */}
-                    <button
-                      onClick={() => toggleExpand(reply)}
-                      className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-start gap-3"
-                    >
-                      <span className="mt-0.5 text-gray-400 flex-shrink-0">
-                        {reply.is_read ? (
-                          <FaEnvelopeOpen size={14} />
-                        ) : (
-                          <FaEnvelope size={14} className="text-blue-600" />
-                        )}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p
-                            className={`text-sm truncate ${
-                              reply.is_read ? "text-gray-700" : "text-[#111b21] font-semibold"
-                            }`}
-                          >
-                            {reply.applicants?.name || reply.from_name || reply.from_email}
-                          </p>
-                          <span className="text-xs text-gray-400 flex-shrink-0 whitespace-nowrap">
-                            {new Date(reply.received_at).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 truncate">{reply.subject}</p>
-                        {!reply.candidate_id && (
-                          <span className="inline-block mt-1 text-[10px] font-bold bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full">
-                            Unmatched
+                  <button
+                    key={thread.email}
+                    onClick={() => {
+                      setSelectedThread(thread);
+                      setReplyText("");
+                      markThreadRead(thread.email);
+                    }}
+                    className={`w-full text-left px-4 py-3 border-b border-[#f0f2f5] flex items-start gap-3 transition-colors ${
+                      isActive ? "bg-blue-50" : "hover:bg-[#f5f6f6]"
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-white text-sm font-bold ${getAvatarColor(thread.name)}`}>
+                      {initials(thread.name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <p className={`text-sm truncate ${thread.unread > 0 ? "font-bold text-[#111b21]" : "text-gray-700"}`}>
+                          {thread.name}
+                        </p>
+                        <span className="text-[10px] text-gray-400 flex-shrink-0">
+                          {formatTime(thread.lastAt)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between gap-1 mt-0.5">
+                        <p className={`text-xs truncate ${thread.unread > 0 ? "text-gray-700" : "text-gray-400"}`}>
+                          {isOutgoing && <span className="text-blue-500 mr-1">You:</span>}
+                          {lastMsg?.body_text || lastMsg?.message || "—"}
+                        </p>
+                        {thread.unread > 0 && (
+                          <span className="flex-shrink-0 w-5 h-5 bg-blue-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                            {thread.unread}
                           </span>
                         )}
                       </div>
-                    </button>
-
-                    {/* Expanded view */}
-                    {expanded && (
-                      <div className="px-4 pb-4 pl-11">
-                        <p className="text-xs text-gray-500 mb-2">
-                          From: {reply.from_name ? `${reply.from_name} ` : ""}
-                          {"<"}
-                          {reply.from_email}
-                          {">"}
-                        </p>
-                        <p className="text-sm text-[#111b21] bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 whitespace-pre-wrap mb-3">
-                          {reply.body_text || "(no text content)"}
-                        </p>
-
-                        {/* Link to candidate */}
-                        {!reply.candidate_id && (
-                          <div className="flex items-center gap-2 mb-3">
-                            <FaLink className="text-gray-400 flex-shrink-0" size={12} />
-                            <select
-                              defaultValue=""
-                              onChange={(e) =>
-                                linkToCandidate(
-                                  reply.id,
-                                  e.target.value ? Number(e.target.value) : null
-                                )
-                              }
-                              className="border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none bg-white"
-                            >
-                              <option value="">Link to a candidate...</option>
-                              {candidates.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                  {c.name}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-
-                        {/* Reply button */}
-                        {!isReplying && (
-                          <button
-                            onClick={() => {
-                              setReplyingToId(reply.id);
-                              setReplyText("");
-                            }}
-                            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-all"
-                          >
-                            <FaReply size={11} />
-                            Reply
-                          </button>
-                        )}
-
-                        {/* Reply box */}
-                        {isReplying && (
-                          <div className="mt-2 border border-blue-200 rounded-xl bg-blue-50 p-3">
-                            <p className="text-xs text-blue-600 font-semibold mb-2">
-                              Replying to {reply.from_name || reply.from_email}
-                            </p>
-                            <textarea
-                              value={replyText}
-                              onChange={(e) => setReplyText(e.target.value)}
-                              rows={4}
-                              placeholder="Type your reply..."
-                              className="w-full border border-blue-200 rounded-lg px-3 py-2 text-sm outline-none bg-white resize-none focus:border-blue-400 transition-colors"
-                              autoFocus
-                            />
-                            <div className="flex items-center gap-2 mt-2">
-                              <button
-                                onClick={() => handleSendReply(reply)}
-                                disabled={sending}
-                                className="inline-flex items-center gap-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg transition-all"
-                              >
-                                <FaPaperPlane size={10} />
-                                {sending ? "Sending..." : "Send Reply"}
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setReplyingToId(null);
-                                  setReplyText("");
-                                }}
-                                disabled={sending}
-                                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 bg-white px-3 py-2 rounded-lg transition-all"
-                              >
-                                <FaTimes size={10} />
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                    </div>
+                  </button>
                 );
-              })}
+              })
+            )}
+          </div>
+        </div>
+
+        {/* ── Conversation panel (right) ── */}
+        <div className={`${selectedThread ? "flex" : "hidden md:flex"} flex-col flex-1 min-w-0`}>
+          {!selectedThread ? (
+            <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
+              <FaEnvelope size={48} className="opacity-20" />
+              <p className="text-sm">Select a conversation</p>
             </div>
+          ) : (
+            <>
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+                {activeThread?.messages.map((msg, i) => {
+                  const isOut = msg.direction === "outgoing";
+                  const text = msg.body_text || msg.message || "";
+
+                  return (
+                    <div key={i} className={`flex ${isOut ? "justify-end" : "justify-start"}`}>
+                      {/* Avatar for incoming */}
+                      {!isOut && (
+                        <div className={`w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold mr-2 mt-1 ${getAvatarColor(activeThread.name)}`}>
+                          {initials(activeThread.name)}
+                        </div>
+                      )}
+
+                      <div className={`max-w-[70%] ${isOut ? "items-end" : "items-start"} flex flex-col`}>
+                        {/* Bubble */}
+                        <div className={`px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap break-words shadow-sm ${
+                          isOut
+                            ? "bg-blue-600 text-white rounded-br-md"
+                            : "bg-white text-[#111b21] border border-gray-100 rounded-bl-md"
+                        }`}>
+                          {text || <span className="opacity-50 italic">(empty)</span>}
+                        </div>
+
+                        {/* Subject tag */}
+                        {msg.subject && (
+                          <p className="text-[10px] text-gray-400 mt-0.5 px-1 truncate max-w-full">
+                            {msg.subject}
+                          </p>
+                        )}
+
+                        {/* Time + direction label */}
+                        <p className={`text-[10px] mt-0.5 px-1 ${isOut ? "text-blue-400" : "text-gray-400"}`}>
+                          {isOut ? "You · " : ""}{formatTime(msg.at)}
+                        </p>
+                      </div>
+
+                      {/* Avatar for outgoing */}
+                      {isOut && (
+                        <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center bg-blue-600 text-white text-xs font-bold ml-2 mt-1">
+                          {initials(companySettings?.company_name || "Me")}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <div ref={bottomRef} />
+              </div>
+
+              {/* Reply box */}
+              <div className="border-t border-gray-200 bg-white px-4 py-3 flex-shrink-0">
+                <div className="flex items-end gap-2">
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSendReply();
+                    }}
+                    rows={2}
+                    placeholder="Type a reply... (Ctrl+Enter to send)"
+                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none bg-[#f0f2f5] resize-none focus:border-blue-400 focus:bg-white transition-colors"
+                  />
+                  <button
+                    onClick={handleSendReply}
+                    disabled={sending || !replyText.trim()}
+                    className="flex-shrink-0 w-10 h-10 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-full flex items-center justify-center transition-colors"
+                    title="Send (Ctrl+Enter)"
+                  >
+                    {sending ? (
+                      <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <FaPaperPlane size={13} />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

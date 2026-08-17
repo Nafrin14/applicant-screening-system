@@ -1,10 +1,13 @@
-// Run on a schedule by .github/workflows/imap-poll.yml — connects to the
-// recruiting mailbox over IMAP, pulls recent messages, and stores each one
-// in Supabase's email_replies table. Candidates are matched via the
-// "[Ref: id]" tag every bulk email's subject already carries
-// (see withCandidateRefTag in src/.../BulkActions.jsx) — there's no other
-// reliable link back to a candidate since EmailJS never hands us the real
-// SMTP Message-ID to thread on.
+// Connects to the recruiting mailbox over IMAP, pulls recent messages, and
+// stores each one in Supabase's email_replies table.
+//
+// Two run modes:
+//   node pollMail.js          → loop mode: polls every POLL_INTERVAL_MS (default 60s)
+//   node pollMail.js --once   → single run: used by GitHub Actions cron (kept as fallback)
+//
+// Candidates are matched via the "[Ref: id]" tag every bulk email's subject
+// carries (see withCandidateRefTag in src/.../BulkActions.jsx).
+
 import { ImapFlow } from "imapflow";
 import { simpleParser } from "mailparser";
 import { createClient } from "@supabase/supabase-js";
@@ -37,6 +40,16 @@ if (missing.length > 0) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const REF_TAG_RE = /\[Ref:\s*(\d+)\]/i;
 
+// How far back to look on each poll (2 days covers restarts & gaps)
+const SINCE_DAYS = 2;
+
+// Loop interval — 60 seconds in production, override via env var
+const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS) || 60_000;
+
+const ONCE_MODE = process.argv.includes("--once");
+
+// ─── core poll ───────────────────────────────────────────────────────────────
+
 async function pollMail() {
   const client = new ImapFlow({
     host: IMAP_HOST,
@@ -51,19 +64,16 @@ async function pollMail() {
   try {
     const lock = await client.getMailboxLock("INBOX");
     try {
-      // Search by date instead of the \Seen flag — reading a reply in
-      // webmail (or any other client) before this runs would otherwise
-      // mark it seen and make the poller skip it forever. Already-stored
-      // messages are cheaply skipped below via the message_id upsert.
       const since = new Date();
-      since.setDate(since.getDate() - 2);
+      since.setDate(since.getDate() - SINCE_DAYS);
       const uids = await client.search({ since });
+
       if (!uids || uids.length === 0) {
-        console.log("No recent messages.");
+        console.log(`[${new Date().toISOString()}] No recent messages.`);
         return;
       }
 
-      console.log(`Found ${uids.length} message(s) from the last 2 days.`);
+      console.log(`[${new Date().toISOString()}] Found ${uids.length} message(s).`);
 
       for (const uid of uids) {
         const message = await client.fetchOne(uid, { source: true });
@@ -92,12 +102,10 @@ async function pollMail() {
         );
 
         if (error) {
-          console.error(`Failed to store message ${messageId}:`, error.message);
+          console.error(`Failed to store ${messageId}:`, error.message);
         } else {
           console.log(
-            `Stored reply from ${sender.address || "unknown"} (candidate ${
-              candidateId ?? "unmatched"
-            })`
+            `Stored: ${sender.address || "unknown"} → candidate ${candidateId ?? "unmatched"}`
           );
         }
       }
@@ -109,12 +117,26 @@ async function pollMail() {
   }
 }
 
-pollMail()
-  .then(() => {
-    console.log("Poll complete.");
-    process.exit(0);
-  })
-  .catch((err) => {
-    console.error("Poll failed:", err);
-    process.exit(1);
-  });
+// ─── run modes ───────────────────────────────────────────────────────────────
+
+if (ONCE_MODE) {
+  // GitHub Actions: run once and exit
+  pollMail()
+    .then(() => { console.log("Poll complete."); process.exit(0); })
+    .catch((err) => { console.error("Poll failed:", err); process.exit(1); });
+} else {
+  // Railway / continuous: loop forever
+  console.log(`Mail poller starting — interval ${POLL_INTERVAL_MS / 1000}s`);
+
+  const runLoop = async () => {
+    try {
+      await pollMail();
+    } catch (err) {
+      // Log but don't crash — next iteration will retry
+      console.error(`[${new Date().toISOString()}] Poll error:`, err.message);
+    }
+    setTimeout(runLoop, POLL_INTERVAL_MS);
+  };
+
+  runLoop();
+}
