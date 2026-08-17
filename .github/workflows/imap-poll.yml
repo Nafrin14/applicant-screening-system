@@ -2,12 +2,13 @@ name: Poll Candidate Email Replies
 
 on:
   schedule:
-    - cron: "*/1 * * * *"
+    - cron: "*/5 * * * *"   # every 5 min — reliable. Loop inside covers the gaps.
   workflow_dispatch: {}
 
 jobs:
   poll:
     runs-on: ubuntu-latest
+    timeout-minutes: 6        # safety cap — kill if something hangs
     steps:
       - uses: actions/checkout@v4
 
@@ -19,14 +20,17 @@ jobs:
         working-directory: scripts
         run: npm install
 
-      - name: Poll mailbox (3× in 1 minute for ~20s effective interval)
+      - name: Poll mailbox every ~60s for 5 minutes
         working-directory: scripts
+        # Runs 5 polls spaced 60 seconds apart inside one job.
+        # Each cron trigger is every 5 min → combined effective interval ~60s.
+        # message_id upsert ensures no duplicates even if two runs overlap.
         run: |
-          node pollMail.js --once
-          sleep 20
-          node pollMail.js --once
-          sleep 20
-          node pollMail.js --once
+          for i in 1 2 3 4 5; do
+            echo "--- Poll $i of 5 ---"
+            node pollMail.js --once
+            if [ $i -lt 5 ]; then sleep 60; fi
+          done
         env:
           IMAP_HOST: ${{ secrets.IMAP_HOST }}
           IMAP_PORT: ${{ secrets.IMAP_PORT }}

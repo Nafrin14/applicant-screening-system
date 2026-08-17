@@ -3,10 +3,6 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 VITE_GHL_TOKEN=pit-82420460-73f4-4d6f-a5bc-3e497505ff75
 VITE_GHL_LOCATION_ID=t5PXdZcOHlQwyi2gtJkM
 VITE_API_URL=http://localhost:5000
-
-
-# Get these from your EmailJS account (emailjs.com) -> Email Services / Email Templates / Account > API Keys.
-# Required for the "Email" channel in Conversations > Bulk Actions. Leave blank to disable Email sending.
 VITE_EMAILJS_SERVICE_ID=service_ojm9m2c
 VITE_EMAILJS_TEMPLATE_ID=template_74q62k8
 VITE_EMAILJS_PUBLIC_KEY=HD7F8b3Y2HWwx2zaq
