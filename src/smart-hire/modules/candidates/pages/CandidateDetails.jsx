@@ -22,7 +22,8 @@ import {
   FaSave,
   FaGlobe,
   FaInfoCircle,
-  FaTrash
+  FaTrash,
+  FaBullhorn
 } from "react-icons/fa";
 
 function CandidateDetails() {
@@ -471,6 +472,30 @@ function CandidateDetails() {
               >
                 <FaComments />
                 <span>Chat</span>
+              </button>
+
+              <button
+                onClick={() =>
+                  navigate("/bulk-actions", {
+                    state: { preselectCandidateId: applicant.id, channel: "Text" },
+                  })
+                }
+                className="flex items-center gap-2 bg-[#25d366] hover:bg-[#20bd5a] text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm hover:shadow-md"
+              >
+                <FaBullhorn />
+                <span>Text/WhatsApp</span>
+              </button>
+
+              <button
+                onClick={() =>
+                  navigate("/bulk-actions", {
+                    state: { preselectCandidateId: applicant.id, channel: "Email" },
+                  })
+                }
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2 rounded-xl transition shadow-sm hover:shadow-md"
+              >
+                <FaEnvelope />
+                <span>Email</span>
               </button>
 
               <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>

@@ -298,6 +298,8 @@ className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-t
   </div>
 
 </div>
+
+        {/* Quick Actions */}
         {/* Analytics + Recent Applicants */}
 
         <div className="grid grid-cols-1 gap-6">
