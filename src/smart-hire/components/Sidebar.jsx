@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "../../core/lib/supabase";
 
 import {
   FaTachometerAlt,
@@ -59,6 +60,7 @@ function Sidebar() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState({});
+  const [unreadMailCount, setUnreadMailCount] = useState(0);
 
   useEffect(() => {
     document.documentElement.style.setProperty(
@@ -66,6 +68,26 @@ function Sidebar() {
       collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH
     );
   }, [collapsed]);
+
+  useEffect(() => {
+    fetchUnreadMailCount();
+    const interval = setInterval(fetchUnreadMailCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchUnreadMailCount = async () => {
+    const { count, error } = await supabase
+      .from("email_replies")
+      .select("id", { count: "exact", head: true })
+      .eq("is_read", false);
+
+    if (error) {
+      console.log("fetchUnreadMailCount error (table may not exist yet):", error);
+      return;
+    }
+
+    setUnreadMailCount(count || 0);
+  };
 
   const goTo = (path) => {
     navigate(path);
@@ -219,7 +241,13 @@ function Sidebar() {
                               }`}
                             >
                               <span className="text-sm flex-shrink-0">{child.icon}</span>
-                              <span className="whitespace-nowrap">{child.name}</span>
+                              <span className="whitespace-nowrap flex-1">{child.name}</span>
+                              {child.path === "/mail-inbox" && unreadMailCount > 0 && (
+                                <span className="relative inline-flex flex-shrink-0 w-2 h-2">
+                                  <span className="absolute inset-0 rounded-full bg-red-400 opacity-75 animate-ping" />
+                                  <span className="relative inline-flex w-2 h-2 rounded-full bg-red-500" />
+                                </span>
+                              )}
                             </li>
                           );
                         })}

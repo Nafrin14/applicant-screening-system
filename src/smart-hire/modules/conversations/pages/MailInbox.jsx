@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { FaEnvelope, FaLink, FaPaperPlane, FaTimes, FaInbox, FaChevronLeft } from "react-icons/fa";
 import emailjs from "@emailjs/browser";
 import { supabase } from "../../../../core/lib/supabase";
@@ -39,11 +40,14 @@ const formatTime = (iso) => {
 function MailInbox() {
   const { notify } = useNotification();
   const bottomRef = useRef(null);
+  const location = useLocation();
+  const openReplyId = location.state?.openReplyId || null;
 
   const [incomingMails, setIncomingMails] = useState([]);   // email_replies
   const [outgoingMails, setOutgoingMails] = useState([]);   // bulk_send_logs (email only)
   const [candidates, setCandidates] = useState([]);
   const [companySettings, setCompanySettings] = useState(null);
+  const [autoOpenApplied, setAutoOpenApplied] = useState(false);
 
   const [search, setSearch] = useState("");
   const [selectedThread, setSelectedThread] = useState(null); // { email, name, candidateId }
@@ -184,6 +188,25 @@ function MailInbox() {
   const activeThread = selectedThread
     ? threadMap[selectedThread.email]
     : null;
+
+  // Quick-action entry from the notification bell ("Mail Reply" click) —
+  // resolve which thread that reply belongs to during render (not inside
+  // the effect below, since threadMap gets mutated after being built).
+  const targetMail = openReplyId
+    ? incomingMails.find((m) => m.id === openReplyId)
+    : null;
+  const targetThread = targetMail
+    ? threadMap[targetMail.from_email?.toLowerCase() || "unknown"]
+    : null;
+
+  useEffect(() => {
+    if (!openReplyId || autoOpenApplied || incomingMails.length === 0) return;
+    setAutoOpenApplied(true);
+    if (targetThread) {
+      setSelectedThread(targetThread);
+      markThreadRead(targetThread.email);
+    }
+  }, [incomingMails]);
 
   // ── Link to candidate ───────────────────────────────────────────────────
 

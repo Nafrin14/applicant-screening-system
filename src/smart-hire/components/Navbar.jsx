@@ -5,11 +5,20 @@ import {
   FaTrash,
   FaCog,
   FaSignOutAlt,
+  FaUserPlus,
+  FaCalendarDay,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 import { supabase } from "../../core/lib/supabase";
 import { useNotification } from "../../core/context/NotificationContext";
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+};
 
 function Navbar() {
   const navigate = useNavigate();
@@ -23,12 +32,15 @@ function Navbar() {
   const [hasUpcomingInterview, setHasUpcomingInterview] = useState(false);
   const [upcomingInterview, setUpcomingInterview] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [todayApplicants, setTodayApplicants] = useState(0);
+  const [todayInterviews, setTodayInterviews] = useState(0);
   const profileRef = useRef(null);
   const notificationRef = useRef(null);
 
  useEffect(() => {
   fetchProfile();
   fetchNotifications();
+  fetchTodayStats();
 
   const interval = setInterval(() => {
     fetchNotifications();
@@ -38,6 +50,25 @@ function Navbar() {
     clearInterval(interval);
   };
 }, []);
+
+const fetchTodayStats = async () => {
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const todayDate = startOfToday.toISOString().slice(0, 10);
+
+  const { count: applicantCount } = await supabase
+    .from("applicants")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", startOfToday.toISOString());
+
+  const { count: interviewCount } = await supabase
+    .from("interviews")
+    .select("id", { count: "exact", head: true })
+    .eq("interview_date", todayDate);
+
+  setTodayApplicants(applicantCount || 0);
+  setTodayInterviews(interviewCount || 0);
+};
 
 useEffect(() => {
   const handleClickOutside = (event) => {
@@ -84,12 +115,39 @@ setCompanyName(data?.company_name || "");
     .select("*")
     .order("id", { ascending: false });
 
+  const { data: unreadReplies, error: repliesError } = await supabase
+    .from("email_replies")
+    .select("id, from_name, from_email, candidate_id, received_at, body_text")
+    .eq("is_read", false)
+    .order("received_at", { ascending: false });
+
+  if (repliesError) {
+    console.log("fetchNotifications (email_replies) error:", repliesError);
+  }
+
   if (error) {
     console.log(error);
   } else {
-    setNotifications(data || []);
+    const replyItems = (unreadReplies || []).map((row) => ({
+      id: `reply-${row.id}`,
+      source: "email_reply",
+      replyId: row.id,
+      title: "New email reply",
+      candidate_name: row.from_name || row.from_email || "Unknown sender",
+      snippet: (row.body_text || "").trim().slice(0, 100),
+      received_at: row.received_at,
+      is_read: false,
+    }));
 
-    const unread = data.filter(
+    const notificationItems = (data || []).map((row) => ({
+      ...row,
+      source: "notification",
+    }));
+
+    const merged = [...replyItems, ...notificationItems];
+    setNotifications(merged);
+
+    const unread = merged.filter(
       (item) => item.is_read === false
     );
 
@@ -116,13 +174,20 @@ console.log("UPCOMING:", upcomingInterviewData);
   }
 };
 
-const markAsRead = async (id) => {
+const handleNotificationClick = async (item) => {
+  if (item.source === "email_reply") {
+    setShowNotifications(false);
+    navigate("/mail-inbox", { state: { openReplyId: item.replyId } });
+    fetchNotifications();
+    return;
+  }
+
   const { error } = await supabase
     .from("notifications")
     .update({
       is_read: true,
     })
-    .eq("id", id);
+    .eq("id", item.id);
 
   if (!error) {
     fetchNotifications();
@@ -139,28 +204,44 @@ const handleClearAll = async () => {
 
   if (!confirmClear) return;
 
-  const { error } = await supabase
-    .from("notifications")
-    .delete()
-    .in("id", notifications.map((item) => item.id));
+  const notificationIds = notifications
+    .filter((item) => item.source === "notification")
+    .map((item) => item.id);
+  const replyIds = notifications
+    .filter((item) => item.source === "email_reply")
+    .map((item) => item.replyId);
 
-  if (!error) {
-    fetchNotifications();
+  if (notificationIds.length > 0) {
+    await supabase.from("notifications").delete().in("id", notificationIds);
   }
+  if (replyIds.length > 0) {
+    await supabase.from("email_replies").update({ is_read: true }).in("id", replyIds);
+  }
+
+  fetchNotifications();
 };
 
-const handleDelete = async (id) => {
+const handleDelete = async (item) => {
   const confirmDelete = await confirmDialog(
-    "Delete this notification?",
-    { danger: true, confirmLabel: "Delete" }
+    item.source === "email_reply" ? "Dismiss this reply notification?" : "Delete this notification?",
+    { danger: true, confirmLabel: item.source === "email_reply" ? "Dismiss" : "Delete" }
   );
 
   if (!confirmDelete) return;
 
+  if (item.source === "email_reply") {
+    const { error } = await supabase
+      .from("email_replies")
+      .update({ is_read: true })
+      .eq("id", item.replyId);
+    if (!error) fetchNotifications();
+    return;
+  }
+
   const { error } = await supabase
     .from("notifications")
     .delete()
-    .eq("id", id);
+    .eq("id", item.id);
 
   if (!error) {
     fetchNotifications();
@@ -174,7 +255,31 @@ const handleDelete = async (id) => {
 
   return (
     <div className="sh-navbar-offset fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 shadow-sm z-40">
-      <div className="h-full flex items-center justify-between px-8">
+      <div className="h-full flex items-center gap-6 px-8">
+
+        {/* Greeting */}
+        <p className="hidden lg:block text-lg font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent whitespace-nowrap">
+          {getGreeting()}{hrName ? `, ${hrName.split(" ")[0]}` : ""}
+        </p>
+
+        {/* Today's Quick Stats */}
+        <div className="hidden md:flex items-center gap-5 text-sm text-slate-500">
+          <span className="flex items-center gap-2">
+            <FaUserPlus className="text-blue-500" />
+            <span>
+              <span className="font-bold text-slate-700">{todayApplicants}</span> new
+              applicant{todayApplicants !== 1 ? "s" : ""} today
+            </span>
+          </span>
+          <span className="w-1 h-1 rounded-full bg-slate-300" />
+          <span className="flex items-center gap-2">
+            <FaCalendarDay className="text-emerald-500" />
+            <span>
+              <span className="font-bold text-slate-700">{todayInterviews}</span>{" "}
+              interview{todayInterviews !== 1 ? "s" : ""} today
+            </span>
+          </span>
+        </div>
 
         {/* Right Side */}
       <div className="flex items-center gap-6 ml-auto relative">
@@ -204,7 +309,7 @@ const handleDelete = async (id) => {
           </button>
 
           {showNotifications && (
-  <div className="absolute top-14 right-0 w-[380px] bg-[#242424] text-white rounded-2xl shadow-2xl border border-white/10 z-50 overflow-hidden">
+  <div className="fixed left-4 right-4 top-16 md:left-auto md:w-[380px] bg-[#242424] text-white rounded-2xl shadow-2xl border border-white/10 z-50 overflow-hidden">
     
     <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
       <h3 className="font-semibold text-sm">
@@ -249,7 +354,7 @@ const handleDelete = async (id) => {
         notifications.map((item) => (
           <div
             key={item.id}
-            onClick={() => markAsRead(item.id)}
+            onClick={() => handleNotificationClick(item)}
             className={`mb-3 rounded-xl p-4 cursor-pointer border border-white/10 bg-[#3a3a3a] hover:bg-[#444] transition ${
               !item.is_read ? "ring-1 ring-blue-400/40" : ""
             }`}
@@ -257,7 +362,7 @@ const handleDelete = async (id) => {
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <p className="text-xs font-semibold text-gray-300 mb-2">
-                  🔔 Notification
+                  {item.source === "email_reply" ? "📧 Mail Reply" : "🔔 Notification"}
                 </p>
 
                 <p className="text-sm font-semibold text-white">
@@ -268,9 +373,29 @@ const handleDelete = async (id) => {
                   {item.candidate_name || "Candidate"}
                 </p>
 
-                <p className="text-xs text-gray-400 mt-1">
-                  {item.interview_date} • {item.interview_time}
-                </p>
+                {item.source === "email_reply" && item.snippet && (
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                    {item.snippet}
+                    {item.snippet.length >= 100 ? "…" : ""}
+                  </p>
+                )}
+
+                {item.source === "email_reply" && item.received_at && (
+                  <p className="text-[11px] text-gray-500 mt-1.5">
+                    {new Date(item.received_at).toLocaleString([], {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                )}
+
+                {(item.interview_date || item.interview_time) && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    {item.interview_date} • {item.interview_time}
+                  </p>
+                )}
 
                 {!item.is_read && (
                   <span className="inline-block mt-3 text-xs bg-white/10 px-3 py-1 rounded-md text-gray-200">
@@ -283,7 +408,7 @@ const handleDelete = async (id) => {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete(item.id);
+                  handleDelete(item);
                 }}
                 className="text-gray-400 hover:text-red-400"
               >
@@ -304,12 +429,16 @@ const handleDelete = async (id) => {
               onClick={() => setShowProfileMenu((prev) => !prev)}
               className="flex items-center gap-3 bg-slate-50 px-3 py-2 rounded-xl cursor-pointer hover:bg-slate-100 transition"
             >
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-200 flex items-center justify-center">
+              <div
+                className={`w-9 h-9 rounded-full overflow-hidden flex items-center justify-center flex-shrink-0 ${
+                  profileImage ? "" : "bg-slate-200"
+                }`}
+              >
                 {profileImage ? (
                   <img
                     src={profileImage}
                     alt="Profile"
-                    className="w-full h-full object-cover"
+                    className="block w-full h-full max-w-full max-h-full object-cover"
                   />
                 ) : (
                   <FaUserCircle

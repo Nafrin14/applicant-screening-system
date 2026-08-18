@@ -161,7 +161,7 @@ return (
 <thead className="bg-slate-50 border-b border-slate-200">
 <tr>
 
-<th className="text-left px-6 py-4 text-sm font-bold text-slate-700">
+<th className="text-left px-6 py-4 text-sm font-bold text-slate-700 sticky left-0 z-20 bg-slate-50">
  Candidate
 </th>
 
@@ -206,9 +206,9 @@ Actions
    interview.id
     }
 
-className="border-b border-slate-100 hover:bg-slate-50 transition-all" >
+className="border-b border-slate-100 hover:bg-slate-50 transition-all group" >
 
-<td className="px-6 py-5">
+<td className="px-6 py-5 sticky left-0 z-10 bg-white group-hover:bg-slate-50">
 <div className="font-bold text-slate-800 text-sm">
 
      {

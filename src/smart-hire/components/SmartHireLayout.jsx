@@ -2,6 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import QuickActionsFab from "./QuickActionsFab";
 
 function SmartHireLayout() {
   return (
@@ -11,6 +12,7 @@ function SmartHireLayout() {
       <div className="sh-content-offset pt-16 min-h-screen">
         <Outlet />
       </div>
+      <QuickActionsFab />
     </div>
   );
 }

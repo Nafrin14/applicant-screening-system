@@ -10,13 +10,12 @@ import {
   FaTimes,
   FaArrowLeft,
   FaTrash,
-  FaBars,
   FaUserPlus,
 } from "react-icons/fa";
 import { MdDialpad, MdBackspace } from "react-icons/md";
 import EmojiPicker from "emoji-picker-react";
 import throttle from "lodash/throttle";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../../../../core/lib/supabase";
 import { useNotification } from "../../../../core/context/NotificationContext";
 
@@ -126,7 +125,6 @@ const ChatSidebarPanel = ({
   unreadCounts,
   navigate,
   sidebarOpen,
-  setSidebarOpen,
   setCandidateMenu,
   setCandidateMenuPos,
   setShowCreateCandidateModal,
@@ -141,12 +139,6 @@ const ChatSidebarPanel = ({
     {/* Sidebar Header */}
     <div className="h-[60px] bg-[#f0f2f5] px-4 flex items-center justify-between border-b border-[#e9edef]">
       <div className="flex items-center gap-3">
-       <button
- onClick={() => setSidebarOpen(true)}
-  className="md:hidden w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md"
->
-  <FaBars className="text-base" />
-</button>
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-sm select-none">
           HR
         </div>
@@ -267,10 +259,13 @@ const ChatSidebarPanel = ({
 
 function Conversations() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const preselectCandidate = location.state || null;
   const { notify, confirmDialog } = useNotification();
 
   // State Variables
   const [candidates, setCandidates] = useState([]);
+  const [preselectApplied, setPreselectApplied] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [chatSearch, setChatSearch] = useState("");
   const [showChatSearch, setShowChatSearch] = useState(false);
@@ -334,6 +329,18 @@ const [candidateMenuPos, setCandidateMenuPos] = useState({
       loadMessages();
     }
   }, [selectedCandidate]);
+
+  // Quick-action entry from Candidate Details ("Chat" button) — open that
+  // candidate's conversation directly once the list has loaded.
+  useEffect(() => {
+    if (!preselectCandidate?.id || preselectApplied || candidates.length === 0) {
+      return;
+    }
+
+    setPreselectApplied(true);
+    const candidate = candidates.find((c) => c.id === preselectCandidate.id);
+    handleSelectCandidate(candidate || preselectCandidate);
+  }, [candidates]);
 
   useEffect(() => {
     const channel = supabase
@@ -1657,7 +1664,7 @@ setCandidateMenuPos={setCandidateMenuPos}
                 <FaPaperPlane className="text-4xl transform rotate-12" />
               </div>
               <h2 className="text-2xl font-semibold text-[#41525d] mb-2">
-                SmartHire Chat Integration
+                SmartHire Chat
               </h2>
               <p className="text-gray-500 text-sm max-w-sm leading-relaxed">
                 Select an applicant from the list to view their chat history and
@@ -1705,11 +1712,14 @@ setCandidateMenuPos={setCandidateMenuPos}
               </div>
             </div>
           )}
+        </div>
 
-          {/* Start Chat / Create Candidate Modal */}
-          {showCreateCandidateModal && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-              <div className="bg-white w-96 rounded-xl shadow-xl flex flex-col max-h-[80vh]">
+        {/* Start Chat / Create Candidate Modal — rendered outside the Main
+            Chat Area so it isn't hidden along with it on mobile when no
+            candidate is selected yet. */}
+        {showCreateCandidateModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white w-full max-w-sm rounded-xl shadow-xl flex flex-col max-h-[80vh]">
                 <div className="bg-[#25d366] text-white p-4 rounded-t-xl flex items-center justify-between flex-shrink-0">
                   <h2 className="font-semibold">
                     {createModalTab === "existing" ? "Start a Chat" : "New Candidate"}
@@ -1900,7 +1910,6 @@ setCandidateMenuPos={setCandidateMenuPos}
               </div>
             </div>
           )}
-        </div>
       </div>
   );
 }

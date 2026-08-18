@@ -159,7 +159,7 @@ function JobDetails() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-100/80 text-xs uppercase tracking-wider font-bold text-slate-500">
-                      <th className="px-8 py-5">Candidate</th>
+                      <th className="px-8 py-5 sticky left-0 z-20 bg-slate-50/80">Candidate</th>
                       <th className="px-6 py-5">Contact Info</th>
                       <th className="px-6 py-5 text-center">AI Score</th>
                       <th className="px-6 py-5">Status</th>
@@ -170,7 +170,7 @@ function JobDetails() {
                     {paginatedApplicants.map((app) => (
                       <tr key={app.id} className="hover:bg-slate-50/50 transition-colors group">
                         
-                        <td className="px-8 py-5">
+                        <td className="px-8 py-5 sticky left-0 z-10 bg-white group-hover:bg-slate-50/50">
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg shrink-0">
                               {app.name ? app.name.charAt(0).toUpperCase() : "?"}
