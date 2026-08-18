@@ -102,7 +102,7 @@ function BulkActionsReport() {
 
         const { data: settingsData } = await supabase
           .from("settings")
-          .select("reply_to_email")
+          .select("reply_to_email, email_from_name")
           .eq("id", 1)
           .single();
 
@@ -112,6 +112,7 @@ function BulkActionsReport() {
           {
             to_email: candidate.email,
             to_name: candidate.name,
+            from_name: settingsData?.email_from_name || undefined,
             subject: withCandidateRefTag(log.subject || "", candidate.id),
             message: log.message,
             reply_to: settingsData?.reply_to_email || undefined,

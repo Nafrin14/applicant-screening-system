@@ -291,19 +291,27 @@ const {
 
     } else {
 
- await supabase
-  .from("notifications")
-  .insert([
-    {
-      title: "Interview Scheduled",
-      candidate_name: candidateName,
-      message: `${candidateName} interview scheduled on ${interviewDate} at ${interviewTime}`,
-      interview_date: interviewDate,
-      interview_time: interviewTime,
-      is_read: false,
-      module: "smarthire",
-    },
-  ]);
+ const { data: settingsRow } = await supabase
+  .from("settings")
+  .select("notify_interview_reminders")
+  .eq("id", 1)
+  .maybeSingle();
+
+ if (settingsRow?.notify_interview_reminders ?? true) {
+   await supabase
+    .from("notifications")
+    .insert([
+      {
+        title: "Interview Scheduled",
+        candidate_name: candidateName,
+        message: `${candidateName} interview scheduled on ${interviewDate} at ${interviewTime}`,
+        interview_date: interviewDate,
+        interview_time: interviewTime,
+        is_read: false,
+        module: "smarthire",
+      },
+    ]);
+ }
 
 
   // TODO: GHL API Integration

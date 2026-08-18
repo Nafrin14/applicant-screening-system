@@ -506,7 +506,7 @@ const bulkUpdateStatus = async (status) => {
   />
 </th>
 
-                  <th className="px-6 py-5">
+                  <th className="px-6 py-5 sticky left-0 z-20 bg-slate-50/80">
                     Candidate
                   </th>
 
@@ -576,7 +576,13 @@ const bulkUpdateStatus = async (status) => {
   />
 </td>
 
-                    <td className="px-6 py-5">
+                    <td
+                      className={`px-6 py-5 sticky left-0 z-10 ${
+                        selectedApplicants.includes(applicant.id)
+                          ? "bg-indigo-50/50"
+                          : "bg-white group-hover:bg-slate-50/50"
+                      }`}
+                    >
 
                       <div className="flex items-center gap-4">
 

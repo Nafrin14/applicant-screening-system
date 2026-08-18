@@ -51,6 +51,13 @@ const ONCE_MODE = process.argv.includes("--once");
 // ─── core poll ───────────────────────────────────────────────────────────────
 
 async function pollMail() {
+  const { data: settingsRow } = await supabase
+    .from("settings")
+    .select("notify_mail_replies")
+    .eq("id", 1)
+    .maybeSingle();
+  const notifyMailReplies = settingsRow?.notify_mail_replies ?? true;
+
   const client = new ImapFlow({
     host: IMAP_HOST,
     port: Number(IMAP_PORT),
@@ -86,27 +93,61 @@ async function pollMail() {
         const candidateId = refMatch ? Number(refMatch[1]) : null;
         const sender = parsed.from?.value?.[0] || {};
 
-        const { error } = await supabase.from("email_replies").upsert(
-          [
-            {
-              message_id: messageId,
-              candidate_id: candidateId,
-              from_email: sender.address || "",
-              from_name: sender.name || "",
-              subject,
-              body_text: parsed.text || "",
-              received_at: (parsed.date || new Date()).toISOString(),
-            },
-          ],
-          { onConflict: "message_id", ignoreDuplicates: true }
-        );
+        const { data: stored, error } = await supabase
+          .from("email_replies")
+          .upsert(
+            [
+              {
+                message_id: messageId,
+                candidate_id: candidateId,
+                from_email: sender.address || "",
+                from_name: sender.name || "",
+                subject,
+                body_text: parsed.text || "",
+                received_at: (parsed.date || new Date()).toISOString(),
+              },
+            ],
+            { onConflict: "message_id", ignoreDuplicates: true }
+          )
+          .select();
 
         if (error) {
           console.error(`Failed to store ${messageId}:`, error.message);
-        } else {
-          console.log(
-            `Stored: ${sender.address || "unknown"} → candidate ${candidateId ?? "unmatched"}`
-          );
+          continue;
+        }
+
+        // .select() returns [] (not an error) when ignoreDuplicates skipped
+        // an existing row — only notify on a genuinely new message.
+        if (!stored || stored.length === 0) {
+          console.log(`Skipped duplicate: ${messageId}`);
+          continue;
+        }
+
+        console.log(
+          `Stored: ${sender.address || "unknown"} → candidate ${candidateId ?? "unmatched"}`
+        );
+
+        if (notifyMailReplies) {
+          let notifyName = sender.name || sender.address || "Unknown sender";
+          if (candidateId) {
+            const { data: candidateRow } = await supabase
+              .from("applicants")
+              .select("name")
+              .eq("id", candidateId)
+              .maybeSingle();
+            if (candidateRow?.name) notifyName = candidateRow.name;
+          }
+
+          const { error: notifyError } = await supabase.from("notifications").insert([
+            {
+              title: "New email reply",
+              candidate_name: notifyName,
+              is_read: false,
+            },
+          ]);
+          if (notifyError) {
+            console.error("Failed to create notification:", notifyError.message);
+          }
         }
       }
     } finally {
@@ -114,6 +155,16 @@ async function pollMail() {
     }
   } finally {
     await client.logout();
+    await updateSyncStatus();
+  }
+}
+
+async function updateSyncStatus() {
+  const { error } = await supabase
+    .from("sync_status")
+    .upsert([{ id: 1, last_synced_at: new Date().toISOString() }]);
+  if (error) {
+    console.error("Failed to update sync_status (table may not exist yet):", error.message);
   }
 }
 

@@ -3,9 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Standalone IMAP poller — runs continuously on Railway (loop mode) or once via GitHub Actions (--once flag).",
+  "description": "Standalone IMAP poller \u2014 runs continuously on Railway (loop mode) or once via GitHub Actions (--once flag).",
   "scripts": {
-    "start": "node pollMail.js"
+    "start": "node init && node pollMail.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
