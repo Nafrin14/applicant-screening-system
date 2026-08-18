@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FaTrash, FaTimes, FaPen } from "react-icons/fa";
 import { FaSquareWhatsapp } from "react-icons/fa6";
 import Papa from "papaparse";
@@ -44,6 +44,9 @@ const withCandidateRefTag = (subject, candidateId) =>
 function BulkActions() {
   const { notify, confirmDialog } = useNotification();
   const navigate = useNavigate();
+  const location = useLocation();
+  const preselect = location.state || null;
+  const [preselectApplied, setPreselectApplied] = useState(false);
 
   const [candidates, setCandidates] = useState([]);
   const [bulkSearch, setBulkSearch] = useState("");
@@ -65,6 +68,7 @@ function BulkActions() {
     hr_name: "",
     hr_phone: "",
     reply_to_email: "",
+    email_from_name: "",
   });
   const [templates, setTemplates] = useState([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -94,6 +98,31 @@ function BulkActions() {
       setCurrentUserEmail(data?.user?.email || "");
     });
   }, []);
+
+  // Quick-action entry from Candidate Details ("Text/WhatsApp" / "Email"
+  // buttons) — pre-select that one candidate and switch to the right tab
+  // once the candidate list has actually loaded.
+  useEffect(() => {
+    if (!preselect?.preselectCandidateId || preselectApplied || candidates.length === 0) {
+      return;
+    }
+
+    const candidate = candidates.find((c) => c.id === preselect.preselectCandidateId);
+    setPreselectApplied(true);
+    if (!candidate) return;
+
+    const channel = preselect.channel === "Email" ? "Email" : "Text";
+    setBulkChannel(channel);
+
+    if (isReachable(candidate, channel)) {
+      setBulkSelected([candidate.id]);
+    } else {
+      notify(
+        `${candidate.name} has no ${channel === "Email" ? "email" : "phone number"} on file`,
+        { type: "error" }
+      );
+    }
+  }, [candidates]);
 
   const loadCandidates = async () => {
     const { data, error } = await supabase.from("applicants").select("*");
@@ -152,7 +181,7 @@ function BulkActions() {
   const fetchCompanySettings = async () => {
     const { data, error } = await supabase
       .from("settings")
-      .select("company_name, hr_name, hr_phone, reply_to_email")
+      .select("company_name, hr_name, hr_phone, reply_to_email, email_from_name")
       .eq("id", 1)
       .single();
 
@@ -166,6 +195,7 @@ function BulkActions() {
       hr_name: data?.hr_name || "",
       hr_phone: data?.hr_phone || "",
       reply_to_email: data?.reply_to_email || "",
+      email_from_name: data?.email_from_name || "",
     });
   };
 
@@ -232,6 +262,7 @@ Thank you,
       {
         to_email: candidate.email,
         to_name: candidate.name,
+        from_name: companySettings.email_from_name || undefined,
         subject: withCandidateRefTag(subject, candidate.id),
         message: body,
         reply_to: companySettings.reply_to_email || undefined,
