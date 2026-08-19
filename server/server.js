@@ -38,12 +38,26 @@ app.use((req,res,next)=>{
 
 
 // CORS
+// ALLOWED_ORIGINS = comma-separated list of frontend URLs allowed to call
+// this API (e.g. "https://your-app.vercel.app,https://your-app-*.vercel.app").
+// Falls back to localhost so local dev keeps working without extra setup.
+const allowedOrigins = (
+  process.env.ALLOWED_ORIGINS || "http://localhost:5173"
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 app.use(
 cors({
 
-  origin:
-  "http://localhost:5173",
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS: " + origin));
+    }
+  },
 
   methods:[
     "GET",
