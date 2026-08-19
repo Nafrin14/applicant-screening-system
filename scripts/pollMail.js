@@ -40,6 +40,45 @@ if (missing.length > 0) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 const REF_TAG_RE = /\[Ref:\s*(\d+)\]/i;
 
+// Reply emails carry the candidate's new text on top, followed by the
+// full quoted original thread ("On <date>, X wrote: > ..."). Chat bubbles
+// only want the new text — cut everything from the first quote-header
+// line onward (Gmail "On ... wrote:", Outlook "----- Original Message
+// -----", or classic "> " quoted lines).
+function stripQuotedReply(text) {
+  if (!text) return text;
+  const lines = text.split(/\r?\n/);
+  let cutIndex = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    if (/^On\b.*wrote:\s*$/i.test(line)) {
+      cutIndex = i;
+      break;
+    }
+    if (/^On\b/.test(line)) {
+      const lookahead = lines.slice(i, i + 3).join(" ");
+      if (/\bwrote:/i.test(lookahead)) {
+        cutIndex = i;
+        break;
+      }
+    }
+    if (/^-{2,}\s*Original Message\s*-{2,}/i.test(line)) {
+      cutIndex = i;
+      break;
+    }
+    if (/^>/.test(line)) {
+      cutIndex = i;
+      break;
+    }
+  }
+
+  if (cutIndex === -1) return text.trim();
+  return lines.slice(0, cutIndex).join("\n").trim();
+}
+
 // How far back to look on each poll (2 days covers restarts & gaps)
 const SINCE_DAYS = 2;
 
@@ -103,7 +142,7 @@ async function pollMail() {
                 from_email: sender.address || "",
                 from_name: sender.name || "",
                 subject,
-                body_text: parsed.text || "",
+                body_text: stripQuotedReply(parsed.text || ""),
                 received_at: (parsed.date || new Date()).toISOString(),
               },
             ],
