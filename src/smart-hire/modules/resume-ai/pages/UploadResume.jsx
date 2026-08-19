@@ -242,15 +242,36 @@ let phone = "--";
 const phoneMatches =
   fileText.match(/(?:\+?\d[\d\s()-]{8,25})/g) || [];
 
-for (const num of phoneMatches) {
-  const digits = num.replace(/\D/g, "");
+for (const rawMatch of phoneMatches) {
+  const digits = rawMatch.replace(/\D/g, "");
 
-  if (digits.length >= 9 && digits.length <= 15) {
-    phone = num.match(
-      /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}|(?:\+?\d[\d\s()-]{8,20})/
-    )[0];
-
+  if (digits.length >= 9 && digits.length <= 12) {
+    phone = rawMatch.trim();
     break;
+  }
+
+  // The greedy match above can swallow unrelated digits right after the
+  // number (e.g. an address/pincode with no comma or line break between
+  // them in the extracted PDF text). Trim back token-by-token to the last
+  // point where the digit count still looks like a real phone number.
+  if (digits.length > 12) {
+    const leadingPlus = rawMatch.startsWith("+") ? "+" : "";
+    const body = leadingPlus ? rawMatch.slice(1) : rawMatch;
+    const tokens = body.match(/[\s.()-]*\d+/g) || [];
+    let trimmed = leadingPlus;
+    let digitCount = 0;
+
+    for (const token of tokens) {
+      const tokenDigits = token.replace(/\D/g, "").length;
+      if (digitCount + tokenDigits > 12) break;
+      trimmed += token;
+      digitCount += tokenDigits;
+    }
+
+    if (digitCount >= 9) {
+      phone = trimmed.trim();
+      break;
+    }
   }
 }
 
