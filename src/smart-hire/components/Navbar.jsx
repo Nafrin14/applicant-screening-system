@@ -254,7 +254,7 @@ const handleDelete = async (item) => {
   };
 
   return (
-    <div className="sh-navbar-offset fixed top-0 left-0 right-0 h-16 bg-white border-b border-slate-200 shadow-sm z-40">
+    <div className="sh-navbar-offset fixed top-0 right-0 h-16 bg-white border-b border-slate-200 shadow-sm z-40">
       <div className="h-full flex items-center gap-6 px-8">
 
         {/* Greeting */}
