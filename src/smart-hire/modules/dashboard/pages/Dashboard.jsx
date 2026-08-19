@@ -29,6 +29,7 @@ import {
   FaUserTimes,
   FaUserClock,
    FaUpload,
+  FaBriefcase,
 } from "react-icons/fa";
 
 function Dashboard() {
@@ -61,9 +62,47 @@ function Dashboard() {
     setApplicants,
   ] = useState([]);
 
+  const [jobs, setJobs] = useState([]);
+
   useEffect(() => {
     fetchDashboardData();
+    fetchJobsData();
   }, []);
+
+  const fetchJobsData = async () => {
+    const { data, error } = await supabase
+      .from("job_posts")
+      .select("id, title");
+
+    if (error) {
+      console.log(error);
+      return;
+    }
+
+    setJobs(data || []);
+  };
+
+  // Job with the most applicants — surfaced on the dashboard so recruiters
+  // can see which opening is drawing the most interest at a glance.
+  const topJob = useMemo(() => {
+    if (jobs.length === 0) return null;
+
+    const counts = {};
+    applicants.forEach((applicant) => {
+      if (!applicant.job_post_id) return;
+      counts[applicant.job_post_id] = (counts[applicant.job_post_id] || 0) + 1;
+    });
+
+    let best = null;
+    jobs.forEach((job) => {
+      const count = counts[job.id] || 0;
+      if (!best || count > best.count) {
+        best = { ...job, count };
+      }
+    });
+
+    return best?.count > 0 ? best : null;
+  }, [jobs, applicants]);
 
   const trendData = useMemo(() => {
     const days = [];
@@ -401,6 +440,45 @@ className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-t
 
           </div>
 
+          {/* Active Jobs */}
+
+          <div
+            onClick={() => navigate("/jobs")}
+            className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-lg transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center gap-6"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-gradient-to-br from-violet-500 to-purple-600 p-3 rounded-2xl shadow-lg shadow-violet-500/30 flex-shrink-0">
+                <FaBriefcase className="text-white text-xl" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-extrabold text-slate-900">
+                  {jobs.length}
+                </h2>
+                <p className="text-slate-500 text-sm font-medium">Active Jobs</p>
+              </div>
+            </div>
+
+            <div className="hidden sm:block h-12 w-px bg-slate-100" />
+
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">
+                Top Job by Applicants
+              </p>
+              {topJob ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-bold text-slate-800 truncate">
+                    {topJob.title}
+                  </span>
+                  <span className="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full flex-shrink-0">
+                    {topJob.count} applicant{topJob.count !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">No applicants linked to a job yet</p>
+              )}
+            </div>
+          </div>
+
           {/* Recent Applicants */}
 
     <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
@@ -427,7 +505,7 @@ className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-t
 
             </div>
 
-            <div className="space-y-4">
+            <div className="divide-y divide-slate-100">
 
               {applicants
                 ?.slice(0, 5)
@@ -441,25 +519,22 @@ className="w-full md:w-auto flex items-center justify-center gap-2 bg-gradient-t
       state: applicant,
     })
   }
- className="flex flex-col md:flex-row justify-between md:items-center
-gap-3 p-4 rounded-3xl border border-slate-200 bg-white
-hover:shadow-xl hover:border-blue-200
-hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+ className="flex items-center justify-between gap-3 py-3 hover:bg-slate-50 rounded-xl px-2 -mx-2 transition-colors cursor-pointer"
 >
 
-                 <div className="flex items-center gap-4">
+                 <div className="flex items-center gap-3 min-w-0">
 
-  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xl shadow-sm flex-shrink-0">
+  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm shadow-sm flex-shrink-0">
     {applicant.name?.charAt(0)}
   </div>
 
   <div className="min-w-0">
 
-    <h3 className="text-base font-bold text-slate-800 tracking-tight truncate">
+    <h3 className="text-sm font-semibold text-slate-800 truncate">
       {applicant.name}
     </h3>
 
-    <p className="text-sm text-slate-400 truncate">
+    <p className="text-xs text-slate-400 truncate">
       {applicant.email}
     </p>
 
@@ -467,13 +542,13 @@ hover:-translate-y-1 transition-all duration-300 cursor-pointer"
 
 </div>
 
-                    <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-2 flex-shrink-0">
 
-                      <div className="inline-flex items-center px-4 py-2 rounded-full bg-blue-50 text-blue-600 text-sm font-bold">
+                      <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
   {applicant.ai_score || applicant.score || 0}% Match
-</div>
+</span>
                       <span
-                        className={`px-3 py-1.5 rounded-full text-sm font-semibold shadow-sm ${
+                        className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                           applicant.status ===
                           "Shortlisted"
                             ? "bg-green-100 text-green-600"

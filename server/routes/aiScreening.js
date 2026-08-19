@@ -72,7 +72,7 @@ router.post("/screen", async (req, res) => {
       {
 
         model:
-        "llama-3.1-8b-instant",
+        "openai/gpt-oss-20b",
 
 
         messages:[
@@ -115,6 +115,8 @@ JSON format:
 "whySuitable":""
 }
 
+"score" MUST be an integer from 0 to 100 representing the percentage match
+for the role (0 = no match, 100 = perfect match). Do not use a 0-10 scale.
 `
 
           }

@@ -1001,8 +1001,8 @@ const handleDeleteCandidate = async (candidate) => {
   const handleClearChatForCandidate = async (candidate) => {
     if (!candidate) return;
     const confirmed = await confirmDialog(
-      `Clear all messages for ${candidate.name}?`,
-      { danger: true, confirmLabel: "Clear" }
+      `Delete this chat with ${candidate.name}? Only the chat messages will be deleted — the candidate record won't be affected.`,
+      { danger: true, confirmLabel: "Delete Chat" }
     );
     if (!confirmed) return;
     const { error } = await supabase
@@ -1134,10 +1134,14 @@ setCandidateMenuPos={setCandidateMenuPos}
       }}
     >
       <button
-        onClick={() => handleClearChatForCandidate(candidateMenu)}
-        className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-slate-700 text-sm font-medium flex items-center gap-3"
+        onClick={() => {
+          const candidate = candidateMenu;
+          setCandidateMenu(null);
+          handleClearChatForCandidate(candidate);
+        }}
+        className="w-full text-left px-4 py-2.5 hover:bg-red-50 text-red-600 text-sm font-medium flex items-center gap-3"
       >
-        <span className="text-base">🧹</span> Clear Chat
+        <FaTrash className="text-xs" /> Delete Chat
       </button>
 
       <button
