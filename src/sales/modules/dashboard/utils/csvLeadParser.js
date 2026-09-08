@@ -18,6 +18,92 @@ export function getField(row, candidates) {
   return "";
 }
 
+const DATE_FIELD_CANDIDATES = [
+  "Created on",
+  "Date",
+  "Created Date",
+  "Lead Date",
+  "Create Date",
+  "Creation Date",
+  "Date Created"
+];
+
+// ─── HELPER: Detect sheet-embedded summary/totals rows ───────────────────
+// The master sheets salespeople actually upload end with their own totals
+// block -- "Total number of Leads", "Total number of Leads Converted",
+// "Total number of Leads Lost", "Follow up", "Booked but Not Visited",
+// "Need to Book" -- sitting in the same columns as the lead rows above it.
+// A naive row-by-row import inserts these as fake leads, so they're
+// filtered out before any field mapping happens.
+const SUMMARY_ROW_PATTERNS = [
+  /^total\s+number\s+of\s+leads/i,
+  /^follow\s*up$/i,
+  /^booked\s+but\s+not\s+visited$/i,
+  /^need\s+to\s+book$/i,
+];
+
+function isSummaryRow(row) {
+  return Object.values(row).some((v) => {
+    const s = String(v ?? "").trim();
+    return s && SUMMARY_ROW_PATTERNS.some((p) => p.test(s));
+  });
+}
+
+// ─── HELPER: Normalize inconsistent lead dates ────────────────────────────
+// The same sheet mixes "8/1/2026" with hand-typed, year-less dates like
+// "20th Aug" or "31 Aug". Native Date parsing chokes on both the ordinal
+// suffix and the missing year, which silently breaks the report's
+// "as of" date resolution (generateAuditPdf.js) and any date sorting.
+// This normalizes whatever it can recognize to an ISO yyyy-mm-dd string,
+// borrowing a year from elsewhere in the same upload batch when a row
+// doesn't state one, and otherwise leaves the raw text untouched rather
+// than silently dropping it.
+const MONTH_NAMES_RE = "jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec";
+
+function stripOrdinalSuffix(s) {
+  return s.replace(/\b(\d{1,2})(st|nd|rd|th)\b/gi, "$1");
+}
+
+function detectYearHint(rawDates) {
+  const counts = {};
+  rawDates.forEach((raw) => {
+    const m = String(raw || "").match(/\b(20\d{2})\b/);
+    if (m) counts[m[1]] = (counts[m[1]] || 0) + 1;
+  });
+  const years = Object.keys(counts);
+  if (!years.length) return null;
+  return years.sort((a, b) => counts[b] - counts[a])[0];
+}
+
+export function normalizeLeadDate(raw, yearHint) {
+  const s = stripOrdinalSuffix(String(raw || "").trim());
+  if (!s) return "";
+
+  // M/D/YYYY or M/D/YY
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) {
+    let [, mo, d, y] = m;
+    if (y.length === 2) y = `20${y}`;
+    const dt = new Date(Number(y), Number(mo) - 1, Number(d));
+    if (!isNaN(dt.getTime())) return dt.toISOString().split("T")[0];
+  }
+
+  // "Aug 20", "20 Aug", or either with a year appended -- with or without
+  // a stated year, e.g. "20th Aug" (ordinal already stripped above) or
+  // "31 Aug 2026".
+  const monthMatch = s.match(new RegExp(`(${MONTH_NAMES_RE})[a-z]*`, "i"));
+  const dayMatch = s.match(/\b(\d{1,2})\b/);
+  const yearMatch = s.match(/\b(20\d{2})\b/);
+  if (monthMatch && dayMatch) {
+    const year = yearMatch ? yearMatch[1] : yearHint || String(new Date().getFullYear());
+    const dt = new Date(`${monthMatch[0]} ${dayMatch[1]}, ${year}`);
+    if (!isNaN(dt.getTime())) return dt.toISOString().split("T")[0];
+  }
+
+  // Unrecognized format -- keep the original text rather than lose the row's date entirely.
+  return s;
+}
+
 function detectBusinessLine(fileName) {
   if (fileName.includes("fence") || fileName.includes("fencing")) {
     return "Fencing";
@@ -60,7 +146,16 @@ export function buildLeadRows(rows, { fileName, userId, csvUploadId, assignmentM
 
   console.log("STEP 3.5 - Matched account:", match, "| resolved salesperson:", salesperson);
 
-  const leadRows = rows.map((row) => {
+  // ─── FIX: Strip the sheet's own totals block before mapping any rows ───
+  const cleanRows = rows.filter((row) => !isSummaryRow(row));
+  const strippedCount = rows.length - cleanRows.length;
+  if (strippedCount > 0) {
+    console.log(`STEP 3.6 - Stripped ${strippedCount} embedded summary/totals row(s) from "${fileName}".`);
+  }
+
+  const yearHint = detectYearHint(cleanRows.map((row) => getField(row, DATE_FIELD_CANDIDATES)));
+
+  const leadRows = cleanRows.map((row) => {
     const stage = getField(row, [
       "Stage",
       "Deal Stage",
@@ -136,15 +231,7 @@ export function buildLeadRows(rows, { fileName, userId, csvUploadId, assignmentM
       stage,
       last_stage: stage,
       final_status: finalStatus,
-      lead_date: getField(row, [
-        "Created on",
-        "Date",
-        "Created Date",
-        "Lead Date",
-        "Create Date",
-        "Creation Date",
-        "Date Created"
-      ]),
+      lead_date: normalizeLeadDate(getField(row, DATE_FIELD_CANDIDATES), yearHint),
     };
   });
 
