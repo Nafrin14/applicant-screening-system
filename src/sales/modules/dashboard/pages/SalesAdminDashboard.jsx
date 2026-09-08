@@ -6,6 +6,8 @@ import useSalesAdminData from '../hooks/useSalesAdminData';
 import useUserManagement from '../hooks/useUserManagement';
 import useCsvVault from '../hooks/useCsvVault';
 import useAuditReport from '../hooks/useAuditReport';
+import useBusinessAssignments from '../hooks/useBusinessAssignments';
+import useCsvUpload from '../hooks/useCsvUpload';
 
 import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminHeader from '../components/admin/AdminHeader';
@@ -14,6 +16,7 @@ import UsersTab from '../components/admin/UsersTab';
 import UserFormTab from '../components/admin/UserFormTab';
 import CsvVaultTab from '../components/admin/CsvVaultTab';
 import AiReportTab from '../components/admin/AiReportTab';
+import BusinessAssignmentsTab from '../components/admin/BusinessAssignmentsTab';
 
 export default function SalesAdminDashboard() {
   const { notify, confirmDialog } = useNotification();
@@ -24,6 +27,7 @@ export default function SalesAdminDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [overviewUserFilter, setOverviewUserFilter] = useState('');
   const [notification, setNotification] = useState('');
+  const [uploadTargetUserId, setUploadTargetUserId] = useState('');
 
   const showToast = (msg) => { setNotification(msg); setTimeout(()=>setNotification(''),4500); };
 
@@ -41,6 +45,17 @@ export default function SalesAdminDashboard() {
   const userMgmt = useUserManagement(fetchDashboardData, { notify, confirmDialog, showToast, setActiveTab });
   const csvVault = useCsvVault(uploadedCsvFiles, selectedCsvIds, setSelectedCsvIds, fetchDashboardData, { notify, confirmDialog, showToast });
   const auditReport = useAuditReport({ showToast });
+  const businessAssignments = useBusinessAssignments({ notify, showToast });
+
+  // Lets an admin upload a CSV on behalf of a salesperson who is out — the
+  // rows land under that salesperson's user_id, not the admin's own, so
+  // reports and history still look exactly like the salesperson uploaded
+  // it themselves.
+  const adminCsvUpload = useCsvUpload({
+    notify,
+    refetch: fetchDashboardData,
+    getTargetUserId: () => uploadTargetUserId || null,
+  });
 
   const handleLogout = async () => {
     if (await confirmDialog('Log out?')) {
@@ -111,9 +126,21 @@ export default function SalesAdminDashboard() {
             />
           )}
 
-          {/* ── TAB 4: CSV VAULT ────────────────────────────────────────── */}
+          {/* ── TAB: BUSINESS ASSIGNMENTS ───────────────────────────────── */}
+          {activeTab==='assignments' && (
+            <BusinessAssignmentsTab
+              assignments={businessAssignments.assignments}
+              salesUsers={salesUsers}
+              loading={businessAssignments.loading}
+              saving={businessAssignments.saving}
+              onSave={businessAssignments.saveAssignment}
+            />
+          )}
+
+          {/* ── TAB 4: CSV VAULT (VIEW SALESPERSON RECORDS) ─────────────── */}
           {activeTab==='csv-vault' && (
             <CsvVaultTab
+              salesUsers={salesUsers}
               csvFilterName={csvVault.csvFilterName} onFilterNameChange={csvVault.onFilterNameChange}
               csvDatePreset={csvVault.csvDatePreset} onDatePresetChange={csvVault.onDatePresetChange}
               csvCustomStart={csvVault.csvCustomStart} onCustomStartChange={csvVault.onCustomStartChange}
@@ -126,6 +153,10 @@ export default function SalesAdminDashboard() {
               onSelectAll={csvVault.handleSelectAllCsvs}
               onBulkDelete={csvVault.handleBulkDeleteCsvs}
               onClearFilters={csvVault.clearCsvFilters}
+              uploadTargetUserId={uploadTargetUserId}
+              setUploadTargetUserId={setUploadTargetUserId}
+              onUploadOnBehalf={adminCsvUpload.handleFileUpload}
+              uploadingOnBehalf={adminCsvUpload.uploading}
             />
           )}
 

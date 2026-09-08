@@ -5,12 +5,20 @@ import confetti from "canvas-confetti";
 import { buildLeadRows } from "../utils/csvLeadParser";
 
 // ─────────────────────────────────────────────────────────────────────────
-// CSV upload flow for the sales-rep dashboard: validates the picked files
-// are .csv, records them in csv_uploads, parses each with Papa Parse and
-// inserts the resulting rows into sales_leads, then refreshes the upload
-// history and shows the success toast/confetti.
+// CSV upload flow, shared by the sales-rep dashboard and the admin's
+// "Upload Leads CSV" panel on View Salesperson Records: validates the
+// picked files are .csv, records them in csv_uploads, parses each with
+// Papa Parse and inserts the resulting rows into sales_leads, then
+// refreshes the upload history and shows the success toast/confetti.
+//
+// `getTargetUserId`, when given, lets an admin upload a CSV on another
+// salesperson's behalf -- the rows get attributed to that salesperson's
+// user_id instead of whoever is actually logged in (used when a
+// salesperson is on leave and can't upload themselves). Leave it out (the
+// rep dashboard's own usage) and rows are attributed to the logged-in
+// user, exactly as before.
 // ─────────────────────────────────────────────────────────────────────────
-export default function useCsvUpload({ notify, refetch }) {
+export default function useCsvUpload({ notify, refetch, getTargetUserId }) {
   const [uploading, setUploading] = useState(false);
   const [uploadToast, setUploadToast] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState("");
@@ -39,9 +47,21 @@ export default function useCsvUpload({ notify, refetch }) {
 
       if (!user) throw new Error("User not logged in.");
 
+      const targetUserId = getTargetUserId?.() || user.id;
+
+      // Fetch the current business -> salesperson assignments once per
+      // batch, so buildLeadRows can prefer them over the static filename
+      // mapping in accountMapping.js.
+      const { data: assignmentRows } = await supabase
+        .from("business_assignments")
+        .select("business_location, salesperson_name");
+      const assignmentMap = Object.fromEntries(
+        (assignmentRows || []).map((a) => [a.business_location, a.salesperson_name])
+      );
+
       // Step A: Save file to csv_uploads and get back the ID
       const uploadData = files.map((file) => ({
-        user_id: user.id,
+        user_id: targetUserId,
         file_name: file.name,
         file_path: file.name,
         status: "success",
@@ -73,8 +93,9 @@ export default function useCsvUpload({ notify, refetch }) {
 
               const leadRows = buildLeadRows(results.data, {
                 fileName: file.name,
-                userId: user.id,
+                userId: targetUserId,
                 csvUploadId,
+                assignmentMap,
               });
 
               if (leadRows.length > 0) {

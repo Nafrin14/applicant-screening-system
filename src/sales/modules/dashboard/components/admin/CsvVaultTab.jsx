@@ -1,6 +1,9 @@
+import { useRef } from 'react';
+
 const DATE_PRESET_LABELS = { today:'Today', yesterday:'Yesterday', last7:'Last 7 Days', lastMonth:'Last Month' };
 
 export default function CsvVaultTab({
+  salesUsers,
   csvFilterName, onFilterNameChange,
   csvDatePreset, onDatePresetChange,
   csvCustomStart, onCustomStartChange,
@@ -13,11 +16,59 @@ export default function CsvVaultTab({
   onSelectAll,
   onBulkDelete,
   onClearFilters,
+  uploadTargetUserId,
+  setUploadTargetUserId,
+  onUploadOnBehalf,
+  uploadingOnBehalf,
 }) {
   const hasActiveFilters = csvFilterName || csvDatePreset || csvFilterStatus;
+  const adminFileInputRef = useRef(null);
 
   return (
     <div className="space-y-4">
+      {/* ─── Admin: upload a salesperson's CSV on their behalf ──────────── */}
+      {onUploadOnBehalf && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-emerald-950 px-5 py-4 flex items-center gap-3">
+            <span className="text-xl">📤</span>
+            <div>
+              <h4 className="text-white font-black text-sm">Upload Leads CSV</h4>
+              <p className="text-emerald-300/70 text-xs mt-0.5">If a salesperson is on leave, upload their CSV here on their behalf — it's saved exactly as if they'd uploaded it themselves.</p>
+            </div>
+          </div>
+          <div className="p-4 lg:p-5 flex flex-wrap gap-3 items-end">
+            <div className="flex-1 min-w-[220px]">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Upload on behalf of</label>
+              <select
+                value={uploadTargetUserId}
+                onChange={e => setUploadTargetUserId(e.target.value)}
+                className="w-full text-xs border border-slate-200 rounded-lg px-3 py-2.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-900"
+              >
+                <option value="">Select a salesperson…</option>
+                {salesUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+              </select>
+            </div>
+            <input
+              ref={adminFileInputRef}
+              type="file"
+              accept=".csv"
+              multiple
+              onChange={onUploadOnBehalf}
+              className="hidden"
+            />
+            <button
+              type="button"
+              disabled={!uploadTargetUserId || uploadingOnBehalf}
+              onClick={() => adminFileInputRef.current?.click()}
+              className="bg-emerald-900 text-white font-bold text-xs px-5 py-2.5 rounded-xl hover:bg-emerald-950 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!uploadTargetUserId ? 'Pick a salesperson first' : ''}
+            >
+              {uploadingOnBehalf ? '⏳ Uploading…' : '📤 Choose CSV File(s)'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-3">
         <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filter CSV Files</h4>
         <div className="flex flex-wrap gap-3 items-end">

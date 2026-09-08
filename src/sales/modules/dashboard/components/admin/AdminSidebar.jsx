@@ -1,6 +1,7 @@
 const NAV_ITEMS = [
   ['overview','📊 Performance Overview'],
   ['users','👥 Manage All Users'],
+  ['assignments','🧭 Business Assignments'],
   ['csv-vault','📄 View Salesperson Records'],
   ['ai-report','🎯 Final Audit Report'],
 ];

@@ -23,13 +23,40 @@ export function normalizeStage(stage) {
   return stage.charAt(0).toUpperCase() + stage.slice(1).toLowerCase();
 }
 
+// ─── HELPER: Resolve the report's "as of" date from the data, not "today" ──
+// A report generated a day (or a week) after the leads it covers should
+// still be labeled with the date the underlying data is actually from.
+function resolveReportDataDate(leads, pdfFilterStart, pdfFilterEnd) {
+  if (pdfFilterEnd) return pdfFilterEnd;
+  if (pdfFilterStart) return pdfFilterStart;
+
+  let latest = null;
+  (leads || []).forEach(lead => {
+    const raw = lead.lead_date || lead.created_at;
+    if (!raw) return;
+    const parsed = new Date(raw);
+    if (!isNaN(parsed.getTime()) && (!latest || parsed > latest)) {
+      latest = parsed;
+    }
+  });
+
+  return latest ? latest.toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+}
+
 // Generate PDF from leads data
 // ─── FIX: forces background colors to print, and fixes column widths ─────
-export function generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToast }) {
+// `assignmentMap` ({ businessLocation: salespersonName }, from
+// business_assignments) is looked up per-lead here instead of trusting
+// lead.salesperson directly -- that's what makes the report dynamic: a
+// reassignment takes effect on every report from this point on, even for
+// leads uploaded under the old salesperson.
+export function generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToast, assignmentMap = {} }) {
   const printWindow = window.open('', '_blank');
   if (!printWindow) { showToast('Allow pop-ups to download the PDF.'); return; }
 
-  const today = new Date().toLocaleDateString('en-GB');
+  const dataDateIso = resolveReportDataDate(leads, pdfFilterStart, pdfFilterEnd);
+  const dateBadge = new Date(`${dataDateIso}T00:00:00`).toLocaleDateString('en-GB');
+  const generatedAt = new Date().toLocaleString();
   const dateLabel = pdfFilterStart && pdfFilterEnd ? `${pdfFilterStart} → ${pdfFilterEnd}` : 'All Historical Dates';
 
   // 1. DEDUPLICATE AND CLEAN LEADS
@@ -40,14 +67,20 @@ export function generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToas
 
     if (!uniqueLeadsMap.has(matchKey)) {
       const normalizedStage = normalizeStage(lead.stage);
+      const resolvedSalesperson = assignmentMap[lead.location] || lead.salesperson || 'Unassigned';
 
       uniqueLeadsMap.set(matchKey, {
         name: lead.name || 'Unknown Lead',
         phone: lead.phone || '—',
         location: lead.location || 'Other / Unassigned',
         business_line: lead.business_line || 'General Pipeline',
-        salesperson: lead.salesperson || 'Unassigned',
+        salesperson: resolvedSalesperson,
         stage: normalizedStage,
+        lastStage: lead.last_stage || lead.stage || '',
+        finalStatus: lead.final_status || '',
+        address: lead.address || '',
+        comment: lead.comment || '',
+        source: lead.source || '',
         date: lead.lead_date || (lead.created_at ? new Date(lead.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—')
       });
     }
@@ -55,7 +88,7 @@ export function generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToas
 
   const processedLeads = Array.from(uniqueLeadsMap.values());
 
-  // 2. GROUP LEADS BY LOCATION + SALESPERSON
+  // 2. GROUP LEADS BY LOCATION + (DYNAMICALLY RESOLVED) SALESPERSON
   const locationGroups = {};
   processedLeads.forEach(lead => {
     const groupKey = `${lead.location} — ${lead.salesperson}`;
@@ -93,21 +126,30 @@ export function generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToas
 
     const location = groupKey.split(' — ')[0];
 
-    const rows = locLeads.map((lead, i) => `
+    const rows = locLeads.map((lead, i) => {
+      const statusLabel = lead.finalStatus || lead.stage;
+      const showLastStageNote = lead.lastStage && lead.lastStage !== statusLabel;
+
+      return `
       <tr style="background: ${i % 2 === 0 ? '#ffffff' : '#f8fafc'}">
-        <td style="padding: 10px 14px; font-weight: 500; color: #1e293b; border-bottom: 1px solid #e2e8f0;">${lead.name}</td>
+        <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; font-weight: 500; color: #1e293b;">${lead.name}</td>
+        <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #475569;">${lead.address || '—'}</td>
+        <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0; color: #475569; font-style: ${lead.comment ? 'italic' : 'normal'};">${lead.comment || '—'}</td>
         <td style="padding: 10px 14px; color: #475569; font-family: monospace; border-bottom: 1px solid #e2e8f0;">${lead.phone}</td>
         <td style="padding: 10px 14px; color: #475569; border-bottom: 1px solid #e2e8f0;">${lead.location}</td>
         <td style="padding: 10px 14px; color: #475569; border-bottom: 1px solid #e2e8f0;">${lead.business_line}</td>
+        <td style="padding: 10px 14px; color: #475569; border-bottom: 1px solid #e2e8f0;">${lead.source || '—'}</td>
         <td style="padding: 10px 14px; color: #475569; font-weight: 600; border-bottom: 1px solid #e2e8f0;">${lead.salesperson}</td>
         <td style="padding: 10px 14px; border-bottom: 1px solid #e2e8f0;">
           <span style="display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; ${lead.stage.includes('Appointment Booked') ? 'background-color: #dbeafe; color: #1e40af;' : lead.stage.includes('Pending') ? 'background-color: #fef3c7; color: #92400e;' : 'background-color: #dcfce7; color: #166534;'}">
-            ${lead.stage}
+            ${statusLabel}
           </span>
+          ${showLastStageNote ? `<div style="color:#94a3b8; font-size:10px; margin-top:3px;">Last stage: ${lead.lastStage}</div>` : ''}
         </td>
         <td style="padding: 10px 14px; color: #64748b; border-bottom: 1px solid #e2e8f0; white-space: nowrap;">${lead.date}</td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
 
     const locationColors = {
       'Albany': 'background: linear-gradient(135deg, #11998e, #38ef7d);',
@@ -129,13 +171,16 @@ export function generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToas
         <table>
           <thead>
             <tr style="background: #f1f5f9; border-bottom: 2px solid #e2e8f0;">
-              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 16%;">Name</th>
-              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 15%;">Phone</th>
-              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 12%;">Location</th>
-              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 14%;">Business Line</th>
-              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 13%;">Salesperson</th>
-              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 18%;">Stage</th>
-              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 12%;">Date</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 12%;">Name</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 13%;">Address</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 12%;">Comment</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 9%;">Phone</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 7%;">Location</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 8%;">Business Line</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 9%;">Source</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 8%;">Salesperson</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 12%;">Final Status</th>
+              <th style="padding: 10px 14px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #475569; width: 8%;">Date</th>
             </tr>
           </thead>
           <tbody>
@@ -163,7 +208,7 @@ export function generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToas
     <!DOCTYPE html>
     <html>
     <head>
-      <title>Sales Lead Report — ${today}</title>
+      <title>Sales Lead Report — ${dateBadge}</title>
       <style>
         * {
           box-sizing: border-box;
@@ -270,7 +315,7 @@ export function generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToas
           <h1>📋 Sales Lead Report</h1>
           <p>KD Marketing Sales Database · Filter: ${dateLabel}</p>
         </div>
-        <div class="date-badge">${today}</div>
+        <div class="date-badge">${dateBadge}</div>
       </div>
 
       <div class="summary-stats">
@@ -286,7 +331,7 @@ export function generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToas
       ${tablesHtml}
 
       <div class="footer">
-        Confidential Internal Sales Report · Generated on ${new Date().toLocaleString()}
+        Confidential Internal Sales Report · Generated on ${generatedAt}
       </div>
 
       <script>
@@ -338,7 +383,7 @@ export async function generateFallbackPdfFromCsvUploads({ pdfFilterUser, pdfFilt
     <div class="header"><div><div class="title">Upload Activity Report</div><div class="meta">KD Marketing Sales Console · Generated: ${new Date().toLocaleString()}</div></div><div class="badge">${today}</div></div>
     <table><thead><tr><th>Salesperson</th><th>File Name</th><th>Status</th><th>Upload Date</th></tr></thead><tbody>${rowsHtml}</tbody></table>
     <div class="footer">Upload Activity Report · ${today} · Total: ${uploads?.length || 0} files</div>
-    <script>setTimeout(()=>window.print(),600);<\/script></body></html>`;
+    <script>setTimeout(()=>window.print(),600);</script></body></html>`;
 
     printWindow.document.write(html);
     printWindow.document.close();
@@ -351,21 +396,27 @@ export async function generateFallbackPdfFromCsvUploads({ pdfFilterUser, pdfFilt
 
 // ─────────────────────────────────────────────────────────────────────────
 // Orchestrator used by the Audit Report tab's "Download" button.
-// Queries sales_leads (falling back to csv_uploads if that table/query
-// fails), then hands the rows to the printable-HTML generator above.
+// Fetches business_assignments (the dynamic salesperson source of truth)
+// alongside sales_leads (falling back to csv_uploads if that query fails),
+// then hands both to the printable-HTML generator above.
 // ─────────────────────────────────────────────────────────────────────────
 export async function downloadAuditPdf({ pdfFilterUser, pdfFilterStart, pdfFilterEnd, pdfFilterStage, showToast, setPdfGenerating }) {
   setPdfGenerating(true);
   try {
-    let query = supabase
+    let leadsQuery = supabase
       .from('sales_leads')
       .select(`
         name,
         phone,
+        address,
+        comment,
+        source,
         location,
         business_line,
         salesperson,
         stage,
+        last_stage,
+        final_status,
         lead_date,
         created_at,
         user_id,
@@ -374,12 +425,19 @@ export async function downloadAuditPdf({ pdfFilterUser, pdfFilterStart, pdfFilte
       `)
       .order('created_at', { ascending: false });
 
-    if (pdfFilterUser) query = query.eq('user_id', pdfFilterUser);
-    if (pdfFilterStart) query = query.gte('created_at', pdfFilterStart);
-    if (pdfFilterEnd) query = query.lte('created_at', pdfFilterEnd + 'T23:59:59');
-    if (pdfFilterStage) query = query.ilike('stage', `%${pdfFilterStage}%`);
+    if (pdfFilterUser) leadsQuery = leadsQuery.eq('user_id', pdfFilterUser);
+    if (pdfFilterStart) leadsQuery = leadsQuery.gte('created_at', pdfFilterStart);
+    if (pdfFilterEnd) leadsQuery = leadsQuery.lte('created_at', pdfFilterEnd + 'T23:59:59');
+    if (pdfFilterStage) leadsQuery = leadsQuery.ilike('stage', `%${pdfFilterStage}%`);
 
-    const { data: leads, error } = await query;
+    const [{ data: assignmentRows }, { data: leads, error }] = await Promise.all([
+      supabase.from('business_assignments').select('business_location, salesperson_name'),
+      leadsQuery,
+    ]);
+
+    const assignmentMap = Object.fromEntries(
+      (assignmentRows || []).map((a) => [a.business_location, a.salesperson_name])
+    );
 
     if (error) {
       console.warn('Error downloading leads from sales_leads, falling back to csv_uploads:', error.message);
@@ -393,7 +451,7 @@ export async function downloadAuditPdf({ pdfFilterUser, pdfFilterStart, pdfFilte
       return;
     }
 
-    generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToast });
+    generateLeadsPdf(leads, { pdfFilterStart, pdfFilterEnd, showToast, assignmentMap });
   } catch (err) {
     console.error(err);
     showToast('Error generating PDF. Using fallback data.');

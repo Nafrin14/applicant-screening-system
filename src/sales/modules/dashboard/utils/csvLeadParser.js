@@ -40,42 +40,28 @@ function detectBusinessLine(fileName) {
 // the region/salesperson from the filename (via lookupAccount), detects the
 // business line, and maps each row's columns with getField's fuzzy header
 // matching. Mirrors the original inline logic exactly, warnings included.
+//
+// `assignmentMap` (optional: { [businessLocation]: salespersonName }, read
+// from the business_assignments table) takes priority over the static
+// ACCOUNT_MAPPING fallback for the salesperson written on each row -- the
+// static mapping only fires when a business has no assignment configured
+// yet. The Final Lead Report itself re-resolves salesperson from
+// business_assignments at generation time regardless of what's stored
+// here, so this value is really just an upload-time audit trail, not the
+// report's source of truth.
 // ─────────────────────────────────────────────────────────────────────────
-export function buildLeadRows(rows, { fileName, userId, csvUploadId }) {
+export function buildLeadRows(rows, { fileName, userId, csvUploadId, assignmentMap = {} }) {
   const lowerFileName = fileName.toLowerCase();
   const match = lookupAccount(lowerFileName);
 
   const location = match?.region || "Other / Unassigned";
-  const salesperson = match?.salesperson || "Unassigned";
+  const salesperson = assignmentMap?.[location] || match?.salesperson || "Unassigned";
   const businessLine = detectBusinessLine(lowerFileName);
 
-  console.log("STEP 3.5 - Matched account:", match);
+  console.log("STEP 3.5 - Matched account:", match, "| resolved salesperson:", salesperson);
 
-  const leadRows = rows.map((row) => ({
-    user_id: userId,
-    csv_upload_id: csvUploadId,
-    name: getField(row, [
-      "Opportunity name",
-      "Primary Contact name",
-      "Name",
-      "Contact Name",
-      "Full Name",
-      "Customer Name",
-      "Lead Name"
-    ]),
-    phone: getField(row, [
-      "Phone number",
-      "Phone",
-      "Mobile",
-      "Contact Number",
-      "Phone Number",
-      "Cell Phone",
-      "Mobile Phone"
-    ]),
-    location,
-    business_line: businessLine,
-    salesperson,
-    stage: getField(row, [
+  const leadRows = rows.map((row) => {
+    const stage = getField(row, [
       "Stage",
       "Deal Stage",
       "Opportunity Stage",
@@ -83,17 +69,84 @@ export function buildLeadRows(rows, { fileName, userId, csvUploadId }) {
       "Lead Status",
       "Status",
       "Sales Stage"
-    ]),
-    lead_date: getField(row, [
-      "Created on",
-      "Date",
-      "Created Date",
-      "Lead Date",
-      "Create Date",
-      "Creation Date",
-      "Date Created"
-    ]),
-  }));
+    ]);
+
+    // Final Status is the lead's outcome (Booked / Not Booked / Job Sold /
+    // Cancelled / Not Interested, etc.) as some salespersons' sheets record
+    // it directly -- distinct from Stage, which is the CRM pipeline step.
+    // Falls back to whatever's in a generic "Status" column if there's no
+    // dedicated Final Status column, then to the stage itself.
+    const finalStatus = getField(row, [
+      "Final Status",
+      "Status",
+      "Deal Status",
+      "Result",
+      "Outcome"
+    ]);
+
+    return {
+      user_id: userId,
+      csv_upload_id: csvUploadId,
+      name: getField(row, [
+        "Opportunity name",
+        "Primary Contact name",
+        "Name",
+        "Contact Name",
+        "Full Name",
+        "Customer Name",
+        "Lead Name"
+      ]),
+      phone: getField(row, [
+        "Phone number",
+        "Phone",
+        "Mobile",
+        "Contact Number",
+        "Phone Number",
+        "Cell Phone",
+        "Mobile Phone"
+      ]),
+      address: getField(row, [
+        "Address",
+        "Property Address",
+        "Street Address",
+        "Location Address",
+        "Full Address"
+      ]),
+      comment: getField(row, [
+        "Comment",
+        "Comments",
+        "Notes",
+        "Note",
+        "Remark",
+        "Remarks"
+      ]),
+      // Where the customer heard about us -- Google, Repeat Client, Optin
+      // Claim for Website, etc.
+      source: getField(row, [
+        "Source",
+        "Lead Source",
+        "Referral Source",
+        "How did you hear about us",
+        "Campaign Source",
+        "Campaign"
+      ]),
+      location,
+      business_line: businessLine,
+      salesperson,
+      stage,
+      last_stage: stage,
+      final_status: finalStatus,
+      lead_date: getField(row, [
+        "Created on",
+        "Date",
+        "Created Date",
+        "Lead Date",
+        "Create Date",
+        "Creation Date",
+        "Date Created"
+      ]),
+    };
+  });
 
   // ─── FIX: Warn if Stage is missing ──────────────────────────
   const emptyStageCount = leadRows.filter(r => !r.stage).length;
