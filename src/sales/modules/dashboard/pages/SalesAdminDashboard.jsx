@@ -8,6 +8,7 @@ import useCsvVault from '../hooks/useCsvVault';
 import useAuditReport from '../hooks/useAuditReport';
 import useBusinessAssignments from '../hooks/useBusinessAssignments';
 import useCsvUpload from '../hooks/useCsvUpload';
+import useDataComparison from '../hooks/useDataComparison';
 
 import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminHeader from '../components/admin/AdminHeader';
@@ -17,6 +18,7 @@ import UserFormTab from '../components/admin/UserFormTab';
 import CsvVaultTab from '../components/admin/CsvVaultTab';
 import AiReportTab from '../components/admin/AiReportTab';
 import BusinessAssignmentsTab from '../components/admin/BusinessAssignmentsTab';
+import DataComparisonTab from '../components/admin/DataComparisonTab';
 
 export default function SalesAdminDashboard() {
   const { notify, confirmDialog } = useNotification();
@@ -46,6 +48,7 @@ export default function SalesAdminDashboard() {
   const csvVault = useCsvVault(uploadedCsvFiles, selectedCsvIds, setSelectedCsvIds, fetchDashboardData, { notify, confirmDialog, showToast });
   const auditReport = useAuditReport({ showToast });
   const businessAssignments = useBusinessAssignments({ notify, showToast });
+  const dataComparison = useDataComparison({ notify });
 
   // Lets an admin upload a CSV on behalf of a salesperson who is out — the
   // rows land under that salesperson's user_id, not the admin's own, so
@@ -174,6 +177,26 @@ export default function SalesAdminDashboard() {
               aiProgress={auditReport.aiProgress}
               aiProgressLabel={auditReport.aiProgressLabel}
               reportData={auditReport.reportData}
+            />
+          )}
+
+          {/* ── TAB 6: DATA COMPARISON (Master Data vs GHL Lead Data) ───── */}
+          {activeTab==='data-comparison' && (
+            <DataComparisonTab
+              masterFile={dataComparison.masterFile}
+              ghlFile={dataComparison.ghlFile}
+              masterRows={dataComparison.masterRows}
+              ghlRows={dataComparison.ghlRows}
+              masterFormat={dataComparison.masterFormat}
+              ghlFormat={dataComparison.ghlFormat}
+              parsingMaster={dataComparison.parsingMaster}
+              parsingGhl={dataComparison.parsingGhl}
+              comparing={dataComparison.comparing}
+              result={dataComparison.result}
+              onMasterFile={dataComparison.handleMasterFile}
+              onGhlFile={dataComparison.handleGhlFile}
+              onCompare={dataComparison.runCompare}
+              onReset={dataComparison.reset}
             />
           )}
 

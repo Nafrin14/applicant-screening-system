@@ -4,6 +4,7 @@ const NAV_ITEMS = [
   ['assignments','🧭 Business Assignments'],
   ['csv-vault','📄 View Salesperson Records'],
   ['ai-report','🎯 Final Audit Report'],
+  ['data-comparison','🔍 Data Comparison'],
 ];
 
 export default function AdminSidebar({ activeTab, setActiveTab, mobileMenuOpen, setMobileMenuOpen, onLogout }) {
