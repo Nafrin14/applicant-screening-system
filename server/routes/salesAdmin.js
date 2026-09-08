@@ -1,4 +1,5 @@
 const express = require("express");
+const axios = require("axios");
 const { getSupabaseAdmin } = require("../lib/supabaseAdmin");
 
 const router = express.Router();
@@ -196,6 +197,101 @@ router.post("/users/deactivate", async (req, res) => {
   } catch (err) {
     console.error("[salesAdmin] deactivate user error:", err);
     res.status(500).json({ error: err.message || "Failed to deactivate user." });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// POST /api/sales-admin/data-comparison/extract
+// Used by the Data Comparison tab (Master Data vs GHL Lead Data auditing)
+// to turn a messy, hand-typed sheet -- especially a PDF, where the old
+// positional column reconstruction routinely misaligned data -- into
+// clean, structured lead records via the Claude API. Body: { text,
+// fileName }. Requires ANTHROPIC_API_KEY in server/.env; without it this
+// returns 501 with a specific code rather than failing silently, so the
+// frontend can tell the admin exactly what to set up.
+// ─────────────────────────────────────────────────────────────────────────
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5";
+
+const EXTRACTION_SYSTEM_PROMPT = `You extract lead records from messy, hand-maintained sales sheets (CSV, Excel, or text pulled from a PDF export). Column headers and order vary between sheets, some rows are missing fields, and PDF-extracted text can have columns run together or split oddly.
+
+Return ONLY a JSON array (no prose, no markdown fences, no explanation). Each element is one lead record with exactly these fields, using "" for anything not present in that row -- never guess or invent a value that isn't in the text:
+{
+  "name": "customer/contact name",
+  "businessName": "business or opportunity name, if the sheet has one distinct from the customer name",
+  "phone": "phone number as written",
+  "email": "email address",
+  "address": "street address",
+  "comment": "any notes/comments/remarks",
+  "status": "final status/outcome (Booked, Not Sold, Sold, Cancelled, etc.)",
+  "stage": "pipeline stage, if distinct from status",
+  "salesperson": "assigned salesperson name",
+  "source": "how the lead heard about the business (Google, referral, social media, etc.)",
+  "date": "the lead's date, in whatever format the sheet uses"
+}
+
+Skip rows that are clearly not individual leads -- sheet titles, column headers repeated mid-sheet, and totals/summary rows ("Total number of Leads", "Total number of Leads Converted", "Follow up", "Booked but Not Visited", "Need to Book", and similar). Do not skip a row just because it's thin (e.g. only a phone number) -- that is still a real lead and belongs in the output.`;
+
+router.post("/data-comparison/extract", async (req, res) => {
+  try {
+    const { text, fileName } = req.body || {};
+    if (!text || !text.trim()) {
+      return res.status(400).json({ error: "No text to extract from." });
+    }
+    if (!ANTHROPIC_API_KEY) {
+      return res.status(501).json({
+        error: "AI extraction isn't set up yet \u2014 add ANTHROPIC_API_KEY to server/.env to enable it.",
+        code: "ANTHROPIC_NOT_CONFIGURED",
+      });
+    }
+
+    // Keep the payload reasonable -- a long PDF/sheet gets truncated with a
+    // flag back to the client rather than silently blowing the model's
+    // context window or the bill.
+    const MAX_CHARS = 60000;
+    const truncated = text.length > MAX_CHARS;
+    const clipped = truncated ? text.slice(0, MAX_CHARS) : text;
+
+    const response = await axios.post(
+      "https://api.anthropic.com/v1/messages",
+      {
+        model: ANTHROPIC_MODEL,
+        max_tokens: 8000,
+        system: EXTRACTION_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: `File: ${fileName || "upload"}\n\n${clipped}` }],
+      },
+      {
+        headers: {
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
+        },
+        timeout: 90000,
+      }
+    );
+
+    const raw = response.data?.content?.[0]?.text || "";
+    // Asked for JSON only, but strip code fences defensively in case the
+    // model wraps it in ```json anyway.
+    const jsonText = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "");
+
+    let records;
+    try {
+      records = JSON.parse(jsonText);
+    } catch {
+      console.error("[salesAdmin] Claude extraction returned non-JSON:", raw.slice(0, 500));
+      return res.status(502).json({ error: "AI extraction returned an unreadable response. Try again, or use the file's own columns instead." });
+    }
+
+    if (!Array.isArray(records)) {
+      return res.status(502).json({ error: "AI extraction didn't return a list of records." });
+    }
+
+    res.json({ records, truncated });
+  } catch (err) {
+    const anthropicError = err.response?.data?.error?.message;
+    console.error("[salesAdmin] Claude extraction failed:", anthropicError || err.message);
+    res.status(500).json({ error: anthropicError || err.message || "AI extraction failed." });
   }
 });
 

@@ -17,7 +17,7 @@ export function normalizeRecord(row, index) {
   return {
     _index: index,
     id: getField(row, ["Lead ID", "Opportunity ID", "Record ID", "ID"]),
-    businessName: getField(row, ["Business Name", "Company", "Company Name", "Opportunity name"]),
+    businessName: getField(row, ["Business Name", "businessName", "Company", "Company Name", "Opportunity name"]),
     name: getField(row, ["Name", "Contact Name", "Full Name", "Customer Name", "Lead Name", "Primary Contact name"]),
     phone: getField(row, ["Phone", "Phone number", "Number", "Mobile", "Contact Number", "Phone Number", "Cell Phone", "Mobile Phone"]),
     email: getField(row, ["Email", "Email Address", "Contact Email"]),

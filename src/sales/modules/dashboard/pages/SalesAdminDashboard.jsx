@@ -189,12 +189,16 @@ export default function SalesAdminDashboard() {
               ghlRows={dataComparison.ghlRows}
               masterFormat={dataComparison.masterFormat}
               ghlFormat={dataComparison.ghlFormat}
+              masterAiExtracted={dataComparison.masterAiExtracted}
+              ghlAiExtracted={dataComparison.ghlAiExtracted}
               parsingMaster={dataComparison.parsingMaster}
               parsingGhl={dataComparison.parsingGhl}
               comparing={dataComparison.comparing}
               result={dataComparison.result}
               onMasterFile={dataComparison.handleMasterFile}
               onGhlFile={dataComparison.handleGhlFile}
+              onFixMasterWithClaude={dataComparison.fixMasterWithClaude}
+              onFixGhlWithClaude={dataComparison.fixGhlWithClaude}
               onCompare={dataComparison.runCompare}
               onReset={dataComparison.reset}
             />

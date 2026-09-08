@@ -2,6 +2,7 @@ function titleForTab(activeTab, isEditing) {
   switch (activeTab) {
     case 'user-form': return isEditing ? 'Edit User' : 'Create User';
     case 'ai-report': return 'Final Audit Report';
+    case 'data-comparison': return 'Data Comparison';
     case 'overview': return 'Performance Overview';
     case 'users': return 'Manage Users';
     default: return 'Records';
