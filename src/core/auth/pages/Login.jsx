@@ -108,6 +108,14 @@ if (activeTab === "sales") {
     return;
   }
 
+  // Sales Dashboard users must sign in with their company @kdmarketinggroup.org
+  // email. Sales Admin accounts (e.g. admin@gmail.com) are unaffected.
+  if (salesRole === "user" && !email.trim().toLowerCase().endsWith("@kdmarketinggroup.org")) {
+    notify("Sales Dashboard accounts must use a company @kdmarketinggroup.org email.", { type: "error" });
+    await supabase.auth.signOut();
+    return;
+  }
+
   if (profile.role === "admin") {
     navigate("/sales-admin-dashboard");
   } else {
