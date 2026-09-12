@@ -6,6 +6,8 @@ require("dotenv").config();
 const aiScreeningRoutes =
 require("./routes/aiScreening");
 
+const salesAdminRoutes = require("./routes/salesAdmin");
+
 
 const app = express();
 
@@ -98,6 +100,8 @@ app.use(
 "/api/ai",
 aiScreeningRoutes
 );
+
+app.use("/api/sales-admin", salesAdminRoutes);
 
 
 // Server Start
