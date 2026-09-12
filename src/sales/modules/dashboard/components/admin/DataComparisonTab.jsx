@@ -48,7 +48,7 @@ function StatTile({ label, value, tone }) {
   );
 }
 
-function UploadZone({ title, hint, file, rows, format, busy, aiExtracted, onFile, onFixWithClaude }) {
+function UploadZone({ title, hint, file, rows, format, busy, onFile }) {
   const inputRef = useRef(null);
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex-1 min-w-[260px]">
@@ -64,24 +64,15 @@ function UploadZone({ title, hint, file, rows, format, busy, aiExtracted, onFile
           className="flex-1 bg-emerald-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-emerald-950 disabled:opacity-50">
           {busy ? '⏳ Working…' : file ? '🔁 Replace File' : '📤 Choose File'}
         </button>
-        {file && format !== 'pdf' && (
-          <button type="button" onClick={onFixWithClaude} disabled={busy} title="Columns look wrong? Re-read this file with Claude instead of the local parser."
-            className="bg-white text-emerald-900 border border-emerald-900 font-bold text-xs px-3 py-2.5 rounded-xl hover:bg-emerald-50 disabled:opacity-50 whitespace-nowrap">
-            🤖 Fix with Claude
-          </button>
-        )}
       </div>
       {file && (
         <div className="mt-3 bg-slate-50 border border-slate-100 rounded-lg px-3 py-2">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-bold text-slate-700 truncate">{file.name}</p>
-            {aiExtracted && <span className="bg-violet-50 text-violet-700 border border-violet-200 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">✨ AI-extracted</span>}
-          </div>
+          <p className="text-xs font-bold text-slate-700 truncate">{file.name}</p>
           <p className="text-[11px] text-slate-400">{rows?.length ?? 0} row(s) read</p>
         </div>
       )}
       {format === 'pdf' && (
-        <p className="text-[10px] text-slate-400 mt-2">PDF columns are read by Claude, not guessed from layout — if a row looks off, replace the file rather than retry, since the same text is sent again.</p>
+        <p className="text-[10px] text-slate-400 mt-2">PDF phone/email/date/status/source are read reliably from the text; name/address/comment/salesperson are best-effort — double-check those on an unusual row.</p>
       )}
     </div>
   );
@@ -203,9 +194,8 @@ function DuplicateGroup({ reason, sourceLabel, records }) {
 
 export default function DataComparisonTab({
   masterFile, ghlFile, masterRows, ghlRows, masterFormat, ghlFormat,
-  masterAiExtracted, ghlAiExtracted,
   parsingMaster, parsingGhl, comparing, result,
-  onMasterFile, onGhlFile, onFixMasterWithClaude, onFixGhlWithClaude, onCompare, onReset,
+  onMasterFile, onGhlFile, onCompare, onReset,
 }) {
   const [activeSubTab, setActiveSubTab] = useState('all');
   const [search, setSearch] = useState('');
@@ -249,11 +239,11 @@ export default function DataComparisonTab({
         </p>
         <div className="flex flex-wrap gap-4">
           <UploadZone title="1 · Master Data Sheet" hint="The salesperson's tracking sheet — .csv, .xlsx, or .pdf."
-            file={masterFile} rows={masterRows} format={masterFormat} busy={parsingMaster} aiExtracted={masterAiExtracted}
-            onFile={onMasterFile} onFixWithClaude={onFixMasterWithClaude} />
+            file={masterFile} rows={masterRows} format={masterFormat} busy={parsingMaster}
+            onFile={onMasterFile} />
           <UploadZone title="2 · GHL Lead Data" hint="Export from the existing system — .csv, .xlsx, or .pdf."
-            file={ghlFile} rows={ghlRows} format={ghlFormat} busy={parsingGhl} aiExtracted={ghlAiExtracted}
-            onFile={onGhlFile} onFixWithClaude={onFixGhlWithClaude} />
+            file={ghlFile} rows={ghlRows} format={ghlFormat} busy={parsingGhl}
+            onFile={onGhlFile} />
         </div>
         <button type="button" onClick={onCompare} disabled={!masterRows?.length || !ghlRows?.length || comparing}
           className="bg-emerald-900 text-white font-bold text-sm px-6 py-3 rounded-xl hover:bg-emerald-950 disabled:opacity-40 disabled:cursor-not-allowed">
